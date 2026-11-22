@@ -27,6 +27,13 @@ jobs:
       - run: flutter analyze
       - run: flutter test --exclude-tags manual
       - run: flutter build web --release --no-web-resources-cdn --base-href "/${{ github.event.repository.name }}/"
+      # GitHub Pages lets browsers cache files for 10 minutes. Tag the app
+      # files with the commit so a new version is never mixed with an old one.
+      - run: |
+          v=${GITHUB_SHA::8}
+          sed -i "s#\"mainJsPath\":\"main.dart.js\"#\"mainJsPath\":\"main.dart.js?v=$v\"#" build/web/flutter_bootstrap.js
+          sed -i "s#flutter_bootstrap.js\"#flutter_bootstrap.js?v=$v\"#" build/web/index.html
+          grep -q "main.dart.js?v=$v" build/web/flutter_bootstrap.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
