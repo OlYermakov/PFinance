@@ -51,25 +51,26 @@ class AccountsPage extends StatelessWidget {
 
     Widget stat(String label, int v, Color? color) => Expanded(
           child: Column(children: [
-            Text(label, style: TextStyle(fontSize: 13, color: muted)),
-            const SizedBox(height: 2),
-            FittedBox(child: AnimatedMoney(v, base, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: color))),
+            Text(label, style: TextStyle(fontSize: 12, color: muted)),
+            const SizedBox(height: 1),
+            FittedBox(child: AnimatedMoney(v, base, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: color))),
           ]),
         );
 
     return SafeArea(
       bottom: false,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
         children: [
           Row(children: [
-            const SizedBox(width: 96),
-            Expanded(child: Text('Рахунки', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700))),
-            IconButton(tooltip: 'Редагувати список', icon: const Icon(Icons.edit_outlined), onPressed: () => _push(context, const EditAccountsPage())),
-            IconButton(tooltip: 'Новий рахунок', icon: const Icon(Icons.add_rounded), onPressed: () => editAccount(context)),
+            const SizedBox(width: 80),
+            Expanded(child: Text('Рахунки', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 17))),
+            IconButton(visualDensity: VisualDensity.compact, tooltip: 'Редагувати список', icon: const Icon(Icons.edit_outlined), onPressed: () => _push(context, const EditAccountsPage())),
+            IconButton(visualDensity: VisualDensity.compact, tooltip: 'Новий рахунок', icon: const Icon(Icons.add_rounded), onPressed: () => editAccount(context)),
           ]),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           GradientCard(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
             child: Row(children: [
               stat('Активи', nw.assets, scheme.primary),
               stat('Пасиви', -nw.liabilities, p.expense),
@@ -77,7 +78,7 @@ class AccountsPage extends StatelessWidget {
             ]),
           ),
           for (final e in groups.entries) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             Builder(builder: (context) {
               var inc = 0, exc = 0;
               for (final a in e.value) {
@@ -90,9 +91,9 @@ class AccountsPage extends StatelessWidget {
               }
               final anyInc = e.value.any((a) => a.includeInTotal), anyExc = e.value.any((a) => !a.includeInTotal);
               return Padding(
-                padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
                 child: Row(children: [
-                  Expanded(child: Text(e.key, style: TextStyle(color: muted, fontWeight: FontWeight.w600, fontSize: 15))),
+                  Expanded(child: Text(e.key, style: TextStyle(color: muted, fontWeight: FontWeight.w500, fontSize: 14))),
                   if (anyExc) Text(money(exc, base), style: TextStyle(color: muted)),
                   if (anyExc && anyInc) const SizedBox(width: 16),
                   if (anyInc) Text(money(inc, base), style: TextStyle(color: inc < 0 ? p.expense : scheme.primary, fontWeight: FontWeight.w700)),
@@ -153,13 +154,13 @@ class _AccountRow extends StatelessWidget {
       onTap: () => _push(context, AccountPage(account: account)),
       onLongPress: () => editAccount(context, existing: account),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
         child: Row(children: [
-          Container(width: 4, height: 22, decoration: BoxDecoration(color: Color(account.color), borderRadius: BorderRadius.circular(2))),
+          Container(width: 4, height: 20, decoration: BoxDecoration(color: Color(account.color), borderRadius: BorderRadius.circular(2))),
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(account.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              Text(account.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
               if (cycle != null) ...[
                 const SizedBox(height: 4),
                 Text('До сплати ${money(-cycle.payable, account.currency)} · до ${cycle.due.day}.${cycle.due.month.toString().padLeft(2, '0')}',
@@ -168,7 +169,7 @@ class _AccountRow extends StatelessWidget {
               ],
             ]),
           ),
-          AnimatedMoney(balance, account.currency, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: color)),
+          AnimatedMoney(balance, account.currency, style: TextStyle(fontWeight: FontWeight.w500, fontSize: 15, color: color)),
         ]),
       ),
     );
@@ -258,7 +259,7 @@ class _AccountPageState extends State<AccountPage> {
           child: Column(children: [
             Text(label, style: TextStyle(fontSize: 12, color: muted)),
             const SizedBox(height: 2),
-            FittedBox(child: Text(v, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: c))),
+            FittedBox(child: Text(v, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: c))),
           ]),
         );
     String plain(int v) => money(v, cur).replaceAll(RegExp(r'[^\d\s ,.−+-]'), '').trim();
@@ -346,7 +347,7 @@ class _AccountPageState extends State<AccountPage> {
                 onTap: () => setState(() => _view = v),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
                     border: Border(bottom: BorderSide(color: _view == v ? scheme.primary : Colors.white.withValues(alpha: 0.10), width: _view == v ? 3 : 1)),
                   ),
@@ -357,10 +358,10 @@ class _AccountPageState extends State<AccountPage> {
               ),
             ),
         ]),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         GlassCard(
           radius: 20,
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+          padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 6),
           child: Row(children: [
             cell('Надходження', plain(total.dep), scheme.primary),
             cell('Списання', plain(total.wd), p.expense),
@@ -368,7 +369,7 @@ class _AccountPageState extends State<AccountPage> {
             if (_view != _AccView.year) cell('Баланс', plain(balanceAt(range.end)), null),
           ]),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         body,
       ]),
     );
@@ -390,9 +391,9 @@ class _AccountPageState extends State<AccountPage> {
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+              padding: const EdgeInsets.fromLTRB(14, 5, 14, 5),
               child: Row(children: [
-                Text('${e.key.day}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                Text('${e.key.day}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
@@ -417,7 +418,7 @@ class _AccountPageState extends State<AccountPage> {
               InkWell(
                 onTap: () => openTxnEditor(context, existing: t),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                  padding: const EdgeInsets.fromLTRB(14, 6, 14, 6),
                   child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     SizedBox(
                       width: 92,
