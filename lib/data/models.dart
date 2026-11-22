@@ -312,7 +312,7 @@ class Budget implements Entity {
       );
 }
 
-enum RepeatEvery { day, week, twoWeeks, month, year }
+enum RepeatEvery { day, week, twoWeeks, fourWeeks, month, quarter, year }
 
 /// A repeating record (Money Manager's "Repeat Setting"). Stored in the
 /// settings store, so it travels with backups. Due copies are created as
@@ -350,7 +350,9 @@ class RepeatRule {
       RepeatEvery.day => DateTime(s.year, s.month, s.day + n, s.hour, s.minute),
       RepeatEvery.week => DateTime(s.year, s.month, s.day + 7 * n, s.hour, s.minute),
       RepeatEvery.twoWeeks => DateTime(s.year, s.month, s.day + 14 * n, s.hour, s.minute),
+      RepeatEvery.fourWeeks => DateTime(s.year, s.month, s.day + 28 * n, s.hour, s.minute),
       RepeatEvery.month => clamp(s.year, s.month + n),
+      RepeatEvery.quarter => clamp(s.year, s.month + 3 * n),
       RepeatEvery.year => clamp(s.year + n, s.month),
     };
   }

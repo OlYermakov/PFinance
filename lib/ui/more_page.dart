@@ -21,7 +21,7 @@ import 'widgets.dart';
 
 part 'more_extra.dart';
 
-const appVersion = 'v0.8';
+const appVersion = 'v0.9';
 
 /// Full names of the supported currencies (Settings → currencies).
 const currencyNames = {
@@ -778,5 +778,46 @@ Future<void> _import(BuildContext context) async {
   } catch (e) {
     nav.pop();
     messenger.showSnackBar(SnackBar(content: Text('Не вдалося прочитати файл: $e')));
+  }
+}
+
+/// Import of a Money Manager backup (.mmbak).
+Future<void> _importMm(BuildContext context) async {
+  final store = StoreScope.read(context);
+  final messenger = ScaffoldMessenger.of(context);
+  // Any file type: iOS greys out unknown extensions such as .mmbak.
+  final files = await FilePicker.pickFiles(type: FileType.any);
+  if (files.isEmpty) return;
+  final bytes = await files.single.readAsBytes();
+  if (!context.mounted) return;
+  if (!await _confirm(context, 'Імпортувати з Money Manager?', 'Поточні записи, рахунки, категорії, повтори й бюджети буде замінено даними з файлу. Налаштування вигляду залишаться.')) return;
+  if (!context.mounted) return;
+  final nav = Navigator.of(context, rootNavigator: true);
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const PopScope(
+      canPop: false,
+      child: AlertDialog(
+        content: Row(children: [
+          SizedBox.square(dimension: 28, child: CircularProgressIndicator(strokeWidth: 3)),
+          SizedBox(width: 20),
+          Expanded(child: Text('Імпортую дані…')),
+        ]),
+      ),
+    ),
+  );
+  try {
+    final s = await store.importMoneyManagerBackup(bytes);
+    nav.pop();
+    if (!context.mounted) return;
+    await _info(
+      context,
+      'Імпорт завершено',
+      'Рахунків: ${s['accounts']}\nКатегорій: ${s['categories']}\nЗаписів: ${s['transactions']}\nПовторів: ${s['repeats']}\nБюджетів: ${s['budgets']}',
+    );
+  } catch (e) {
+    nav.pop();
+    messenger.showSnackBar(SnackBar(content: Text('Не вдалося імпортувати файл: $e')));
   }
 }

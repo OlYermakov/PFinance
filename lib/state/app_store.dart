@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:material_ui/material_ui.dart';
 
+import '../data/mm_import.dart';
 import '../data/models.dart';
 import '../data/repository.dart';
 import '../ui/format.dart' as fmt;
@@ -507,6 +509,15 @@ class AppStore extends ChangeNotifier {
     final data = jsonDecode(json) as Map<String, Object?>;
     await repo.importAll(data);
     await load();
+  }
+
+  /// Replaces all data with the contents of a Money Manager backup (.mmbak).
+  Future<Map<String, int>> importMoneyManagerBackup(Uint8List bytes) async {
+    final current = await repo.exportAll();
+    final res = importMoneyManager(bytes, Map<String, Object?>.from(current['settings'] as Map? ?? const {}));
+    await repo.importAll(res.backup);
+    await load();
+    return res.stats;
   }
 
   /// MM "Reset contents only": drops records, repeats and budgets but keeps

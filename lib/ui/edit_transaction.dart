@@ -1558,7 +1558,9 @@ String repeatLabel(RepeatEvery r) => switch (r) {
   RepeatEvery.day => 'Щодня',
   RepeatEvery.week => 'Щотижня',
   RepeatEvery.twoWeeks => 'Кожні 2 тижні',
+  RepeatEvery.fourWeeks => 'Кожні 4 тижні',
   RepeatEvery.month => 'Щомісяця',
+  RepeatEvery.quarter => 'Щокварталу',
   RepeatEvery.year => 'Щороку',
 };
 
@@ -1566,6 +1568,8 @@ String repeatShort(RepeatEvery r) => switch (r) {
   RepeatEvery.day => 'день',
   RepeatEvery.week => 'тиждень',
   RepeatEvery.twoWeeks => '2 тижні',
+  RepeatEvery.fourWeeks => '4 тижні',
   RepeatEvery.month => 'місяць',
+  RepeatEvery.quarter => 'квартал',
   RepeatEvery.year => 'рік',
 };

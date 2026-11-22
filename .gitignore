@@ -46,3 +46,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Personal backups never go to the repo
+*.mmbak
+!test/fixtures/mm_sample.mmbak
