@@ -246,16 +246,27 @@ MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings
     for (final b in db.rows('ZBUDGET')) {
       final target = _s(b['ZTARGETUID']);
       final uid = _s(b['ZUID']);
-      // monthly (6), plain category budgets only (UID "<cat>_<type>_0_0_6")
-      if (!_active(b['ZISDEL']) || b['ZPERIODTYPEINT'] != 6 || !catIds.contains(target)) continue;
+      // Monthly (6) budgets. UID "<target>_<type>_0_<kind>_6": kind 0 is a
+      // category; kind 1 a transfer-expense account, which MM shows under its
+      // account group (as the Stats slice `grp:<group>`).
+      if (!_active(b['ZISDEL']) || b['ZPERIODTYPEINT'] != 6) continue;
       final seg = uid.split('_');
-      if (seg.length >= 5 && seg[seg.length - 2] != '0') continue;
+      final kind = seg.length >= 5 ? seg[seg.length - 2] : '0';
+      final String categoryId;
+      if (kind == '0' && catIds.contains(target)) {
+        categoryId = target;
+      } else if (kind == '1' && transferExpense.contains(target) && accById[target]?.group != null) {
+        categoryId = 'grp:${accById[target]!.group}';
+      } else {
+        continue;
+      }
+      if (budgets.any((x) => x.categoryId == categoryId)) continue;
       final m = amounts[uid];
       if (m == null) continue;
       final periods = m.keys.where((p) => p > 0 && p <= month).toList()..sort();
       final amount = periods.isNotEmpty ? m[periods.last]! : m[0];
       if (amount == null || amount <= 0) continue;
-      budgets.add(Budget(id: 'mm-$uid', categoryId: target, amount: _minor(amount, base), currency: base));
+      budgets.add(Budget(id: 'mm-$uid', categoryId: categoryId, amount: _minor(amount, base), currency: base));
     }
   }
 

@@ -448,15 +448,19 @@ class _DeletedAccountsPage extends StatelessWidget {
 
 // ---- Бюджет (MM: Budget Setting) -------------------------------------------------------
 
+/// Budget settings (MM "Налашт. бюджету"), opened from Stats → Бюджет too.
+Widget budgetSettingsPage([TxType type = TxType.expense]) => _BudgetPage(type: type);
+
 class _BudgetPage extends StatefulWidget {
-  const _BudgetPage();
+  const _BudgetPage({this.type = TxType.expense});
+  final TxType type;
 
   @override
   State<_BudgetPage> createState() => _BudgetPageState();
 }
 
 class _BudgetPageState extends State<_BudgetPage> {
-  TxType _type = TxType.expense;
+  late TxType _type = widget.type;
 
   @override
   Widget build(BuildContext context) {
@@ -465,7 +469,14 @@ class _BudgetPageState extends State<_BudgetPage> {
     final cur = store.baseCurrency;
     final cats = store.categoriesOf(_type);
     Budget? budgetOf(String? id) => store.budgets.where((b) => b.categoryId == id && b.currency == cur).firstOrNull;
-    final sum = cats.fold<int>(0, (s, c) => s + (budgetOf(c.id)?.amount ?? 0));
+    // MM: transfer-expense accounts count as expense under their group.
+    final groups = _type == TxType.expense
+        ? {
+            for (final a in store.accounts)
+              if (store.prefs.transferExpense.contains(a.id) && a.group != null) a.group!,
+          }.map((g) => Category(id: 'grp:$g', name: g, type: TxType.expense, color: 0xFF8E8E93)).toList()
+        : const <Category>[];
+    final sum = [...cats, ...groups].fold<int>(0, (s, c) => s + (budgetOf(c.id)?.amount ?? 0));
     Widget tab(TxType t, String label) => Expanded(
           child: InkWell(
             onTap: () => setState(() => _type = t),
@@ -487,7 +498,7 @@ class _BudgetPageState extends State<_BudgetPage> {
               const EmptyState(icon: Icons.track_changes_rounded, text: 'Спершу додай категорії')
             else ...[
               _Group(children: [
-                for (final c in cats)
+                for (final c in [...cats, ...groups])
                   _Item(
                     null,
                     c.name,

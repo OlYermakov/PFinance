@@ -7,6 +7,7 @@ import '../state/app_store.dart';
 import 'accounts_page.dart' show groupOf;
 import 'category_page.dart';
 import 'format.dart';
+import 'more_page.dart' show budgetSettingsPage;
 import 'edit_transaction.dart' show openTxnEditor;
 import 'theme.dart';
 import 'transactions_page.dart' show TxnTile;
@@ -199,7 +200,7 @@ class _StatsPageState extends State<StatsPage> {
         StatsMode.list => _listView(store, txns, cur),
         _ => _statsView(store, txns, cur),
       },
-      StatsTab.budget => _BudgetView(month: store.periodOf(_anchor), currency: cur),
+      StatsTab.budget => _BudgetView(month: store.periodOf(_anchor), currency: cur, type: _type),
       StatsTab.notes => _notesView(store, txns, cur),
     };
 
@@ -280,16 +281,13 @@ class _StatsPageState extends State<StatsPage> {
                     ])
                       Expanded(
                         child: InkWell(
-                          onTap: _tab == StatsTab.budget ? null : () => setState(() => _type = t),
+                          onTap: () => setState(() => _type = t),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 220),
                             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
                             decoration: BoxDecoration(
                               border: Border(
-                                bottom: BorderSide(
-                                  color: (_tab == StatsTab.budget ? t == TxType.expense : _type == t) ? col : Colors.white.withValues(alpha: 0.10),
-                                  width: (_tab == StatsTab.budget ? t == TxType.expense : _type == t) ? 3 : 1,
-                                ),
+                                bottom: BorderSide(color: _type == t ? col : Colors.white.withValues(alpha: 0.10), width: _type == t ? 3 : 1),
                               ),
                             ),
                             // MM: "Дохід € 1 790,32" in one line
@@ -309,10 +307,7 @@ class _StatsPageState extends State<StatsPage> {
                                   ],
                                 ),
                                 maxLines: 1,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: (_tab == StatsTab.budget ? t == TxType.expense : _type == t) ? null : scheme.onSurfaceVariant,
-                                ),
+                                style: TextStyle(fontSize: 16, color: _type == t ? null : scheme.onSurfaceVariant),
                               ),
                             ),
                           ),
@@ -364,7 +359,13 @@ class _StatsPageState extends State<StatsPage> {
           child: Column(
             children: [
               for (final (i, s) in slices.indexed)
-                CategoryRow(slice: s, total: total, currency: cur, index: i, onTap: s.category == null ? null : () => _openCategory(context, s.category!, rankColor(i))),
+                CategoryRow(
+                  slice: s,
+                  total: total,
+                  currency: cur,
+                  index: i,
+                  onTap: s.category == null ? null : () => _openCategory(context, s.category!, rankColor(i)),
+                ),
             ],
           ),
         ),
@@ -638,91 +639,133 @@ class _PillTabs<T> extends StatelessWidget {
   }
 }
 
-/// Money Manager–style budget list: remaining amount on top, then one row per
-/// budget with a bar, a "today" marker, spent and remaining.
+/// Money Manager–style budget list: what is left this month on top, the
+/// month's total budget with a "today" marker, then one row per budgeted
+/// top-level category (or transfer-expense group) of the selected type.
 class _BudgetView extends StatelessWidget {
-  const _BudgetView({required this.month, required this.currency});
+  const _BudgetView({required this.month, required this.currency, required this.type});
   final DateTime month;
   final String currency;
+  final TxType type;
 
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final budgets = store.budgets.where((b) => b.currency == currency).toList()
-      ..sort((a, b) => (a.categoryId == null ? 0 : 1).compareTo(b.categoryId == null ? 0 : 1));
     final r = store.periodRange(month);
-    final txns = store.txns.where((t) => t.type == TxType.expense && !t.date.isBefore(r.start) && t.date.isBefore(r.end));
-    int spentFor(String? catId) =>
-        txns.where((t) => catId == null || store.topCategory(t.categoryId)?.id == catId || t.categoryId == catId).fold(0, (s, t) => s + store.baseAmount(t));
+    final txns = store.txns.where((t) => !t.date.isBefore(r.start) && t.date.isBefore(r.end) && store.flowOf(t) == type).toList();
+    int spentFor(String key) => txns
+        .where((t) => key.startsWith('grp:') ? sliceKey(store, t) == key : (t.categoryId == key || store.topCategory(t.categoryId)?.id == key))
+        .fold(0, (s, t) => s + store.baseAmount(t));
+
+    // Top-level categories in their own order, then transfer-expense groups.
+    final order = {for (final (i, c) in store.categoriesOf(type).indexed) c.id: i};
+    final rows =
+        store.budgets
+            .where((b) => b.currency == currency && b.categoryId != null)
+            .where((b) => b.categoryId!.startsWith('grp:') ? type == TxType.expense : order.containsKey(b.categoryId))
+            .toList()
+          ..sort((a, b) => (order[a.categoryId] ?? 1 << 20).compareTo(order[b.categoryId] ?? 1 << 20));
+    final overall = type == TxType.expense ? store.budgets.where((b) => b.currency == currency && b.categoryId == null).firstOrNull : null;
+    final limitTotal = overall?.amount ?? rows.fold<int>(0, (s, b) => s + b.amount);
+    final spentTotal = overall != null ? txns.fold<int>(0, (s, t) => s + store.baseAmount(t)) : rows.fold<int>(0, (s, b) => s + spentFor(b.categoryId!));
+
     final now = DateTime.now();
     final pace = now.isBefore(r.start)
         ? 0.0
         : now.isAfter(r.end)
         ? 1.0
-        : now.difference(r.start).inHours / r.end.difference(r.start).inHours;
-    final overall = budgets.where((b) => b.categoryId == null).firstOrNull;
-    final limitTotal = overall?.amount ?? budgets.fold<int>(0, (s, b) => s + b.amount);
-    final spentTotal = overall != null ? spentFor(null) : budgets.fold<int>(0, (s, b) => s + spentFor(b.categoryId));
+        : now.difference(r.start).inMinutes / r.end.difference(r.start).inMinutes;
+    const kind = 'Місяць';
+    String nameOf(String id) => id.startsWith('grp:') ? id.substring(4) : store.category(id)?.name ?? '—';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Залишок (місяць)', style: TextStyle(color: scheme.onSurfaceVariant)),
-                  const SizedBox(height: 4),
-                  AnimatedMoney(
-                    limitTotal - spentTotal,
-                    currency,
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: limitTotal - spentTotal < 0 ? AppPalette.of(context).expense : null),
-                  ),
-                ],
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 4, 0, 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(type == TxType.expense ? 'Залишилось ($kind)' : 'Ще очікується', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14)),
+                    const SizedBox(height: 6),
+                    AnimatedMoney(limitTotal - spentTotal, currency, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w500)),
+                  ],
+                ),
               ),
-            ),
-            FilledButton.tonal(
-              onPressed: () => editBudget(context, currency: currency),
-              child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('Новий бюджет'), Icon(Icons.chevron_right_rounded, size: 18)]),
-            ),
-          ],
+              Material(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(8),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => budgetSettingsPage(type))),
+                  child: const Padding(
+                    padding: EdgeInsets.fromLTRB(12, 8, 6, 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Налашт. бюджету', style: TextStyle(fontSize: 14)),
+                        Icon(Icons.chevron_right_rounded, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 18),
-        if (budgets.isEmpty)
+        if (rows.isEmpty && overall == null)
           GlassCard(
             padding: const EdgeInsets.all(18),
             child: Text(
-              'Задай місячний ліміт на всі витрати або на категорію. Позначка «Сьогодні» показує, скільки мало б бути витрачено на цей день.',
+              'Бюджетів ще немає. Задай місячний ліміт для категорій у «Налашт. бюджету». Позначка «Сьогодні» показує, скільки мало б бути витрачено на цей день.',
               style: TextStyle(color: scheme.onSurfaceVariant),
             ),
           )
-        else
+        else ...[
           GlassCard(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Column(
-              children: [
-                for (final (i, b) in budgets.indexed) ...[
-                  if (i > 0) Divider(height: 1, color: Colors.white.withValues(alpha: 0.07)),
-                  InkWell(
-                    onTap: () => editBudget(context, currency: currency, existing: b),
-                    child: _BudgetRow(
-                      title: store.category(b.categoryId)?.name ?? 'Усі витрати',
-                      limit: b.amount,
-                      spent: spentFor(b.categoryId),
-                      pace: pace,
-                      currency: currency,
-                      showToday: i == 0,
-                      index: i,
-                    ),
-                  ),
-                ],
-              ],
+            padding: EdgeInsets.zero,
+            child: _BudgetRow(
+              title: 'Бюджет ($kind)',
+              limit: limitTotal,
+              spent: spentTotal,
+              pace: pace,
+              currency: currency,
+              showToday: true,
+              index: 0,
+              overIsBad: type == TxType.expense,
             ),
           ),
+          const SizedBox(height: 12),
+          if (rows.isNotEmpty)
+            GlassCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  for (final (i, b) in rows.indexed) ...[
+                    if (i > 0) Divider(height: 1, color: Colors.white.withValues(alpha: 0.07)),
+                    InkWell(
+                      onTap: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => budgetSettingsPage(type))),
+                      child: _BudgetRow(
+                        title: nameOf(b.categoryId!),
+                        limit: b.amount,
+                        spent: spentFor(b.categoryId!),
+                        pace: pace,
+                        currency: currency,
+                        showToday: false,
+                        index: i + 1,
+                        overIsBad: type == TxType.expense,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+        ],
       ],
     );
   }
@@ -737,7 +780,9 @@ class _BudgetRow extends StatelessWidget {
     required this.currency,
     required this.showToday,
     required this.index,
+    this.overIsBad = true,
   });
+  final bool overIsBad; // income above its budget is good news
   final String title;
   final int limit;
   final int spent;
@@ -746,20 +791,23 @@ class _BudgetRow extends StatelessWidget {
   final bool showToday;
   final int index;
 
+  static const _blue = Color(0xFF55A6F7);
+  static const _over = Color(0xFFF47A6C);
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final over = spent > limit;
-    final ratio = limit == 0 ? 0.0 : spent / limit;
-    final barColor = over ? AppPalette.of(context).expense : scheme.primary;
-    final muted = scheme.onSurfaceVariant;
+    final ratio = limit == 0 ? (spent > 0 ? 1.0 : 0.0) : spent / limit;
+    final barColor = over && overIsBad ? _over : _blue;
+    final panel = panelColor(context);
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, showToday ? 26 : 10, 16, 10),
+      padding: EdgeInsets.fromLTRB(16, showToday ? 30 : 10, 16, 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 118,
+            width: 120,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -767,10 +815,10 @@ class _BudgetRow extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: muted),
+                  style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
                 ),
                 const SizedBox(height: 4),
-                Text(money(limit, currency), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                Text(money(limit, currency), style: const TextStyle(fontSize: 15)),
               ],
             ),
           ),
@@ -781,68 +829,65 @@ class _BudgetRow extends StatelessWidget {
               children: [
                 LayoutBuilder(
                   builder: (context, c) {
-                    final x = (c.maxWidth * pace).clamp(0.0, c.maxWidth - 2);
+                    final x = (c.maxWidth * pace).clamp(0.0, c.maxWidth - 1);
                     return Stack(
                       clipBehavior: Clip.none,
                       children: [
                         Container(
-                          height: 26,
-                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.07), borderRadius: BorderRadius.circular(7)),
+                          height: 22,
+                          decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.28), borderRadius: BorderRadius.circular(4)),
                         ),
                         TweenAnimationBuilder<double>(
                           tween: Tween(begin: 0, end: ratio.clamp(0, 1)),
-                          duration: Duration(milliseconds: 700 + index * 60),
+                          duration: Duration(milliseconds: 600 + index.clamp(0, 10) * 50),
                           curve: Curves.easeOutCubic,
                           builder: (context, v, _) => Container(
-                            height: 26,
+                            height: 22,
                             width: c.maxWidth * v,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(7),
-                              gradient: LinearGradient(colors: [barColor.withValues(alpha: 0.75), barColor]),
-                            ),
+                            decoration: BoxDecoration(color: barColor, borderRadius: BorderRadius.circular(4)),
                           ),
+                        ),
+                        Positioned(
+                          left: x,
+                          top: 0,
+                          bottom: 0,
+                          child: Container(width: 1.5, color: panel),
                         ),
                         Positioned(
                           right: 8,
                           top: 0,
                           bottom: 0,
                           child: Center(
-                            child: Text(
-                              '${(ratio * 100).round()}%',
-                              style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
-                            ),
+                            child: Text('${(ratio * 100).round()}%', style: const TextStyle(fontSize: 14, color: Colors.white)),
                           ),
-                        ),
-                        Positioned(
-                          left: x,
-                          top: -2,
-                          bottom: -2,
-                          child: Container(width: 2, color: Colors.white.withValues(alpha: 0.85)),
                         ),
                         if (showToday)
                           Positioned(
-                            left: (x - 34).clamp(0.0, c.maxWidth - 70),
-                            top: -26,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.22), borderRadius: BorderRadius.circular(10)),
-                              child: const Text('Сьогодні', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                            left: (x - 36).clamp(0.0, c.maxWidth - 72),
+                            top: -27,
+                            width: 72,
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(color: const Color(0xFF55585F), borderRadius: BorderRadius.circular(10)),
+                                  child: const Text('Сьогодні', style: TextStyle(fontSize: 11, color: Colors.white)),
+                                ),
+                                CustomPaint(size: const Size(8, 4), painter: _Notch(const Color(0xFF55585F))),
+                              ],
                             ),
                           ),
                       ],
                     );
                   },
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 5),
                 Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        money(spent, currency),
-                        style: TextStyle(color: barColor, fontWeight: FontWeight.w600),
-                      ),
+                      child: Text(formatPlainMoney(spent, currency), style: TextStyle(color: barColor, fontSize: 15)),
                     ),
-                    Text(money(limit - spent, currency), style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text(formatPlainMoney(limit - spent, currency), style: const TextStyle(fontSize: 15)),
                   ],
                 ),
               ],
@@ -852,6 +897,22 @@ class _BudgetRow extends StatelessWidget {
       ),
     );
   }
+}
+
+class _Notch extends CustomPainter {
+  _Notch(this.color);
+  final Color color;
+  @override
+  void paint(Canvas canvas, Size size) => canvas.drawPath(
+    Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close(),
+    Paint()..color = color,
+  );
+  @override
+  bool shouldRepaint(_Notch old) => old.color != color;
 }
 
 /// Pie with outside labels and leader lines (as in Money Manager), drawn as a

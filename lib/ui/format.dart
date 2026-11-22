@@ -36,6 +36,15 @@ String money(int minor, String currency, {bool sign = false}) {
   return s;
 }
 
+/// Amount without the currency symbol ("1 006,87", "−26,00"), as MM shows
+/// figures inside lists where the currency is obvious.
+String formatPlainMoney(int minor, String currency) {
+  final d = decimalsOf(currency);
+  final f = NumberFormat.decimalPatternDigits(locale: locale, decimalDigits: showDecimals ? d : 0);
+  final s = f.format((minor / _pow10(d)).abs());
+  return minor < 0 ? '−$s' : s;
+}
+
 /// Parses user input like "1 234,50" or "1234.5" into minor units.
 int? parseMoney(String input, String currency) {
   final cleaned = input.replaceAll(RegExp(r'[\s ]'), '').replaceAll(',', '.');
