@@ -274,7 +274,7 @@ class _TxnEditorState extends State<TxnEditor> {
       return;
     }
     if (keepOpen) {
-      // "Продовжити": the next record keeps date, account and type.
+      // "Далі": the next record keeps date, account and type.
       setState(() {
         _savedInSeries++;
         _expr.updateAll((_, _) => '');
@@ -564,8 +564,8 @@ class _TxnEditorState extends State<TxnEditor> {
             child: Text(
               e,
               style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
                 color: accent,
               ),
               maxLines: 1,
@@ -774,7 +774,8 @@ class _TxnEditorState extends State<TxnEditor> {
               ],
             ),
           ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
+        Divider(height: 22, color: Colors.white.withValues(alpha: 0.08)),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -787,7 +788,11 @@ class _TxnEditorState extends State<TxnEditor> {
               ),
             ActionChip(
               avatar: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Тег'),
+              label: const Text('Тег', style: TextStyle(fontSize: 14)),
+              shape: const StadiumBorder(),
+              side: BorderSide.none,
+              backgroundColor: Colors.black.withValues(alpha: 0.22),
+              visualDensity: VisualDensity.compact,
               onPressed: _addTag,
             ),
           ],
@@ -837,31 +842,38 @@ class _TxnEditorState extends State<TxnEditor> {
                 const SizedBox(width: 8),
               ],
             ],
+            // MM: a wide "Зберегти" and a narrow "Далі", both 47pt high
             Expanded(
+              flex: 11,
               child: FilledButton(
                 style: FilledButton.styleFrom(
                   backgroundColor: _type == TxType.transfer
                       ? scheme.primary
                       : accent,
                   foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(52),
+                  minimumSize: const Size.fromHeight(46),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                 ),
                 onPressed: () => _save(),
                 child: const Text(
                   'Зберегти',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
                 ),
               ),
             ),
             if (_isNew) ...[
               const SizedBox(width: 8),
               Expanded(
+                flex: 4,
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
+                    minimumSize: const Size.fromHeight(46),
+                    foregroundColor: scheme.onSurface,
+                    side: BorderSide(color: scheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                   ),
                   onPressed: () => _save(keepOpen: true),
-                  child: const Text('Продовжити'),
+                  child: const Text('Далі', style: TextStyle(fontSize: 16)),
                 ),
               ),
             ],
@@ -905,8 +917,8 @@ class _TxnEditorState extends State<TxnEditor> {
   }
 
   static const _valueStyle = TextStyle(
-    fontSize: 17,
-    fontWeight: FontWeight.w600,
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
   );
 
   static String _dateLabel(DateTime d) {
@@ -1159,32 +1171,29 @@ class _TypeTabs extends StatelessWidget {
         for (final t in [TxType.income, TxType.expense, TxType.transfer])
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 3.5),
               child: GestureDetector(
                 onTap: () => onChanged(t),
+                // MM: flat rectangles, the chosen one outlined in its colour
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
-                  height: 36,
+                  height: 31,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    color: t == value
-                        ? colors[t]!.withValues(alpha: 0.14)
-                        : Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(5),
+                    color: Colors.black.withValues(alpha: 0.22),
                     border: Border.all(
                       color: t == value
                           ? colors[t]!
-                          : Colors.white.withValues(alpha: 0.10),
-                      width: t == value ? 1.6 : 1,
+                          : Colors.black.withValues(alpha: 0.35),
+                      width: 1,
                     ),
                   ),
                   child: Text(
                     labels[t]!,
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: t == value
-                          ? FontWeight.w700
-                          : FontWeight.w500,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
                       color: t == value
                           ? colors[t]
                           : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -1228,7 +1237,7 @@ class _FormRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-              width: 96,
+              width: 74,
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
