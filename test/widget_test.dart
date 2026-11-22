@@ -209,4 +209,18 @@ void main() {
     await s.fillDayRates(now: DateTime(2026, 6, 1));
     expect(v(day1), 400);
   });
+
+  test('transfers into a transfer-expense account count as expense', () async {
+    final s = await _store();
+    final a = s.accounts[0], b = s.accounts[1];
+    await s.updatePrefs((p) => p.transferExpense = [b.id]);
+    final now = DateTime.now();
+    final into = Txn(type: TxType.transfer, amount: 1000, accountId: a.id, toAccountId: b.id, date: now);
+    final back = Txn(type: TxType.transfer, amount: 300, accountId: b.id, toAccountId: a.id, date: now);
+    final t = s.totalsBase([into, back]);
+    expect(t.expense, s.baseAmount(into));
+    expect(t.income, s.baseAmount(back));
+    await s.updatePrefs((p) => p.transferExpense = []);
+    expect(s.totalsBase([into, back]).expense, 0);
+  });
 }

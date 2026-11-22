@@ -140,7 +140,7 @@ class _StatsPageState extends State<StatsPage> {
     final r = _tab == StatsTab.budget ? store.periodRange(store.periodOf(_anchor)) : _range(store);
     final inRange = store.txns.where((t) => !t.date.isBefore(r.start) && t.date.isBefore(r.end)).toList();
     final totals = store.totalsBase(inRange);
-    final txns = inRange.where((t) => t.type == _type).toList();
+    final txns = inRange.where((t) => store.flowOf(t) == _type).toList();
     final missingRates = {for (final t in txns) store.currencyOf(t)}.where((c) => !store.hasRate(c)).toList();
     final incColor = incomeColor(context, store);
 

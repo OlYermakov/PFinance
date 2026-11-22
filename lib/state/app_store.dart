@@ -389,13 +389,26 @@ class AppStore extends ChangeNotifier {
     return m;
   }
 
+  /// How a record counts in income/expense totals. Transfers count too when
+  /// one side is a "transfer-expense" account (MM): money going into it is an
+  /// expense, money coming back out of it is income.
+  TxType? flowOf(Txn t) {
+    if (t.type != TxType.transfer) return t.type;
+    final te = prefs.transferExpense;
+    final into = te.contains(t.toAccountId), outOf = te.contains(t.accountId);
+    if (into && !outOf) return TxType.expense;
+    if (outOf && !into) return TxType.income;
+    return null;
+  }
+
   /// Income / expense sums per currency.
   ({Map<String, int> income, Map<String, int> expense}) totals(Iterable<Txn> list) {
     final inc = <String, int>{}, exp = <String, int>{};
     for (final t in list) {
       final cur = currencyOf(t);
-      if (t.type == TxType.income) inc[cur] = (inc[cur] ?? 0) + t.amount;
-      if (t.type == TxType.expense) exp[cur] = (exp[cur] ?? 0) + t.amount;
+      final f = flowOf(t);
+      if (f == TxType.income) inc[cur] = (inc[cur] ?? 0) + t.amount;
+      if (f == TxType.expense) exp[cur] = (exp[cur] ?? 0) + t.amount;
     }
     return (income: inc, expense: exp);
   }
@@ -404,8 +417,9 @@ class AppStore extends ChangeNotifier {
   ({int income, int expense}) totalsBase(Iterable<Txn> list) {
     var inc = 0, exp = 0;
     for (final t in list) {
-      if (t.type == TxType.income) inc += baseAmount(t);
-      if (t.type == TxType.expense) exp += baseAmount(t);
+      final f = flowOf(t);
+      if (f == TxType.income) inc += baseAmount(t);
+      if (f == TxType.expense) exp += baseAmount(t);
     }
     return (income: inc, expense: exp);
   }
@@ -566,8 +580,9 @@ class AppStore extends ChangeNotifier {
     var v = 0;
     for (final t in txns) {
       if (!t.date.isBefore(start)) continue;
-      if (t.type == TxType.income) v += baseAmount(t);
-      if (t.type == TxType.expense) v -= baseAmount(t);
+      final f = flowOf(t);
+      if (f == TxType.income) v += baseAmount(t);
+      if (f == TxType.expense) v -= baseAmount(t);
     }
     return v;
   }

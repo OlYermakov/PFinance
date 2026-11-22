@@ -541,10 +541,11 @@ class _CalendarView extends StatelessWidget {
     for (final t in txns) {
       final k = DateTime(t.date.year, t.date.month, t.date.day);
       final cur = byDay[k] ?? (inc: 0, exp: 0);
-      if (t.type == TxType.income) {
+      final f = store.flowOf(t);
+      if (f == TxType.income) {
         byDay[k] = (inc: cur.inc + store.baseAmount(t), exp: cur.exp);
       }
-      if (t.type == TxType.expense) {
+      if (f == TxType.expense) {
         byDay[k] = (inc: cur.inc, exp: cur.exp + store.baseAmount(t));
       }
     }
