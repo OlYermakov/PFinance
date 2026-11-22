@@ -72,7 +72,7 @@ class _HomeShellState extends State<HomeShell> {
       ),
       child: KeyedSubtree(key: ValueKey(_tab), child: _page()),
     );
-    final fab = _tab < 3 ? const AddButton() : null;
+    final fab = _tab == 0 ? const AddButton() : null; // records tab only, like MM
 
     if (wide) {
       return AuroraBackground(
