@@ -276,7 +276,7 @@ class _AccountsMenu extends StatelessWidget {
           _Item(null, 'Групи рахунків', onTap: () => _push(context, const _AccountGroupsPage())),
           _Item(null, 'Рахунки', onTap: () => _push(context, const EditAccountsPage())),
           _Item(null, 'Враховувати в підсумках', onTap: () => _push(context, const _AccountFlagsPage(transfer: false))),
-          _Item(null, 'Переказ-витрата', onTap: () => _push(context, const _AccountFlagsPage(transfer: true))),
+          _Item(null, 'Налаштування Переказ-Витрата', onTap: () => _push(context, const _AccountFlagsPage(transfer: true))),
           _Item(null, 'Видалені рахунки', value: store.deletedAccounts.isEmpty ? null : '${store.deletedAccounts.length}',
               onTap: () => _push(context, const _DeletedAccountsPage())),
           _Item(null, 'Відображення витрат по карті',
@@ -359,29 +359,66 @@ class _AccountFlagsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    // MM: transfer-expense is not offered for cash, bank and card accounts.
+    final list = transfer
+        ? store.accounts.where((a) => a.kind != AccountKind.bank && a.kind != AccountKind.card && !a.isCard).toList()
+        : store.accounts;
+    final groups = <String, List<Account>>{};
+    for (final a in list) {
+      groups.putIfAbsent(groupOf(a), () => []).add(a);
+    }
+    bool checked(Account a) => transfer ? store.prefs.transferExpense.contains(a.id) : a.includeInTotal;
+    void toggle(Account a) {
+      final v = !checked(a);
+      transfer
+          ? store.updatePrefs((p) => p.transferExpense = v ? [...p.transferExpense, a.id] : ([...p.transferExpense]..remove(a.id)))
+          : store.saveAccount(a.copyWith(includeInTotal: v));
+    }
+
     return Scaffold(
-      appBar: AppBar(title: Text(transfer ? 'Переказ-витрата' : 'Враховувати в підсумках')),
-      body: ListView(children: [
-        Padding(
-          padding: const EdgeInsets.all(20),
+      appBar: AppBar(title: Text(transfer ? 'Переказ-Витрата' : 'Враховувати в підсумках')),
+      body: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
+        Container(
+          color: panelColor(context),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
           child: Text(
             transfer
-                ? 'Перекази на позначені рахунки показуються в «Підсумку» як витрата, наприклад поповнення інвестицій чи кишенькові дитині.'
+                ? 'Сума, переказана зі звичайного рахунку на вибраний рахунок, показується як витрата на вкладках «Записи» та «Статистика». '
+                    'Це зручно для рахунків, з яких гроші важко швидко повернути: заощадження, інвестиції, позики, страхування. '
+                    'Для готівки, банківських рахунків і карток цього налаштування немає. '
+                    'Сума, переказана з вибраного рахунку на звичайний, показується як дохід.'
                 : 'Позначені рахунки входять у загальні суми активів, пасивів і «Разом».',
-            style: Theme.of(context).textTheme.bodySmall,
+            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14, height: 1.35),
           ),
         ),
-        _Group(children: [
-          for (final a in store.accounts)
-            SwitchListTile(
-              title: Text(a.name),
-              subtitle: Text(groupOf(a)),
-              value: transfer ? store.prefs.transferExpense.contains(a.id) : a.includeInTotal,
-              onChanged: (v) => transfer
-                  ? store.updatePrefs((p) => p.transferExpense = v ? [...p.transferExpense, a.id] : [...p.transferExpense]..remove(a.id))
-                  : store.saveAccount(a.copyWith(includeInTotal: v)),
-            ),
-        ]),
+        for (final e in groups.entries) ...[
+          _Band(e.key),
+          _Group(children: [
+            for (final a in e.value)
+              InkWell(
+                onTap: () => toggle(a),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: checked(a) ? scheme.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(5),
+                        border: Border.all(color: checked(a) ? scheme.primary : scheme.outline, width: 1.5),
+                      ),
+                      child: checked(a) ? Icon(Icons.check_rounded, size: 18, color: scheme.onPrimary) : null,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(child: Text(a.name, style: const TextStyle(fontSize: 16))),
+                  ]),
+                ),
+              ),
+          ]),
+        ],
       ]),
     );
   }
