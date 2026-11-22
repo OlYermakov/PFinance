@@ -196,7 +196,7 @@ class _StatsPageState extends State<StatsPage> {
             if (_tab != StatsTab.budget)
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(64, 44),
+                  minimumSize: const Size(56, 36),
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
@@ -460,7 +460,7 @@ class _PillTabs<T> extends StatelessWidget {
     final keys = items.keys.toList();
     final idx = keys.indexOf(value);
     return Container(
-      height: 44,
+      height: 36,
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.06),

@@ -69,26 +69,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 12, 0),
-                child: Row(
-                  children: [
-                    const Spacer(),
-                    IconButton(
-                      tooltip: 'Пошук',
-                      icon: Icon(
-                        _searching ? Icons.close_rounded : Icons.search_rounded,
-                      ),
-                      onPressed: () => setState(() {
-                        _searching = !_searching;
-                        _query = '';
-                      }),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SliverToBoxAdapter(
               child: AnimatedSize(
                 duration: const Duration(milliseconds: 250),
                 child: _searching
@@ -108,18 +88,37 @@ class _TransactionsPageState extends State<TransactionsPage> {
             ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Center(
-                  child: MonthSwitcher(
-                    month: _month,
-                    onChanged: (m) => setState(() => _month = m),
-                  ),
+                padding: const EdgeInsets.fromLTRB(8, 4, 4, 0),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    MonthSwitcher(
+                      month: _month,
+                      onChanged: (m) => setState(() => _month = m),
+                    ),
+                    Positioned(
+                      right: 0,
+                      child: IconButton(
+                        tooltip: 'Пошук',
+                        visualDensity: VisualDensity.compact,
+                        icon: Icon(
+                          _searching
+                              ? Icons.close_rounded
+                              : Icons.search_rounded,
+                        ),
+                        onPressed: () => setState(() {
+                          _searching = !_searching;
+                          _query = '';
+                        }),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: _ViewTabs(
                   value: _view,
                   onChanged: (v) => setState(() => _view = v),
@@ -128,7 +127,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
             ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: TotalsStrip(
                   income: tot.income,
                   expense: tot.expense,
@@ -178,12 +177,12 @@ class _ViewTabs extends StatelessWidget {
     return GlassCard(
       radius: 999,
       blur: 16,
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(3),
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth / 4;
           return SizedBox(
-            height: 36,
+            height: 30,
             child: Stack(
               children: [
                 AnimatedPositioned(

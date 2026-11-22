@@ -177,16 +177,16 @@ class TotalsStrip extends StatelessWidget {
     Widget cell(String label, int v, Color? color, {bool sign = false}) => Expanded(
           child: Column(children: [
             Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-            const SizedBox(height: 2),
+            const SizedBox(height: 1),
             FittedBox(
               child: AnimatedMoney(v, currency,
-                  sign: sign, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: color)),
+                  sign: sign, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: color)),
             ),
           ]),
         );
     return GlassCard(
       radius: 22,
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 8),
       child: Column(children: [
         Row(children: [
           cell('Дохід', income, incColor),

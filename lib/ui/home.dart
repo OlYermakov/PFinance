@@ -106,7 +106,7 @@ class _HomeShellState extends State<HomeShell> {
         floatingActionButton: fab,
         bottomNavigationBar: _GlassNavBar(
           child: NavigationBar(
-            height: 66,
+            height: 56,
             selectedIndex: _tab,
             onDestinationSelected: (i) {
               HapticFeedback.selectionClick();
