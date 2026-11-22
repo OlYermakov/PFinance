@@ -11,7 +11,7 @@ import 'package:money_app/ui/export_pf.dart';
 import 'package:money_app/ui/format.dart';
 
 Future<AppStore> _store() async {
-  final store = AppStore(Repository(await openMemoryDatabase(newId())));
+  final store = AppStore(Repository(await openMemoryDatabase(newId())))..fetchDayRates = (d, b) async => null;
   await store.load();
   for (final c in sampleCategories()) {
     await store.saveCategory(c);
@@ -178,5 +178,35 @@ void main() {
     ));
     await s.runRepeats(now: start);
     expect(s.txns.length, greaterThanOrEqualTo(4));
+  });
+
+  test('foreign records use the rate of their day', () async {
+    final s = await _store();
+    final uah = s.accounts.firstWhere((a) => a.currency == 'UAH');
+    final asked = <String>[];
+    s.fetchDayRates = (d, base) async {
+      asked.add('$base ${d.month}-${d.day}');
+      return d.day == 1 ? {'UAH': 0.02} : {'UAH': 0.025};
+    };
+    await s.updatePrefs((p) => p.rates = {'UAH': 0.03, 'USD': 0.9});
+    final day1 = Txn(type: TxType.expense, amount: 10000, accountId: uah.id, date: DateTime(2026, 3, 1, 10));
+    final day2 = Txn(type: TxType.expense, amount: 10000, accountId: uah.id, date: DateTime(2026, 3, 2, 10));
+    final future = Txn(type: TxType.expense, amount: 10000, accountId: uah.id, date: DateTime(2100, 1, 1));
+    for (final t in [day1, day2, future]) {
+      await s.saveTxn(t);
+    }
+    await s.fillDayRates(now: DateTime(2026, 6, 1));
+    int v(Txn t) => s.baseAmount(s.txns.firstWhere((x) => x.id == t.id));
+    expect(v(day1), 200); // 100 ₴ × 0.02
+    expect(v(day2), 250);
+    expect(v(future), 300); // not yet: current rate
+    // Cached: a second run asks for nothing new.
+    final n = asked.length;
+    await s.fillDayRates(now: DateTime(2026, 6, 1));
+    expect(asked.length, n);
+    // Editing the amount re-stamps at the same day's rate.
+    await s.saveTxn(Txn(id: day1.id, type: TxType.expense, amount: 20000, accountId: uah.id, date: day1.date));
+    await s.fillDayRates(now: DateTime(2026, 6, 1));
+    expect(v(day1), 400);
   });
 }

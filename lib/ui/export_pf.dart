@@ -21,15 +21,17 @@ Uint8List buildPfWorkbook(AppStore store, {DateTime? from, DateTime? to}) {
   final df = DateFormat('dd.MM.yyyy, HH:mm:ss');
 
   double major(int minor, String cur) => minor / 100;
-  CellValue? eur(int minor, String cur) {
+  CellValue? eur(int minor, String cur, [Txn? src]) {
     if (cur == 'EUR') return DoubleCellValue(major(minor, cur));
+    // the rate of the record's day when known
+    if (src != null && src.atBase != null && src.atBaseCur == 'EUR') return DoubleCellValue(src.atBase! / 100);
     if (store.baseCurrency == 'EUR' && store.prefs.rates.containsKey(cur)) {
       return DoubleCellValue(store.toBase(minor, cur) / 100);
     }
     return null;
   }
 
-  void row(DateTime d, String acc, String cat, String sub, String note, String type, int minor, String cur) {
+  void row(DateTime d, String acc, String cat, String sub, String note, String type, int minor, String cur, [Txn? src]) {
     final amount = DoubleCellValue(major(minor, cur));
     sheet.appendRow([
       TextCellValue(df.format(d)),
@@ -37,7 +39,7 @@ Uint8List buildPfWorkbook(AppStore store, {DateTime? from, DateTime? to}) {
       TextCellValue(cat),
       TextCellValue(sub),
       TextCellValue(note),
-      eur(minor, cur),
+      eur(minor, cur, src),
       TextCellValue(type),
       TextCellValue(''),
       amount,
@@ -56,10 +58,10 @@ Uint8List buildPfWorkbook(AppStore store, {DateTime? from, DateTime? to}) {
         final c = store.category(t.categoryId);
         final top = store.topCategory(t.categoryId);
         final sub = c != null && top != null && c.id != top.id ? c.name : '';
-        row(t.date, acc?.name ?? '', top?.name ?? '', sub, t.note, t.type == TxType.income ? 'Income' : 'Exp.', t.amount, cur);
+        row(t.date, acc?.name ?? '', top?.name ?? '', sub, t.note, t.type == TxType.income ? 'Income' : 'Exp.', t.amount, cur, t);
       case TxType.transfer:
         final dst = store.account(t.toAccountId);
-        row(t.date, acc?.name ?? '', dst?.name ?? '', '', t.note, 'Transfer-Out', t.amount, cur);
+        row(t.date, acc?.name ?? '', dst?.name ?? '', '', t.note, 'Transfer-Out', t.amount, cur, t);
         row(t.date, dst?.name ?? '', acc?.name ?? '', '', t.note, 'Transfer-In', t.toAmount ?? t.amount, dst?.currency ?? cur);
     }
   }

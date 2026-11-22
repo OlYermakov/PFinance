@@ -32,6 +32,9 @@ void main() {
     expect(txns['T4']!.toAccountId, 'A2');
     expect(txns['T4']!.toAmount, 11000);
     expect(txns['T6']!.type, TxType.income);
+    expect(txns['T6']!.atBase, 500); // MM's own value in EUR on that day
+    expect(txns['T6']!.atBaseCur, 'EUR');
+    expect(txns['T1']!.atBase, isNull);
     expect(txns['T6']!.categoryId, isNull);
     final cats = [for (final j in b['categories'] as List) Category.fromJson(j as Map<String, Object?>)];
     expect(cats.firstWhere((c) => c.id == 'C2').parentId, 'C1');

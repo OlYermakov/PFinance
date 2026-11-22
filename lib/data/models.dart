@@ -199,6 +199,11 @@ class Txn implements Entity {
   final String? categoryId; // null for transfers
   final DateTime date;
   final String note;
+
+  /// Value in the base currency at the rate of the record's day ([atBaseCur]
+  /// names that base). Null until the rate is known; then current rates apply.
+  final int? atBase;
+  final String? atBaseCur;
   @override
   final DateTime updatedAt;
   @override
@@ -214,10 +219,27 @@ class Txn implements Entity {
     this.categoryId,
     required this.date,
     this.note = '',
+    this.atBase,
+    this.atBaseCur,
     DateTime? updatedAt,
     this.deleted = false,
   })  : id = id ?? newId(),
         updatedAt = updatedAt ?? DateTime.now();
+
+  Txn withBase(int? value, String? currency) => Txn(
+        id: id,
+        type: type,
+        amount: amount,
+        accountId: accountId,
+        toAccountId: toAccountId,
+        toAmount: toAmount,
+        categoryId: categoryId,
+        date: date,
+        note: note,
+        atBase: value,
+        atBaseCur: currency,
+        deleted: deleted,
+      );
 
   Txn copyWith({bool? deleted}) => Txn(
         id: id,
@@ -229,6 +251,8 @@ class Txn implements Entity {
         categoryId: categoryId,
         date: date,
         note: note,
+        atBase: atBase,
+        atBaseCur: atBaseCur,
         deleted: deleted ?? this.deleted,
       );
 
@@ -243,6 +267,8 @@ class Txn implements Entity {
         'categoryId': categoryId,
         'date': date.millisecondsSinceEpoch,
         'note': note,
+        if (atBase != null) 'atBase': atBase,
+        if (atBaseCur != null) 'atBaseCur': atBaseCur,
         'updatedAt': updatedAt.millisecondsSinceEpoch,
         'deleted': deleted,
       };
@@ -257,6 +283,8 @@ class Txn implements Entity {
         categoryId: j['categoryId'] as String?,
         date: _date(j['date']),
         note: j['note'] as String? ?? '',
+        atBase: (j['atBase'] as num?)?.toInt(),
+        atBaseCur: j['atBaseCur'] as String?,
         updatedAt: _date(j['updatedAt']),
         deleted: j['deleted'] as bool? ?? false,
       );

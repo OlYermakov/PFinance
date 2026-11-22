@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:material_ui/material_ui.dart';
 
+import '../data/fx_rates.dart';
 import '../data/mm_import.dart';
 import '../data/models.dart';
 import '../data/repository.dart';
@@ -45,33 +47,33 @@ class Prefs {
   Map<String, double> rates = {}; // 1 unit of currency = rate × base
 
   Map<String, Object?> toJson() => {
-        'themeId': themeId,
-        'themeMode': themeMode.name,
-        'baseCurrency': baseCurrency,
-        'monthStartDay': monthStartDay,
-        'weekStartsMonday': weekStartsMonday,
-        'startPage': startPage.name,
-        'incomeBlue': incomeBlue,
-        'showDecimals': showDecimals,
-        'subcategories': subcategories,
-        'noteSuggestions': noteSuggestions,
-        'continueAfterSave': continueAfterSave,
-        'carryOver': carryOver,
-        'copyToToday': copyToToday,
-        'pin': pin,
-        'rates': rates,
-        'timeMode': timeMode,
-        'swipe': swipe,
-        'showNote': showNote,
-        'categoryFirst': categoryFirst,
-        'noteButton': noteButton,
-        'copyPaste': copyPaste,
-        'currencyFront': currencyFront,
-        'repeatInAdvance': repeatInAdvance,
-        'transferExpense': transferExpense,
-        'savedTags': savedTags,
-        'appIcon': appIcon,
-      };
+    'themeId': themeId,
+    'themeMode': themeMode.name,
+    'baseCurrency': baseCurrency,
+    'monthStartDay': monthStartDay,
+    'weekStartsMonday': weekStartsMonday,
+    'startPage': startPage.name,
+    'incomeBlue': incomeBlue,
+    'showDecimals': showDecimals,
+    'subcategories': subcategories,
+    'noteSuggestions': noteSuggestions,
+    'continueAfterSave': continueAfterSave,
+    'carryOver': carryOver,
+    'copyToToday': copyToToday,
+    'pin': pin,
+    'rates': rates,
+    'timeMode': timeMode,
+    'swipe': swipe,
+    'showNote': showNote,
+    'categoryFirst': categoryFirst,
+    'noteButton': noteButton,
+    'copyPaste': copyPaste,
+    'currencyFront': currencyFront,
+    'repeatInAdvance': repeatInAdvance,
+    'transferExpense': transferExpense,
+    'savedTags': savedTags,
+    'appIcon': appIcon,
+  };
 
   void apply(Map<String, Object?> j) {
     themeId = j['themeId'] as String? ?? themeId;
@@ -151,12 +153,18 @@ class AppStore extends ChangeNotifier {
       if (tp is List)
         for (final e in tp) Txn.fromJson(Map<String, Object?>.from(e as Map)),
     ];
+    final fx = await repo.getSetting('fxDays');
+    _fxDays = {
+      if (fx is Map)
+        for (final e in fx.entries) e.key as String: {for (final r in (e.value as Map).entries) r.key as String: (r.value as num).toDouble()},
+    };
     await runRepeats();
     unlocked = prefs.pin == null;
     fmt.showDecimals = prefs.showDecimals;
     fmt.currencyFront = prefs.currencyFront;
     _sortTxns();
     notifyListeners();
+    unawaited(fillDayRates());
   }
 
   Future<void> _seed() async {
@@ -171,9 +179,9 @@ class AppStore extends ChangeNotifier {
   }
 
   void _sortTxns() => _txns.sort((a, b) {
-        final c = b.date.compareTo(a.date);
-        return c != 0 ? c : b.updatedAt.compareTo(a.updatedAt);
-      });
+    final c = b.date.compareTo(a.date);
+    return c != 0 ? c : b.updatedAt.compareTo(a.updatedAt);
+  });
 
   // ---- Periods -----------------------------------------------------------
 
@@ -192,19 +200,16 @@ class AppStore extends ChangeNotifier {
 
   // ---- Views -------------------------------------------------------------
 
-  List<Account> get accounts =>
-      _accounts.where((a) => !a.deleted).toList()..sort((a, b) => a.sort.compareTo(b.sort));
+  List<Account> get accounts => _accounts.where((a) => !a.deleted).toList()..sort((a, b) => a.sort.compareTo(b.sort));
   List<Account> get deletedAccounts => _accounts.where((a) => a.deleted).toList();
   List<Account> get activeAccounts => accounts.where((a) => !a.archived).toList();
 
   /// Top-level categories of a type.
   List<Category> categoriesOf(TxType type) =>
-      _categories.where((c) => !c.deleted && c.type == type && c.parentId == null).toList()
-        ..sort((a, b) => a.sort.compareTo(b.sort));
+      _categories.where((c) => !c.deleted && c.type == type && c.parentId == null).toList()..sort((a, b) => a.sort.compareTo(b.sort));
 
   List<Category> subcategoriesOf(String parentId) =>
-      _categories.where((c) => !c.deleted && c.parentId == parentId).toList()
-        ..sort((a, b) => a.sort.compareTo(b.sort));
+      _categories.where((c) => !c.deleted && c.parentId == parentId).toList()..sort((a, b) => a.sort.compareTo(b.sort));
 
   List<Txn> get txns => _txns.where((t) => !t.deleted).toList();
   List<Budget> get budgets => _budgets.where((b) => !b.deleted).toList();
@@ -229,8 +234,7 @@ class AppStore extends ChangeNotifier {
   // Kept for older call sites/tests.
   List<Txn> txnsInMonth(DateTime month) => txnsInPeriod(month);
 
-  List<Txn> txnsOnDay(DateTime d) =>
-      txns.where((t) => t.date.year == d.year && t.date.month == d.month && t.date.day == d.day).toList();
+  List<Txn> txnsOnDay(DateTime d) => txns.where((t) => t.date.year == d.year && t.date.month == d.month && t.date.day == d.day).toList();
 
   /// Converts minor units of [currency] to minor units of the base currency
   /// using the manual rates in settings.
@@ -251,7 +255,103 @@ class AppStore extends ChangeNotifier {
 
   bool hasRate(String currency) => currency == baseCurrency || prefs.rates.containsKey(currency);
 
-  int baseAmount(Txn t) => toBase(t.amount, currencyOf(t));
+  /// Value in the base currency at the rate of the record's day when known
+  /// (stamped by [fillDayRates]), otherwise at the current manual rate.
+  int baseAmount(Txn t) {
+    final cur = currencyOf(t);
+    if (cur == baseCurrency) return t.amount;
+    if (t.atBase != null && t.atBaseCur == baseCurrency) return t.atBase!;
+    return toBase(t.amount, cur);
+  }
+
+  // ---- Rates of the record's day ---------------------------------------------
+
+  /// Daily rates per "BASE:YYYY-MM-DD": currency → value of 1 unit in base.
+  /// An empty map means the day has no published rates.
+  Map<String, Map<String, double>> _fxDays = {};
+
+  /// Fetches one day's rates for [base] (1 unit of currency = rate × base).
+  /// Replaceable in tests.
+  Future<Map<String, double>?> Function(DateTime day, String base) fetchDayRates = fetchDailyRates;
+
+  Future<void>? _fillRun;
+  bool _fillAgain = false;
+
+  static String _dayKey(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  bool _needsRate(Txn t) => !t.deleted && currencyOf(t) != baseCurrency && (t.atBase == null || t.atBaseCur != baseCurrency);
+
+  /// Stamps every foreign-currency record with its value in the base currency
+  /// at the rate of its day. Days are fetched once and cached; future days
+  /// wait until they come. Runs in the background.
+  Future<void> fillDayRates({DateTime? now, int maxDays = 400}) {
+    if (_fillRun != null) {
+      _fillAgain = true; // records changed meanwhile: run once more
+      return _fillRun!;
+    }
+    return _fillRun = () async {
+      try {
+        do {
+          _fillAgain = false;
+          await _fillOnce(now, maxDays);
+        } while (_fillAgain);
+      } finally {
+        _fillRun = null;
+      }
+    }();
+  }
+
+  Future<void> _fillOnce(DateTime? now, int maxDays) async {
+    {
+      final today = now ?? DateTime.now();
+      final base = baseCurrency;
+      final byDay = <String, List<Txn>>{};
+      for (final t in _txns) {
+        if (!_needsRate(t) || t.date.isAfter(today)) continue;
+        (byDay[_dayKey(t.date)] ??= []).add(t);
+      }
+      if (byDay.isEmpty) return;
+      final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a)); // newest first
+      var fetched = 0, changed = false;
+      for (final day in days) {
+        final key = '$base:$day';
+        var rates = _fxDays[key];
+        if (rates == null) {
+          if (fetched >= maxDays) continue;
+          fetched++;
+          final r = await fetchDayRates(DateTime.parse(day), base);
+          if (r == null) continue; // offline: try again next time
+          rates = _fxDays[key] = r;
+          if (fetched % 20 == 0) await repo.setSetting('fxDays', _fxDays);
+        }
+        for (final t in byDay[day]!) {
+          final rate = rates[currencyOf(t)];
+          if (rate == null) continue;
+          final i = _txns.indexWhere((x) => x.id == t.id);
+          if (i < 0 || !_needsRate(_txns[i])) continue;
+          final v = _convert(t.amount, currencyOf(t), base, rate);
+          final s = _txns[i].withBase(v, base);
+          _txns[i] = s;
+          await repo.put(s);
+          changed = true;
+        }
+      }
+      await repo.setSetting('fxDays', _fxDays);
+      if (changed) notifyListeners();
+    }
+  }
+
+  int _convert(int minor, String from, String to, double rate) {
+    final f = fmt.decimalsOf(from), d = fmt.decimalsOf(to);
+    var v = minor * rate;
+    for (var i = f; i < d; i++) {
+      v *= 10;
+    }
+    for (var i = d; i < f; i++) {
+      v /= 10;
+    }
+    return v.round();
+  }
 
   int balanceOf(Account a) {
     var b = a.initialBalance;
@@ -353,10 +453,16 @@ class AppStore extends ChangeNotifier {
     return _save(c);
   }
 
-  Future<void> saveTxn(Txn t) {
+  Future<void> saveTxn(Txn t) async {
+    final old = _txns.where((x) => x.id == t.id).firstOrNull;
+    // A changed amount, day or account needs the rate again.
+    if (t.atBase != null && old != null && (old.amount != t.amount || old.accountId != t.accountId || _dayKey(old.date) != _dayKey(t.date))) {
+      t = t.withBase(null, null);
+    }
     _replace(_txns, t);
     _sortTxns();
-    return _save(t);
+    await _save(t);
+    if (_needsRate(t)) unawaited(fillDayRates());
   }
 
   Future<void> deleteTxn(Txn t) => saveTxn(t.copyWith(deleted: true));
@@ -384,16 +490,18 @@ class AppStore extends ChangeNotifier {
       if (due.isEmpty) continue;
       for (final d in due) {
         final t = r.template;
-        await saveTxn(Txn(
-          type: t.type,
-          amount: t.amount,
-          accountId: t.accountId,
-          toAccountId: t.toAccountId,
-          toAmount: t.toAmount,
-          categoryId: t.categoryId,
-          date: d,
-          note: t.note,
-        ));
+        await saveTxn(
+          Txn(
+            type: t.type,
+            amount: t.amount,
+            accountId: t.accountId,
+            toAccountId: t.toAccountId,
+            toAmount: t.toAmount,
+            categoryId: t.categoryId,
+            date: d,
+            note: t.note,
+          ),
+        );
         made++;
       }
       _repeats[i] = r.copyWith(lastDone: due.last);
@@ -490,6 +598,7 @@ class AppStore extends ChangeNotifier {
     fmt.currencyFront = prefs.currencyFront;
     await repo.setSetting('prefs', prefs.toJson());
     notifyListeners();
+    unawaited(fillDayRates()); // the base currency may have changed
   }
 
   Future<void> setTheme(String id) => updatePrefs((p) => p.themeId = id);
@@ -540,7 +649,9 @@ class AppStore extends ChangeNotifier {
     _categories = [];
     _txns = [];
     _budgets = [];
-    final fresh = Prefs()..themeId = prefs.themeId..themeMode = prefs.themeMode;
+    final fresh = Prefs()
+      ..themeId = prefs.themeId
+      ..themeMode = prefs.themeMode;
     prefs.apply(fresh.toJson());
     await load();
   }

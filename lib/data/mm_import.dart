@@ -152,6 +152,9 @@ MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings
       note = [note, '(${formatPlain(sub, txCur)})'].where((s) => s.isNotEmpty).join(' ');
     }
     final cat = _s(r['ZCATEGORYUID']);
+    // MM keeps the value in the main currency at the rate of the record's day.
+    final mainAmt = r['ZAMOUNT'];
+    final atBase = acc.currency != base && mainAmt is num ? _minor(mainAmt, base) : null;
     switch (code) {
       case '0' || '1' || '7' || '8':
         txns.add(
@@ -163,6 +166,8 @@ MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings
             categoryId: catIds.contains(cat) ? cat : null,
             date: date,
             note: note,
+            atBase: atBase,
+            atBaseCur: atBase == null ? null : base,
           ),
         );
       case '3':
@@ -180,6 +185,8 @@ MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings
             toAmount: to.currency != acc.currency && toAmt != null ? _minor(toAmt, to.currency) : null,
             date: date,
             note: note,
+            atBase: atBase,
+            atBaseCur: atBase == null ? null : base,
           ),
         );
       default:
