@@ -320,19 +320,19 @@ class DayCard extends StatelessWidget {
     final weekend = day.weekday >= 6;
     return GlassCard(
       radius: 24,
-      padding: const EdgeInsets.only(top: 12, bottom: 6),
+      padding: const EdgeInsets.only(top: 8, bottom: 2),
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
                   '${day.day}',
                   style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 21,
+                    fontWeight: FontWeight.w700,
                     height: 1,
                   ),
                 ),
@@ -369,8 +369,8 @@ class DayCard extends StatelessWidget {
                   Text(
                     money(t.income, cur),
                     style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                       color: incomeColor(context, store),
                     ),
                   ),
@@ -379,8 +379,8 @@ class DayCard extends StatelessWidget {
                   Text(
                     money(t.expense, cur),
                     style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                       color: p.expense,
                     ),
                   ),
@@ -426,7 +426,11 @@ class TxnTile extends StatelessWidget {
     final showNote = store.prefs.showNote && txn.note.isNotEmpty;
     final rule = store.repeats.where((r) {
       final t = r.template;
-      return t.type == txn.type && t.accountId == txn.accountId && t.categoryId == txn.categoryId && t.note == txn.note && t.amount == txn.amount;
+      return t.type == txn.type &&
+          t.accountId == txn.accountId &&
+          t.categoryId == txn.categoryId &&
+          t.note == txn.note &&
+          t.amount == txn.amount;
     }).firstOrNull;
     final repeat = rule == null ? '' : ' (${repeatLabel(rule.every)})';
     switch (txn.type) {
@@ -434,43 +438,103 @@ class TxnTile extends StatelessWidget {
         final to = store.account(txn.toAccountId);
         left1 = 'Переказ';
         left2 = '';
-        title = showNote ? txn.note : '${acc?.name ?? '?'} → ${to?.name ?? '?'}';
-        under = showNote ? '${acc?.name ?? '?'} → ${to?.name ?? '?'}$repeat' : repeat.trim();
+        title = showNote
+            ? txn.note
+            : '${acc?.name ?? '?'} → ${to?.name ?? '?'}';
+        under = showNote
+            ? '${acc?.name ?? '?'} → ${to?.name ?? '?'}$repeat'
+            : repeat.trim();
         final f = store.flowOf(txn);
-        amountColor = f == TxType.expense ? p.expense : (f == TxType.income ? incomeColor(context, store) : scheme.onSurface);
+        amountColor = f == TxType.expense
+            ? p.expense
+            : (f == TxType.income
+                  ? incomeColor(context, store)
+                  : scheme.onSurface);
       case TxType.income || TxType.expense:
         left1 = top?.name ?? 'Без категорії';
         left2 = cat != null && top != null && cat.id != top.id ? cat.name : '';
         title = showNote ? txn.note : '';
         under = '${acc?.name ?? ''}$repeat';
-        amountColor = txn.type == TxType.income ? incomeColor(context, store) : p.expense;
+        amountColor = txn.type == TxType.income
+            ? incomeColor(context, store)
+            : p.expense;
     }
-    final timeText = store.prefs.timeMode == 2 ? TimeOfDay.fromDateTime(txn.date).format(context) : null;
-    final muted = TextStyle(color: scheme.onSurfaceVariant, fontSize: 13.5);
+    final timeText = store.prefs.timeMode == 2
+        ? TimeOfDay.fromDateTime(txn.date).format(context)
+        : null;
+    final muted = TextStyle(
+      color: scheme.onSurfaceVariant,
+      fontSize: 13,
+      height: 1.25,
+    );
     final second = [?timeText, if (under.isNotEmpty) under].join(' · ');
     final tile = InkWell(
       onTap: () => openTxnEditor(context, existing: txn),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        child: Row(children: [
-          SizedBox(
-            width: 92,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(left1, maxLines: 1, overflow: TextOverflow.ellipsis, style: muted),
-              if (left2.isNotEmpty) Text(left2, maxLines: 1, overflow: TextOverflow.ellipsis, style: muted),
-            ]),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 36),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 92,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      left1,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: muted,
+                    ),
+                    if (left2.isNotEmpty)
+                      Text(
+                        left2,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: muted,
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (title.isNotEmpty)
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 15,
+                          height: 1.25,
+                        ),
+                      ),
+                    if (second.isNotEmpty)
+                      Text(
+                        second,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: muted,
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                money(txn.amount, cur),
+                style: TextStyle(
+                  color: amountColor,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 15,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              if (title.isNotEmpty)
-                Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5)),
-              if (second.isNotEmpty) Text(second, maxLines: 1, overflow: TextOverflow.ellipsis, style: muted),
-            ]),
-          ),
-          const SizedBox(width: 8),
-          Text(money(txn.amount, cur), style: TextStyle(color: amountColor, fontWeight: FontWeight.w600, fontSize: 15.5)),
-        ]),
+        ),
       ),
     );
     if (store.prefs.swipe != 'delete') return tile;
@@ -850,11 +914,13 @@ class _SummaryView extends StatelessWidget {
         .where((b) => b.categoryId == null && b.currency == cur)
         .firstOrNull;
     final catSum = store.budgets
-        .where((b) =>
-            b.categoryId != null &&
-            b.currency == cur &&
-            store.category(b.categoryId)?.type == TxType.expense &&
-            store.category(b.categoryId)?.parentId == null)
+        .where(
+          (b) =>
+              b.categoryId != null &&
+              b.currency == cur &&
+              store.category(b.categoryId)?.type == TxType.expense &&
+              store.category(b.categoryId)?.parentId == null,
+        )
         .fold<int>(0, (s, b) => s + b.amount);
     final limit = overall?.amount ?? (catSum > 0 ? catSum : null);
 
@@ -868,7 +934,8 @@ class _SummaryView extends StatelessWidget {
         if (!d.isBefore(range.end) || (r.end != null && d.isAfter(r.end!))) {
           break;
         }
-        if (!d.isBefore(from) && (r.lastDone == null || d.isAfter(r.lastDone!))) {
+        if (!d.isBefore(from) &&
+            (r.lastDone == null || d.isAfter(r.lastDone!))) {
           upcoming.add((d, r));
         }
       }
@@ -990,7 +1057,11 @@ class _SummaryView extends StatelessWidget {
               : InkWell(
                   onTap: overall == null
                       ? null
-                      : () => editBudget(context, currency: cur, existing: overall),
+                      : () => editBudget(
+                          context,
+                          currency: cur,
+                          existing: overall,
+                        ),
                   child: _SummaryBudget(
                     spent: now.expense,
                     limit: limit,

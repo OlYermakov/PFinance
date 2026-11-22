@@ -817,6 +817,8 @@ class CategoryRow extends StatelessWidget {
       builder: (context, t, child) => Opacity(opacity: t, child: Transform.translate(offset: Offset(0, (1 - t) * 12), child: child)),
       child: ListTile(
         onTap: onTap,
+        visualDensity: const VisualDensity(vertical: -2),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
         leading: Container(
           width: 46,
           padding: const EdgeInsets.symmetric(vertical: 4),
