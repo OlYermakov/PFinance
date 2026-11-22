@@ -245,7 +245,7 @@ class _StatsPageState extends State<StatsPage> {
                   onTap: _tab == StatsTab.budget ? null : () => setState(() => _type = t),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
-                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
                     decoration: BoxDecoration(
                       border: Border(
                         bottom: BorderSide(
@@ -254,15 +254,21 @@ class _StatsPageState extends State<StatsPage> {
                         ),
                       ),
                     ),
-                    child: Column(children: [
-                      Text(label, style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant)),
-                      Text(money(v, cur),
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: (_tab == StatsTab.budget ? t == TxType.expense : _type == t) ? null : scheme.onSurfaceVariant,
-                          )),
-                    ]),
+                    // MM: "Дохід € 1 790,32" in one line
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text.rich(
+                        TextSpan(children: [
+                          TextSpan(text: '$label  ', style: const TextStyle(fontWeight: FontWeight.w500)),
+                          TextSpan(text: money(v, cur), style: const TextStyle(fontWeight: FontWeight.w600)),
+                        ]),
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: (_tab == StatsTab.budget ? t == TxType.expense : _type == t) ? null : scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
