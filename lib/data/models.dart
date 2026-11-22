@@ -51,6 +51,9 @@ class Account implements Entity {
     this.archived = false,
     this.includeInTotal = true,
     this.group,
+    this.settleDay,
+    this.payDay,
+    this.payFrom,
     DateTime? updatedAt,
     this.deleted = false,
   })  : id = id ?? newId(),
@@ -58,6 +61,13 @@ class Account implements Entity {
 
   /// User-named account group ("Банк", "Гаманець"…); null = by kind.
   final String? group;
+
+  /// Card billing cycle (MM "Card"): the day the statement closes, the day it
+  /// is paid, and the account it is paid from. Null for non-card accounts.
+  final int? settleDay;
+  final int? payDay;
+  final String? payFrom;
+  bool get isCard => settleDay != null;
 
   Account copyWith({
     String? group,
@@ -70,6 +80,7 @@ class Account implements Entity {
     bool? archived,
     bool? includeInTotal,
     bool? deleted,
+    (int?, int?, String?)? card, // (settleDay, payDay, payFrom); (null,null,null) clears
   }) =>
       Account(
         id: id,
@@ -82,6 +93,9 @@ class Account implements Entity {
         archived: archived ?? this.archived,
         includeInTotal: includeInTotal ?? this.includeInTotal,
         group: group ?? this.group,
+        settleDay: card != null ? card.$1 : settleDay,
+        payDay: card != null ? card.$2 : payDay,
+        payFrom: card != null ? card.$3 : payFrom,
         deleted: deleted ?? this.deleted,
       );
 
@@ -97,6 +111,9 @@ class Account implements Entity {
         'archived': archived,
         'includeInTotal': includeInTotal,
         'group': group,
+        if (settleDay != null) 'settleDay': settleDay,
+        if (payDay != null) 'payDay': payDay,
+        if (payFrom != null) 'payFrom': payFrom,
         'updatedAt': updatedAt.millisecondsSinceEpoch,
         'deleted': deleted,
       };
@@ -112,6 +129,9 @@ class Account implements Entity {
         archived: j['archived'] as bool? ?? false,
         includeInTotal: j['includeInTotal'] as bool? ?? true,
         group: j['group'] as String?,
+        settleDay: (j['settleDay'] as num?)?.toInt(),
+        payDay: (j['payDay'] as num?)?.toInt(),
+        payFrom: j['payFrom'] as String?,
         updatedAt: _date(j['updatedAt']),
         deleted: j['deleted'] as bool? ?? false,
       );

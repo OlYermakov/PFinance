@@ -44,6 +44,8 @@ class Prefs {
   List<String> transferExpense = [];
   List<String> savedTags = [];
   int appIcon = 0;
+  // MM "Card expense display": 'moment' (A) or 'balance' (B, payable/outstanding)
+  String cardDisplay = 'moment';
   Map<String, double> rates = {}; // 1 unit of currency = rate × base
 
   Map<String, Object?> toJson() => {
@@ -73,6 +75,7 @@ class Prefs {
     'transferExpense': transferExpense,
     'savedTags': savedTags,
     'appIcon': appIcon,
+    'cardDisplay': cardDisplay,
   };
 
   void apply(Map<String, Object?> j) {
@@ -98,6 +101,7 @@ class Prefs {
     copyPaste = j['copyPaste'] as bool? ?? copyPaste;
     currencyFront = j['currencyFront'] as bool? ?? currencyFront;
     repeatInAdvance = j['repeatInAdvance'] as bool? ?? repeatInAdvance;
+    if (j['cardDisplay'] is String) cardDisplay = j['cardDisplay'] as String;
     final te = j['transferExpense'];
     if (te is List) transferExpense = [for (final x in te) x as String];
     final st = j['savedTags'];
@@ -364,6 +368,40 @@ class AppStore extends ChangeNotifier {
       }
     }
     return b;
+  }
+
+  /// Balance of [a] at the end of [day] (inclusive).
+  int balanceAt(Account a, DateTime day) {
+    final end = DateTime(day.year, day.month, day.day + 1);
+    var b = a.initialBalance;
+    for (final t in txns) {
+      if (!t.date.isBefore(end)) continue;
+      if (t.accountId == a.id) b += t.type == TxType.income ? t.amount : -t.amount;
+      if (t.type == TxType.transfer && t.toAccountId == a.id) b += t.toAmount ?? t.amount;
+    }
+    return b;
+  }
+
+  /// Card cycle (MM "B. As balance"): what the last closed statement still
+  /// owes (payable, due on the next pay day) and what the current, still open
+  /// cycle has changed the balance (outstanding). Both are negative when owed/spent.
+  ({int payable, int outstanding, DateTime settled, DateTime due})? cardCycle(Account a, {DateTime? now}) {
+    final sd = a.settleDay;
+    if (sd == null) return null;
+    final today = now ?? DateTime.now();
+    DateTime clampDay(int y, int m, int d) {
+      final last = DateTime(y, m + 1, 0).day;
+      return DateTime(y, m, d > last ? last : d);
+    }
+
+    var settled = clampDay(today.year, today.month, sd);
+    if (settled.isAfter(DateTime(today.year, today.month, today.day))) settled = clampDay(today.year, today.month - 1, sd);
+    final pd = a.payDay ?? sd;
+    var due = clampDay(settled.year, settled.month, pd);
+    if (!due.isAfter(settled)) due = clampDay(settled.year, settled.month + 1, pd);
+    final atSettle = balanceAt(a, settled);
+    final now0 = balanceOf(a);
+    return (payable: atSettle < 0 ? atSettle : 0, outstanding: now0 - atSettle, settled: settled, due: due);
   }
 
   /// Assets, liabilities and net worth in base currency.

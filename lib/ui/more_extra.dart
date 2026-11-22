@@ -279,10 +279,42 @@ class _AccountsMenu extends StatelessWidget {
           _Item(null, 'Переказ-витрата', onTap: () => _push(context, const _AccountFlagsPage(transfer: true))),
           _Item(null, 'Видалені рахунки', value: store.deletedAccounts.isEmpty ? null : '${store.deletedAccounts.length}',
               onTap: () => _push(context, const _DeletedAccountsPage())),
+          _Item(null, 'Відображення витрат по карті',
+              value: store.prefs.cardDisplay == 'balance' ? 'B. Як залишок' : 'A. На момент', onTap: () => _cardDisplay(context)),
         ]),
       ]),
     );
   }
+}
+
+Future<void> _cardDisplay(BuildContext context) async {
+  final store = StoreScope.read(context);
+  final v = await showDialog<String>(
+    context: context,
+    builder: (context) {
+      final cur = store.prefs.cardDisplay;
+      Widget opt(String key, String label) => ListTile(
+            title: Text(label, style: TextStyle(color: key == cur ? Theme.of(context).colorScheme.primary : null)),
+            trailing: key == cur ? Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () => Navigator.pop(context, key),
+          );
+      return AlertDialog(
+        title: const Text('Відображення витрат по карті'),
+        contentPadding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(24, 0, 24, 12),
+            child: Text('Для карток із датою розрахунку. A: витрати видно лише в балансі на момент покупки. '
+                'B: на картці окремо видно суму до сплати за закритий період і витрати поточного періоду.'),
+          ),
+          opt('moment', 'A. На момент'),
+          opt('balance', 'B. Як залишок'),
+        ]),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Скасувати'))],
+      );
+    },
+  );
+  if (v != null) await store.updatePrefs((p) => p.cardDisplay = v);
 }
 
 class _AccountGroupsPage extends StatelessWidget {

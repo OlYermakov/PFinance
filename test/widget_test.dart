@@ -223,4 +223,19 @@ void main() {
     await s.updatePrefs((p) => p.transferExpense = []);
     expect(s.totalsBase([into, back]).expense, 0);
   });
+
+  test('card cycle: payable from the closed statement, outstanding since', () async {
+    final s = await _store();
+    final card = s.accounts.first.copyWith(card: (5, 20, null));
+    await s.saveAccount(card);
+    final cat = s.categoriesOf(TxType.expense).first;
+    await s.saveTxn(Txn(type: TxType.expense, amount: 3000, accountId: card.id, categoryId: cat.id, date: DateTime(2026, 3, 2)));
+    await s.saveTxn(Txn(type: TxType.expense, amount: 1000, accountId: card.id, categoryId: cat.id, date: DateTime(2026, 3, 8)));
+    final c = s.cardCycle(s.account(card.id)!, now: DateTime(2026, 3, 10))!;
+    expect(c.settled, DateTime(2026, 3, 5));
+    expect(c.due, DateTime(2026, 3, 20));
+    expect(c.payable, card.initialBalance - 3000 < 0 ? card.initialBalance - 3000 : 0);
+    expect(c.outstanding, -1000);
+    expect(Account.fromJson(s.account(card.id)!.toJson()).settleDay, 5);
+  });
 }

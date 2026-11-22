@@ -143,6 +143,7 @@ class _AccountRow extends StatelessWidget {
     final store = StoreScope.of(context);
     final scheme = Theme.of(context).colorScheme;
     final balance = store.balanceOf(account);
+    final cycle = store.prefs.cardDisplay == 'balance' ? store.cardCycle(account) : null;
     final color = !account.includeInTotal
         ? scheme.onSurfaceVariant
         : balance < 0
@@ -156,7 +157,17 @@ class _AccountRow extends StatelessWidget {
         child: Row(children: [
           Container(width: 4, height: 22, decoration: BoxDecoration(color: Color(account.color), borderRadius: BorderRadius.circular(2))),
           const SizedBox(width: 12),
-          Expanded(child: Text(account.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(account.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              if (cycle != null) ...[
+                const SizedBox(height: 4),
+                Text('До сплати ${money(-cycle.payable, account.currency)} · до ${cycle.due.day}.${cycle.due.month.toString().padLeft(2, '0')}',
+                    style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant)),
+                Text('Поточний цикл ${money(cycle.outstanding, account.currency)}', style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant)),
+              ],
+            ]),
+          ),
           AnimatedMoney(balance, account.currency, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: color)),
         ]),
       ),
@@ -835,6 +846,10 @@ Future<void> editAccount(BuildContext context, {Account? existing}) async {
   var color = existing?.color ?? colorChoices.first;
   var include = existing?.includeInTotal ?? true;
   var archived = existing?.archived ?? false;
+  var card = existing?.isCard ?? false;
+  var settleDay = existing?.settleDay ?? 1;
+  var payDay = existing?.payDay ?? 15;
+  var payFrom = existing?.payFrom;
   final initial = TextEditingController(text: existing == null ? '' : minorToInput(existing.initialBalance, currency));
   final hasTxns = existing != null && store.txns.any((t) => t.accountId == existing.id || t.toAccountId == existing.id);
 
@@ -882,6 +897,44 @@ Future<void> editAccount(BuildContext context, {Account? existing}) async {
                 value: include,
                 onChanged: (v) => setState(() => include = v),
               ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Картка з датою розрахунку'),
+                subtitle: const Text('Кредитна картка: витрати сплачуються раз на місяць'),
+                value: card,
+                onChanged: (v) => setState(() => card = v),
+              ),
+              if (card) ...[
+                Row(children: [
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      initialValue: settleDay,
+                      decoration: const InputDecoration(labelText: 'Дата розрахунку'),
+                      items: [for (var d = 1; d <= 31; d++) DropdownMenuItem(value: d, child: Text('$d число'))],
+                      onChanged: (v) => setState(() => settleDay = v!),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      initialValue: payDay,
+                      decoration: const InputDecoration(labelText: 'Дата платежу'),
+                      items: [for (var d = 1; d <= 31; d++) DropdownMenuItem(value: d, child: Text('$d число'))],
+                      onChanged: (v) => setState(() => payDay = v!),
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String?>(
+                  initialValue: store.accounts.any((a) => a.id == payFrom) ? payFrom : null,
+                  decoration: const InputDecoration(labelText: 'Сплачується з рахунку'),
+                  items: [
+                    const DropdownMenuItem<String?>(value: null, child: Text('—')),
+                    for (final a in store.accounts.where((a) => a.id != existing?.id)) DropdownMenuItem<String?>(value: a.id, child: Text(a.name)),
+                  ],
+                  onChanged: (v) => setState(() => payFrom = v),
+                ),
+              ],
               if (existing != null)
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
@@ -912,6 +965,7 @@ Future<void> editAccount(BuildContext context, {Account? existing}) async {
                 color: color,
                 includeInTotal: include,
                 archived: archived,
+                card: card ? (settleDay, payDay, payFrom) : (null, null, null),
               ));
               Navigator.pop(context);
             },

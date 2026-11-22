@@ -102,6 +102,10 @@ MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings
       color: _palette[accounts.length % _palette.length],
       sort: accounts.length,
       group: groups[gid],
+      // MM card accounts carry the statement and payment days
+      settleDay: int.tryParse(_s(a['ZCARD_DAYFIN'])),
+      payDay: int.tryParse(_s(a['ZCARD_DAYPAY'])),
+      payFrom: _s(a['ZCARDASSETUID']).isEmpty || a['ZCARDASSETUID'] == a['ZUID'] ? null : _s(a['ZCARDASSETUID']),
     );
     accounts.add(acc);
     if (a['ZTRANSFEREXPENSE'] == 1) transferExpense.add(acc.id);
