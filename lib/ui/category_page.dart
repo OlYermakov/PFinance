@@ -95,8 +95,8 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
         title: Text(c.name),
         centerTitle: true,
       ),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 32),
+      // MM: the month and the chart stay put; the list below scrolls.
+      body: Column(
         children: [
           Container(
             color: panelColor(context),
@@ -144,49 +144,56 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
               ],
             ),
           ),
-          if (subs.isNotEmpty)
-            Container(
-              color: panelColor(context),
-              margin: const EdgeInsets.only(top: 12),
-              child: Column(
-                children: [
-                  for (final (i, s) in subs.indexed)
-                    CategoryRow(
-                      slice: s,
-                      total: subTotal,
-                      currency: cur,
-                      index: i,
-                      fallbackName: 'Без підкатегорії',
-                      color: isGroup ? null : color,
-                      onTap: s.category == null
-                          ? null
-                          : isGroup
-                          ? () => openStatement(context, store.account(s.category!.id)!)
-                          : () => Navigator.push(
-                              context,
-                              MaterialPageRoute<void>(
-                                builder: (_) => CategoryStatsPage(category: s.category!, type: widget.type, month: _month, backLabel: c.name),
-                              ),
-                            ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 32),
+              children: [
+                if (subs.isNotEmpty)
+                  Container(
+                    color: panelColor(context),
+                    margin: const EdgeInsets.only(top: 12),
+                    child: Column(
+                      children: [
+                        for (final (i, s) in subs.indexed)
+                          CategoryRow(
+                            slice: s,
+                            total: subTotal,
+                            currency: cur,
+                            index: i,
+                            fallbackName: 'Без підкатегорії',
+                            color: isGroup ? null : color,
+                            onTap: s.category == null
+                                ? null
+                                : isGroup
+                                ? () => openStatement(context, store.account(s.category!.id)!)
+                                : () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => CategoryStatsPage(category: s.category!, type: widget.type, month: _month, backLabel: c.name),
+                                    ),
+                                  ),
+                          ),
+                      ],
                     ),
-                ],
-              ),
+                  ),
+                if (days.isEmpty && !isGroup)
+                  Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Text(
+                      'Записів за цей місяць немає',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: scheme.onSurfaceVariant),
+                    ),
+                  ),
+                if (!isGroup)
+                  for (final e in days.entries)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: DayCard(day: e.key, txns: e.value),
+                    ),
+              ],
             ),
-          if (days.isEmpty && !isGroup)
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: Text(
-                'Записів за цей місяць немає',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: scheme.onSurfaceVariant),
-              ),
-            ),
-          if (!isGroup)
-            for (final e in days.entries)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: DayCard(day: e.key, txns: e.value),
-              ),
+          ),
         ],
       ),
     );

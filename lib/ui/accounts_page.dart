@@ -50,81 +50,132 @@ class AccountsPage extends StatelessWidget {
     final muted = scheme.onSurfaceVariant;
 
     Widget stat(String label, int v, Color? color) => Expanded(
-          child: Column(children: [
-            Text(label, style: TextStyle(fontSize: 12, color: muted)),
-            const SizedBox(height: 1),
-            FittedBox(child: AnimatedMoney(v, base, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: color))),
-          ]),
-        );
+      child: Column(
+        children: [
+          Text(label, style: TextStyle(fontSize: 12, color: muted)),
+          const SizedBox(height: 1),
+          FittedBox(
+            child: AnimatedMoney(
+              v,
+              base,
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: color),
+            ),
+          ),
+        ],
+      ),
+    );
 
     return SafeArea(
       bottom: false,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+      // MM: the title and totals stay put; only the accounts scroll.
+      child: Column(
         children: [
-          Row(children: [
-            const SizedBox(width: 80),
-            Expanded(child: Text('Рахунки', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 17))),
-            IconButton(visualDensity: VisualDensity.compact, tooltip: 'Редагувати список', icon: const Icon(Icons.edit_outlined), onPressed: () => _push(context, const EditAccountsPage())),
-            IconButton(visualDensity: VisualDensity.compact, tooltip: 'Новий рахунок', icon: const Icon(Icons.add_rounded), onPressed: () => editAccount(context)),
-          ]),
-          const SizedBox(height: 4),
-          GradientCard(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            child: Row(children: [
-              stat('Активи', nw.assets, scheme.primary),
-              stat('Пасиви', -nw.liabilities, p.expense),
-              stat('Разом', nw.total, null),
-            ]),
-          ),
-          for (final e in groups.entries) ...[
-            const SizedBox(height: 10),
-            Builder(builder: (context) {
-              var inc = 0, exc = 0;
-              for (final a in e.value) {
-                final v = store.toBase(store.balanceOf(a), a.currency);
-                if (a.includeInTotal) {
-                  inc += v;
-                } else {
-                  exc += v;
-                }
-              }
-              final anyInc = e.value.any((a) => a.includeInTotal), anyExc = e.value.any((a) => !a.includeInTotal);
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
-                child: Row(children: [
-                  Expanded(child: Text(e.key, style: TextStyle(color: muted, fontWeight: FontWeight.w500, fontSize: 14))),
-                  if (anyExc) Text(money(exc, base), style: TextStyle(color: muted)),
-                  if (anyExc && anyInc) const SizedBox(width: 16),
-                  if (anyInc) Text(money(inc, base), style: TextStyle(color: inc < 0 ? p.expense : scheme.primary, fontWeight: FontWeight.w700)),
-                ]),
-              );
-            }),
-            GlassCard(
-              radius: 22,
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Column(children: [
-                for (final (i, a) in e.value.indexed) ...[
-                  if (i > 0) Divider(height: 1, indent: 16, color: Colors.white.withValues(alpha: 0.06)),
-                  _AccountRow(account: a),
-                ],
-              ]),
-            ),
-          ],
-          if (hidden > 0)
-            Padding(
-              padding: const EdgeInsets.only(top: 14),
-              child: Center(
-                child: TextButton(
-                  onPressed: () => _push(context, const EditAccountsPage()),
-                  child: Text('Приховані рахунки: $hidden'),
-                ),
-              ),
-            ),
           Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text('Сірим показано рахунки, що не входять у загальні підсумки.',
-                textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    const SizedBox(width: 80),
+                    Expanded(
+                      child: Text(
+                        'Рахунки',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 17),
+                      ),
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Редагувати список',
+                      icon: const Icon(Icons.edit_outlined),
+                      onPressed: () => _push(context, const EditAccountsPage()),
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Новий рахунок',
+                      icon: const Icon(Icons.add_rounded),
+                      onPressed: () => editAccount(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                GradientCard(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  child: Row(children: [stat('Активи', nw.assets, scheme.primary), stat('Пасиви', -nw.liabilities, p.expense), stat('Разом', nw.total, null)]),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+              children: [
+                for (final e in groups.entries) ...[
+                  const SizedBox(height: 10),
+                  Builder(
+                    builder: (context) {
+                      var inc = 0, exc = 0;
+                      for (final a in e.value) {
+                        final v = store.toBase(store.balanceOf(a), a.currency);
+                        if (a.includeInTotal) {
+                          inc += v;
+                        } else {
+                          exc += v;
+                        }
+                      }
+                      final anyInc = e.value.any((a) => a.includeInTotal), anyExc = e.value.any((a) => !a.includeInTotal);
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                e.key,
+                                style: TextStyle(color: muted, fontWeight: FontWeight.w500, fontSize: 14),
+                              ),
+                            ),
+                            if (anyExc) Text(money(exc, base), style: TextStyle(color: muted)),
+                            if (anyExc && anyInc) const SizedBox(width: 16),
+                            if (anyInc)
+                              Text(
+                                money(inc, base),
+                                style: TextStyle(color: inc < 0 ? p.expense : scheme.primary, fontWeight: FontWeight.w700),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  GlassCard(
+                    radius: 22,
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      children: [
+                        for (final (i, a) in e.value.indexed) ...[
+                          if (i > 0) Divider(height: 1, indent: 16, color: Colors.white.withValues(alpha: 0.06)),
+                          _AccountRow(account: a),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+                if (hidden > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 14),
+                    child: Center(
+                      child: TextButton(onPressed: () => _push(context, const EditAccountsPage()), child: Text('Приховані рахунки: $hidden')),
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Сірим показано рахунки, що не входять у загальні підсумки.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -132,8 +183,7 @@ class AccountsPage extends StatelessWidget {
   }
 }
 
-void _push(BuildContext context, Widget page) =>
-    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AuroraBackground(child: page)));
+void _push(BuildContext context, Widget page) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AuroraBackground(child: page)));
 
 class _AccountRow extends StatelessWidget {
   const _AccountRow({required this.account});
@@ -148,29 +198,44 @@ class _AccountRow extends StatelessWidget {
     final color = !account.includeInTotal
         ? scheme.onSurfaceVariant
         : balance < 0
-            ? AppPalette.of(context).expense
-            : scheme.primary;
+        ? AppPalette.of(context).expense
+        : scheme.primary;
     return InkWell(
       onTap: () => _push(context, AccountPage(account: account)),
       onLongPress: () => editAccount(context, existing: account),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-        child: Row(children: [
-          Container(width: 4, height: 20, decoration: BoxDecoration(color: Color(account.color), borderRadius: BorderRadius.circular(2))),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(account.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-              if (cycle != null) ...[
-                const SizedBox(height: 4),
-                Text('До сплати ${money(-cycle.payable, account.currency)} · до ${cycle.due.day}.${cycle.due.month.toString().padLeft(2, '0')}',
-                    style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant)),
-                Text('Поточний цикл ${money(cycle.outstanding, account.currency)}', style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant)),
-              ],
-            ]),
-          ),
-          AnimatedMoney(balance, account.currency, style: TextStyle(fontWeight: FontWeight.w500, fontSize: 15, color: color)),
-        ]),
+        child: Row(
+          children: [
+            Container(
+              width: 4,
+              height: 20,
+              decoration: BoxDecoration(color: Color(account.color), borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(account.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                  if (cycle != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'До сплати ${money(-cycle.payable, account.currency)} · до ${cycle.due.day}.${cycle.due.month.toString().padLeft(2, '0')}',
+                      style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
+                    ),
+                    Text('Поточний цикл ${money(cycle.outstanding, account.currency)}', style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant)),
+                  ],
+                ],
+              ),
+            ),
+            AnimatedMoney(
+              balance,
+              account.currency,
+              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 15, color: color),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -248,25 +313,32 @@ class _AccountPageState extends State<AccountPage> {
     };
     final total = sums(range.start, range.end);
     final title = switch (_view) {
-      _AccView.day => store.prefs.monthStartDay == 1
-          ? monthTitle(_month)
-          : '${shortDayMonth(range.start)} – ${shortDayMonth(range.end.subtract(const Duration(days: 1)))}',
+      _AccView.day =>
+        store.prefs.monthStartDay == 1 ? monthTitle(_month) : '${shortDayMonth(range.start)} – ${shortDayMonth(range.end.subtract(const Duration(days: 1)))}',
       _AccView.month => '$_year',
       _AccView.year => '$firstYear – ${DateTime.now().year}',
     };
 
     Widget cell(String label, String v, Color? c) => Expanded(
-          child: Column(children: [
-            Text(label, style: TextStyle(fontSize: 12, color: muted)),
-            const SizedBox(height: 2),
-            FittedBox(child: Text(v, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: c))),
-          ]),
-        );
+      child: Column(
+        children: [
+          Text(label, style: TextStyle(fontSize: 12, color: muted)),
+          const SizedBox(height: 2),
+          FittedBox(
+            child: Text(
+              v,
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: c),
+            ),
+          ),
+        ],
+      ),
+    );
     String plain(int v) => money(v, cur).replaceAll(RegExp(r'[^\d\s ,.−+-]'), '').trim();
 
     final Widget body = switch (_view) {
       _AccView.day => _dayList(store, a, all, after, range, muted, p, scheme),
-      _AccView.month => Column(children: [
+      _AccView.month => Column(
+        children: [
           for (var m = 12; m >= 1; m--)
             () {
               final r = store.periodRange(DateTime(_year, m));
@@ -286,8 +358,10 @@ class _AccountPageState extends State<AccountPage> {
                 }),
               );
             }(),
-        ]),
-      _AccView.year => Column(children: [
+        ],
+      ),
+      _AccView.year => Column(
+        children: [
           for (var y = DateTime.now().year + 1; y >= firstYear; y--)
             () {
               final s = sums(DateTime(y), DateTime(y + 1));
@@ -305,7 +379,8 @@ class _AccountPageState extends State<AccountPage> {
                 }),
               );
             }(),
-        ]),
+        ],
+      ),
     };
 
     return Scaffold(
@@ -313,70 +388,109 @@ class _AccountPageState extends State<AccountPage> {
         title: Text(a.name),
         centerTitle: true,
         actions: [
-          IconButton(tooltip: 'Графік', icon: const Icon(Icons.bar_chart_rounded), onPressed: () => _push(context, _AccountChartPage(account: a))),
-          IconButton(tooltip: 'Змінити рахунок', icon: const Icon(Icons.edit_outlined), onPressed: () => editAccount(context, existing: a)),
+          IconButton(
+            tooltip: 'Графік',
+            icon: const Icon(Icons.bar_chart_rounded),
+            onPressed: () => _push(context, _AccountChartPage(account: a)),
+          ),
+          IconButton(
+            tooltip: 'Змінити рахунок',
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () => editAccount(context, existing: a),
+          ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: 'Новий запис',
-        onPressed: () => openTxnEditor(context),
-        child: const Icon(Icons.add_rounded),
-      ),
-      body: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 100), children: [
-        Row(children: [
-          if (_view != _AccView.year)
-            IconButton(
-              icon: const Icon(Icons.chevron_left_rounded),
-              onPressed: () => setState(() => _view == _AccView.day ? _month = DateTime(_month.year, _month.month - 1) : _year--),
-            )
-          else
-            const SizedBox(width: 48),
-          Expanded(child: Text(title, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700))),
-          if (_view != _AccView.year)
-            IconButton(
-              icon: const Icon(Icons.chevron_right_rounded),
-              onPressed: () => setState(() => _view == _AccView.day ? _month = DateTime(_month.year, _month.month + 1) : _year++),
-            )
-          else
-            const SizedBox(width: 48),
-        ]),
-        Row(children: [
-          for (final (v, label) in [(_AccView.day, 'По днях'), (_AccView.month, 'По місяцях'), (_AccView.year, 'По роках')])
-            Expanded(
-              child: InkWell(
-                onTap: () => setState(() => _view = v),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: _view == v ? scheme.primary : Colors.white.withValues(alpha: 0.10), width: _view == v ? 3 : 1)),
-                  ),
-                  child: Text(label,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontWeight: _view == v ? FontWeight.w700 : FontWeight.w500, color: _view == v ? null : muted)),
+      floatingActionButton: FloatingActionButton(tooltip: 'Новий запис', onPressed: () => openTxnEditor(context), child: const Icon(Icons.add_rounded)),
+      // MM: period, tabs and totals stay put; only the records scroll.
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    if (_view != _AccView.year)
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left_rounded),
+                        onPressed: () => setState(() => _view == _AccView.day ? _month = DateTime(_month.year, _month.month - 1) : _year--),
+                      )
+                    else
+                      const SizedBox(width: 48),
+                    Expanded(
+                      child: Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    if (_view != _AccView.year)
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right_rounded),
+                        onPressed: () => setState(() => _view == _AccView.day ? _month = DateTime(_month.year, _month.month + 1) : _year++),
+                      )
+                    else
+                      const SizedBox(width: 48),
+                  ],
                 ),
-              ),
+                Row(
+                  children: [
+                    for (final (v, label) in [(_AccView.day, 'По днях'), (_AccView.month, 'По місяцях'), (_AccView.year, 'По роках')])
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setState(() => _view = v),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(color: _view == v ? scheme.primary : Colors.white.withValues(alpha: 0.10), width: _view == v ? 3 : 1),
+                              ),
+                            ),
+                            child: Text(
+                              label,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontWeight: _view == v ? FontWeight.w700 : FontWeight.w500, color: _view == v ? null : muted),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                GlassCard(
+                  radius: 20,
+                  padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 6),
+                  child: Row(
+                    children: [
+                      cell('Надходження', plain(total.dep), scheme.primary),
+                      cell('Списання', plain(total.wd), p.expense),
+                      cell('Разом', plain(total.dep - total.wd), null),
+                      if (_view != _AccView.year) cell('Баланс', plain(balanceAt(range.end)), null),
+                    ],
+                  ),
+                ),
+              ],
             ),
-        ]),
-        const SizedBox(height: 8),
-        GlassCard(
-          radius: 20,
-          padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 6),
-          child: Row(children: [
-            cell('Надходження', plain(total.dep), scheme.primary),
-            cell('Списання', plain(total.wd), p.expense),
-            cell('Разом', plain(total.dep - total.wd), null),
-            if (_view != _AccView.year) cell('Баланс', plain(balanceAt(range.end)), null),
-          ]),
-        ),
-        const SizedBox(height: 8),
-        body,
-      ]),
+          ),
+          Expanded(
+            child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 100), children: [body]),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _dayList(AppStore store, Account a, List<Txn> all, Map<String, int> after, ({DateTime start, DateTime end}) r, Color muted,
-      AppPalette p, ColorScheme scheme) {
+  Widget _dayList(
+    AppStore store,
+    Account a,
+    List<Txn> all,
+    Map<String, int> after,
+    ({DateTime start, DateTime end}) r,
+    Color muted,
+    AppPalette p,
+    ColorScheme scheme,
+  ) {
     final list = all.where((t) => !t.date.isBefore(r.start) && t.date.isBefore(r.end)).toList().reversed.toList();
     if (list.isEmpty) return const EmptyState(icon: Icons.receipt_long_outlined, text: 'Записів за цей період немає');
     final days = <DateTime, List<Txn>>{};
@@ -384,81 +498,102 @@ class _AccountPageState extends State<AccountPage> {
       days.putIfAbsent(DateTime(t.date.year, t.date.month, t.date.day), () => []).add(t);
     }
     final cur = a.currency;
-    return Column(children: [
-      for (final e in days.entries) ...[
-        GlassCard(
-          radius: 20,
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 5, 14, 5),
-              child: Row(children: [
-                Text('${e.key.day}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: (e.key.weekday >= 6 ? p.expense : scheme.primary).withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(6),
+    return Column(
+      children: [
+        for (final e in days.entries) ...[
+          GlassCard(
+            radius: 20,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 5, 14, 5),
+                  child: Row(
+                    children: [
+                      Text('${e.key.day}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: (e.key.weekday >= 6 ? p.expense : scheme.primary).withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(weekdayShort(e.key), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                      ),
+                      const SizedBox(width: 8),
+                      Text('${e.key.month.toString().padLeft(2, '0')}.${e.key.year}', style: TextStyle(color: muted, fontSize: 12)),
+                      const Spacer(),
+                      Text(
+                        money(e.value.map((t) => accountDelta(t, a.id)).where((d) => d > 0).fold(0, (s, d) => s + d), cur),
+                        style: TextStyle(color: scheme.primary, fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        money(-e.value.map((t) => accountDelta(t, a.id)).where((d) => d < 0).fold(0, (s, d) => s + d), cur),
+                        style: TextStyle(color: p.expense, fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                    ],
                   ),
-                  child: Text(weekdayShort(e.key), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
                 ),
-                const SizedBox(width: 8),
-                Text('${e.key.month.toString().padLeft(2, '0')}.${e.key.year}', style: TextStyle(color: muted, fontSize: 12)),
-                const Spacer(),
-                Text(money(e.value.map((t) => accountDelta(t, a.id)).where((d) => d > 0).fold(0, (s, d) => s + d), cur),
-                    style: TextStyle(color: scheme.primary, fontSize: 13, fontWeight: FontWeight.w600)),
-                const SizedBox(width: 12),
-                Text(money(-e.value.map((t) => accountDelta(t, a.id)).where((d) => d < 0).fold(0, (s, d) => s + d), cur),
-                    style: TextStyle(color: p.expense, fontSize: 13, fontWeight: FontWeight.w600)),
-              ]),
-            ),
-            for (final t in e.value) ...[
-              Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
-              InkWell(
-                onTap: () => openTxnEditor(context, existing: t),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 6, 14, 6),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    SizedBox(
-                      width: 92,
-                      child: Text(
-                        t.type == TxType.transfer
-                            ? 'Переказ'
-                            : [
-                                store.topCategory(t.categoryId)?.name ?? 'Без категорії',
-                                if (store.category(t.categoryId)?.parentId != null) store.category(t.categoryId)!.name,
-                              ].join('\n'),
-                        style: TextStyle(color: muted, fontSize: 13),
+                for (final t in e.value) ...[
+                  Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+                  InkWell(
+                    onTap: () => openTxnEditor(context, existing: t),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 6, 14, 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: 92,
+                            child: Text(
+                              t.type == TxType.transfer
+                                  ? 'Переказ'
+                                  : [
+                                      store.topCategory(t.categoryId)?.name ?? 'Без категорії',
+                                      if (store.category(t.categoryId)?.parentId != null) store.category(t.categoryId)!.name,
+                                    ].join('\n'),
+                              style: TextStyle(color: muted, fontSize: 13),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  t.type == TxType.transfer
+                                      ? '${store.account(t.accountId)?.name ?? '?'} → ${store.account(t.toAccountId)?.name ?? '?'}'
+                                      : t.note,
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                                ),
+                                if (t.type == TxType.transfer && t.note.isNotEmpty) Text(t.note, style: TextStyle(color: muted, fontSize: 13)),
+                                if (t.type != TxType.transfer) Text(a.name, style: TextStyle(color: muted, fontSize: 13)),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                money(accountDelta(t, a.id).abs(), cur),
+                                style: TextStyle(fontWeight: FontWeight.w700, color: accountDelta(t, a.id) >= 0 ? scheme.primary : p.expense),
+                              ),
+                              Text('Баланс ${money(after[t.id] ?? 0, cur)}', style: TextStyle(color: muted, fontSize: 12)),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(
-                          t.type == TxType.transfer
-                              ? '${store.account(t.accountId)?.name ?? '?'} → ${store.account(t.toAccountId)?.name ?? '?'}'
-                              : t.note,
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                        ),
-                        if (t.type == TxType.transfer && t.note.isNotEmpty) Text(t.note, style: TextStyle(color: muted, fontSize: 13)),
-                        if (t.type != TxType.transfer) Text(a.name, style: TextStyle(color: muted, fontSize: 13)),
-                      ]),
-                    ),
-                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text(money(accountDelta(t, a.id).abs(), cur),
-                          style: TextStyle(fontWeight: FontWeight.w700, color: accountDelta(t, a.id) >= 0 ? scheme.primary : p.expense)),
-                      Text('Баланс ${money(after[t.id] ?? 0, cur)}', style: TextStyle(color: muted, fontSize: 12)),
-                    ]),
-                  ]),
-                ),
-              ),
-            ],
-          ]),
-        ),
-        const SizedBox(height: 10),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
       ],
-    ]);
+    );
   }
 }
 
@@ -494,26 +629,43 @@ class _PeriodRow extends StatelessWidget {
         tint: current ? scheme.primary : null,
         onTap: onTap,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-        child: Row(children: [
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-              Text(subtitle, style: TextStyle(color: muted, fontSize: 12)),
-            ]),
-          ),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text(money(dep, currency), style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w600)),
-            Text(money(dep - wd, currency, sign: true), style: TextStyle(color: muted, fontSize: 12)),
-          ]),
-          const SizedBox(width: 18),
-          SizedBox(
-            width: 100,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text(money(wd, currency), style: TextStyle(color: p.expense, fontWeight: FontWeight.w600)),
-              Text('(${money(end, currency)})', style: TextStyle(color: muted, fontSize: 12)),
-            ]),
-          ),
-        ]),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  Text(subtitle, style: TextStyle(color: muted, fontSize: 12)),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  money(dep, currency),
+                  style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w600),
+                ),
+                Text(money(dep - wd, currency, sign: true), style: TextStyle(color: muted, fontSize: 12)),
+              ],
+            ),
+            const SizedBox(width: 18),
+            SizedBox(
+              width: 100,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    money(wd, currency),
+                    style: TextStyle(color: p.expense, fontWeight: FontWeight.w600),
+                  ),
+                  Text('(${money(end, currency)})', style: TextStyle(color: muted, fontSize: 12)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -569,7 +721,10 @@ class _AccountChartPageState extends State<_AccountChartPage> {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: SegmentedButton<bool>(
-              segments: const [ButtonSegment(value: false, label: Text('М')), ButtonSegment(value: true, label: Text('Р'))],
+              segments: const [
+                ButtonSegment(value: false, label: Text('М')),
+                ButtonSegment(value: true, label: Text('Р')),
+              ],
               selected: {_years},
               showSelectedIcon: false,
               style: const ButtonStyle(visualDensity: VisualDensity.compact),
@@ -578,58 +733,76 @@ class _AccountChartPageState extends State<_AccountChartPage> {
           ),
         ],
       ),
-      body: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 40), children: [
-        Row(children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left_rounded),
-            onPressed: () => setState(() => _anchor = _years ? DateTime(_anchor.year - 1, _anchor.month) : DateTime(_anchor.year, _anchor.month - 1)),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+        children: [
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left_rounded),
+                onPressed: () => setState(() => _anchor = _years ? DateTime(_anchor.year - 1, _anchor.month) : DateTime(_anchor.year, _anchor.month - 1)),
+              ),
+              Expanded(
+                child: Text(
+                  _years ? '${_anchor.year}' : monthTitle(_anchor),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right_rounded),
+                onPressed: () => setState(() => _anchor = _years ? DateTime(_anchor.year + 1, _anchor.month) : DateTime(_anchor.year, _anchor.month + 1)),
+              ),
+            ],
           ),
-          Expanded(
-            child: Text(_years ? '${_anchor.year}' : monthTitle(_anchor),
-                textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right_rounded),
-            onPressed: () => setState(() => _anchor = _years ? DateTime(_anchor.year + 1, _anchor.month) : DateTime(_anchor.year, _anchor.month + 1)),
-          ),
-        ]),
-        GlassCard(
-          padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
-          child: _BalanceLine(
-            labels: [for (final pt in points) pt.label],
-            values: values,
-            selected: 4,
-            currency: a.currency,
-            color: scheme.primary,
-            onTap: (i) => setState(() {
-              final d = i - 4;
-              _anchor = _years ? DateTime(_anchor.year + d, _anchor.month) : DateTime(_anchor.year, _anchor.month + d);
-            }),
-          ),
-        ),
-        const SizedBox(height: 14),
-        for (final (label, slices, total, color) in [
-          ('Доходи', inc, incTotal, incomeColor(context, store)),
-          ('Витрати', exp, expTotal, p.expense),
-        ]) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
-            child: Row(children: [
-              Expanded(child: Text(label, style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600))),
-              Text(money(total, base), style: TextStyle(color: color, fontWeight: FontWeight.w700)),
-            ]),
-          ),
-          if (slices.isEmpty)
-            Padding(padding: const EdgeInsets.fromLTRB(8, 0, 8, 8), child: Text('Немає', style: TextStyle(color: scheme.onSurfaceVariant)))
-          else
-            GlassCard(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Column(children: [
-                for (final (i, s) in slices.indexed) CategoryRow(slice: s, total: total, currency: base, index: i),
-              ]),
+          GlassCard(
+            padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
+            child: _BalanceLine(
+              labels: [for (final pt in points) pt.label],
+              values: values,
+              selected: 4,
+              currency: a.currency,
+              color: scheme.primary,
+              onTap: (i) => setState(() {
+                final d = i - 4;
+                _anchor = _years ? DateTime(_anchor.year + d, _anchor.month) : DateTime(_anchor.year, _anchor.month + d);
+              }),
             ),
+          ),
+          const SizedBox(height: 14),
+          for (final (label, slices, total, color) in [('Доходи', inc, incTotal, incomeColor(context, store)), ('Витрати', exp, expTotal, p.expense)]) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  Text(
+                    money(total, base),
+                    style: TextStyle(color: color, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+            if (slices.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                child: Text('Немає', style: TextStyle(color: scheme.onSurfaceVariant)),
+              )
+            else
+              GlassCard(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Column(
+                  children: [for (final (i, s) in slices.indexed) CategoryRow(slice: s, total: total, currency: base, index: i)],
+                ),
+              ),
+          ],
         ],
-      ]),
+      ),
     );
   }
 }
@@ -646,39 +819,47 @@ class _BalanceLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-    return LayoutBuilder(builder: (context, c) {
-      final w = c.maxWidth / labels.length;
-      return Column(children: [
-        GestureDetector(
-          onTapUp: (d) => onTap((d.localPosition.dx / w).floor().clamp(0, labels.length - 1)),
-          child: TweenAnimationBuilder<double>(
-            key: ValueKey(values.join(',')),
-            tween: Tween(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 700),
-            curve: Curves.easeOutCubic,
-            builder: (context, t, _) => CustomPaint(
-              size: Size(c.maxWidth, 190),
-              painter: _LinePainter(
-                values: values,
-                selected: selected,
-                color: color,
-                progress: t,
-                labelStyle: TextStyle(fontSize: 10, color: muted, fontFamily: 'Outfit', fontFamilyFallback: const ['Manrope']),
-                format: (v) => money(v, currency).replaceAll(RegExp(r'[^\d\s ,.−-]'), '').trim(),
+    return LayoutBuilder(
+      builder: (context, c) {
+        final w = c.maxWidth / labels.length;
+        return Column(
+          children: [
+            GestureDetector(
+              onTapUp: (d) => onTap((d.localPosition.dx / w).floor().clamp(0, labels.length - 1)),
+              child: TweenAnimationBuilder<double>(
+                key: ValueKey(values.join(',')),
+                tween: Tween(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 700),
+                curve: Curves.easeOutCubic,
+                builder: (context, t, _) => CustomPaint(
+                  size: Size(c.maxWidth, 190),
+                  painter: _LinePainter(
+                    values: values,
+                    selected: selected,
+                    color: color,
+                    progress: t,
+                    labelStyle: TextStyle(fontSize: 10, color: muted, fontFamily: 'Outfit', fontFamilyFallback: const ['Manrope']),
+                    format: (v) => money(v, currency).replaceAll(RegExp(r'[^\d\s ,.−-]'), '').trim(),
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-        Row(children: [
-          for (final (i, l) in labels.indexed)
-            Expanded(
-              child: Text(l,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: i == selected ? color : muted, fontWeight: i == selected ? FontWeight.w700 : FontWeight.w500)),
+            Row(
+              children: [
+                for (final (i, l) in labels.indexed)
+                  Expanded(
+                    child: Text(
+                      l,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: i == selected ? color : muted, fontWeight: i == selected ? FontWeight.w700 : FontWeight.w500),
+                    ),
+                  ),
+              ],
             ),
-        ]),
-      ]);
-    });
+          ],
+        );
+      },
+    );
   }
 }
 
@@ -711,20 +892,32 @@ class _LinePainter extends CustomPainter {
       ..lineTo(pt(values.length - 1).dx, size.height)
       ..lineTo(pt(0).dx, size.height)
       ..close();
-    canvas.drawPath(fill, Paint()
-      ..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [color.withValues(alpha: 0.28), color.withValues(alpha: 0)])
-          .createShader(Offset.zero & size));
-    canvas.drawPath(path, Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeJoin = StrokeJoin.round);
+    canvas.drawPath(
+      fill,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [color.withValues(alpha: 0.28), color.withValues(alpha: 0)],
+        ).createShader(Offset.zero & size),
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..strokeJoin = StrokeJoin.round,
+    );
     for (var i = 0; i < values.length; i++) {
       final o = pt(i);
       canvas.drawCircle(o, i == selected ? 7 : 5, Paint()..color = color);
       if (i == selected) canvas.drawCircle(o, 3, Paint()..color = Colors.white);
       final tp = TextPainter(
-        text: TextSpan(text: format(values[i]), style: labelStyle.copyWith(color: i == selected ? Colors.white : null, fontWeight: i == selected ? FontWeight.w700 : null)),
+        text: TextSpan(
+          text: format(values[i]),
+          style: labelStyle.copyWith(color: i == selected ? Colors.white : null, fontWeight: i == selected ? FontWeight.w700 : null),
+        ),
         textDirection: TextDirection.ltr,
       )..layout(maxWidth: w + 20);
       tp.paint(canvas, Offset(o.dx - tp.width / 2, o.dy - tp.height - 8));
@@ -772,35 +965,48 @@ class EditAccountsPage extends StatelessWidget {
             child: GlassCard(
               radius: 16,
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(children: [
-                IconButton(
-                  tooltip: 'Видалити',
-                  icon: Icon(Icons.remove_circle_rounded, color: scheme.error),
-                  onPressed: () => _delete(context, a),
-                ),
-                Expanded(
-                  child: InkWell(
-                    onTap: () => editAccount(context, existing: a),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(a.name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: a.archived ? scheme.onSurfaceVariant : null)),
-                        Text('${groupOf(a)} · ${a.currency}${a.includeInTotal ? '' : ' · не в підсумках'}',
-                            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
-                      ]),
+              child: Row(
+                children: [
+                  IconButton(
+                    tooltip: 'Видалити',
+                    icon: Icon(Icons.remove_circle_rounded, color: scheme.error),
+                    onPressed: () => _delete(context, a),
+                  ),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => editAccount(context, existing: a),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              a.name,
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: a.archived ? scheme.onSurfaceVariant : null),
+                            ),
+                            Text(
+                              '${groupOf(a)} · ${a.currency}${a.includeInTotal ? '' : ' · не в підсумках'}',
+                              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  tooltip: a.archived ? 'Показувати' : 'Приховати',
-                  icon: Icon(a.archived ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: scheme.onSurfaceVariant),
-                  onPressed: () => store.saveAccount(a.copyWith(archived: !a.archived)),
-                ),
-                ReorderableDragStartListener(
-                  index: i,
-                  child: Padding(padding: const EdgeInsets.all(12), child: Icon(Icons.drag_handle_rounded, color: scheme.onSurfaceVariant)),
-                ),
-              ]),
+                  IconButton(
+                    tooltip: a.archived ? 'Показувати' : 'Приховати',
+                    icon: Icon(a.archived ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: scheme.onSurfaceVariant),
+                    onPressed: () => store.saveAccount(a.copyWith(archived: !a.archived)),
+                  ),
+                  ReorderableDragStartListener(
+                    index: i,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Icon(Icons.drag_handle_rounded, color: scheme.onSurfaceVariant),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -815,9 +1021,11 @@ class EditAccountsPage extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Видалити «${a.name}»?'),
-        content: Text(related.isEmpty
-            ? 'Рахунок буде видалено.'
-            : 'Разом із рахунком буде видалено ${related.length} його записів. Якщо записи треба зберегти, краще приховай рахунок (значок ока).'),
+        content: Text(
+          related.isEmpty
+              ? 'Рахунок буде видалено.'
+              : 'Разом із рахунком буде видалено ${related.length} його записів. Якщо записи треба зберегти, краще приховай рахунок (значок ока).',
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Скасувати')),
           FilledButton(
@@ -862,88 +1070,108 @@ Future<void> editAccount(BuildContext context, {Account? existing}) async {
         content: SizedBox(
           width: 400,
           child: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              TextField(controller: name, autofocus: existing == null, decoration: const InputDecoration(labelText: 'Назва')),
-              const SizedBox(height: 12),
-              TextField(controller: group, decoration: const InputDecoration(labelText: 'Група'), onChanged: (_) => setState(() {})),
-              const SizedBox(height: 6),
-              Wrap(spacing: 6, runSpacing: 6, children: [
-                for (final g in groups)
-                  ChoiceChip(
-                    visualDensity: VisualDensity.compact,
-                    label: Text(g),
-                    selected: group.text.trim() == g,
-                    onSelected: (_) => setState(() => group.text = g),
-                  ),
-              ]),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: currency,
-                decoration: InputDecoration(labelText: 'Валюта', helperText: hasTxns ? 'Валюту не можна змінити, бо є записи' : null),
-                items: [for (final c in {...currencies, currency}) DropdownMenuItem(value: c, child: Text(c))],
-                onChanged: hasTxns ? null : (v) => setState(() => currency = v!),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: initial,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                decoration: InputDecoration(labelText: 'Початковий баланс', suffixText: currency),
-              ),
-              const SizedBox(height: 16),
-              ColorPickerRow(value: color, onChanged: (v) => setState(() => color = v)),
-              const SizedBox(height: 8),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Враховувати в підсумках'),
-                value: include,
-                onChanged: (v) => setState(() => include = v),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Картка з датою розрахунку'),
-                subtitle: const Text('Кредитна картка: витрати сплачуються раз на місяць'),
-                value: card,
-                onChanged: (v) => setState(() => card = v),
-              ),
-              if (card) ...[
-                Row(children: [
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-                      initialValue: settleDay,
-                      decoration: const InputDecoration(labelText: 'Дата розрахунку'),
-                      items: [for (var d = 1; d <= 31; d++) DropdownMenuItem(value: d, child: Text('$d число'))],
-                      onChanged: (v) => setState(() => settleDay = v!),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-                      initialValue: payDay,
-                      decoration: const InputDecoration(labelText: 'Дата платежу'),
-                      items: [for (var d = 1; d <= 31; d++) DropdownMenuItem(value: d, child: Text('$d число'))],
-                      onChanged: (v) => setState(() => payDay = v!),
-                    ),
-                  ),
-                ]),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String?>(
-                  initialValue: store.accounts.any((a) => a.id == payFrom) ? payFrom : null,
-                  decoration: const InputDecoration(labelText: 'Сплачується з рахунку'),
-                  items: [
-                    const DropdownMenuItem<String?>(value: null, child: Text('—')),
-                    for (final a in store.accounts.where((a) => a.id != existing?.id)) DropdownMenuItem<String?>(value: a.id, child: Text(a.name)),
-                  ],
-                  onChanged: (v) => setState(() => payFrom = v),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: name,
+                  autofocus: existing == null,
+                  decoration: const InputDecoration(labelText: 'Назва'),
                 ),
-              ],
-              if (existing != null)
+                const SizedBox(height: 12),
+                TextField(
+                  controller: group,
+                  decoration: const InputDecoration(labelText: 'Група'),
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final g in groups)
+                      ChoiceChip(
+                        visualDensity: VisualDensity.compact,
+                        label: Text(g),
+                        selected: group.text.trim() == g,
+                        onSelected: (_) => setState(() => group.text = g),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: currency,
+                  decoration: InputDecoration(labelText: 'Валюта', helperText: hasTxns ? 'Валюту не можна змінити, бо є записи' : null),
+                  items: [
+                    for (final c in {...currencies, currency}) DropdownMenuItem(value: c, child: Text(c)),
+                  ],
+                  onChanged: hasTxns ? null : (v) => setState(() => currency = v!),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: initial,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                  decoration: InputDecoration(labelText: 'Початковий баланс', suffixText: currency),
+                ),
+                const SizedBox(height: 16),
+                ColorPickerRow(value: color, onChanged: (v) => setState(() => color = v)),
+                const SizedBox(height: 8),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Приховати'),
-                  value: archived,
-                  onChanged: (v) => setState(() => archived = v),
+                  title: const Text('Враховувати в підсумках'),
+                  value: include,
+                  onChanged: (v) => setState(() => include = v),
                 ),
-            ]),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Картка з датою розрахунку'),
+                  subtitle: const Text('Кредитна картка: витрати сплачуються раз на місяць'),
+                  value: card,
+                  onChanged: (v) => setState(() => card = v),
+                ),
+                if (card) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          initialValue: settleDay,
+                          decoration: const InputDecoration(labelText: 'Дата розрахунку'),
+                          items: [for (var d = 1; d <= 31; d++) DropdownMenuItem(value: d, child: Text('$d число'))],
+                          onChanged: (v) => setState(() => settleDay = v!),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          initialValue: payDay,
+                          decoration: const InputDecoration(labelText: 'Дата платежу'),
+                          items: [for (var d = 1; d <= 31; d++) DropdownMenuItem(value: d, child: Text('$d число'))],
+                          onChanged: (v) => setState(() => payDay = v!),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String?>(
+                    initialValue: store.accounts.any((a) => a.id == payFrom) ? payFrom : null,
+                    decoration: const InputDecoration(labelText: 'Сплачується з рахунку'),
+                    items: [
+                      const DropdownMenuItem<String?>(value: null, child: Text('—')),
+                      for (final a in store.accounts.where((a) => a.id != existing?.id)) DropdownMenuItem<String?>(value: a.id, child: Text(a.name)),
+                    ],
+                    onChanged: (v) => setState(() => payFrom = v),
+                  ),
+                ],
+                if (existing != null)
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Приховати'),
+                    value: archived,
+                    onChanged: (v) => setState(() => archived = v),
+                  ),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -957,17 +1185,19 @@ Future<void> editAccount(BuildContext context, {Account? existing}) async {
               final base = existing ?? Account(name: '', currency: currency, sort: store.accounts.length);
               final g = group.text.trim();
               final kind = kindLabels.entries.where((e) => e.value.$1 == g).firstOrNull?.key ?? base.kind;
-              store.saveAccount(base.copyWith(
-                name: name.text.trim(),
-                kind: kind,
-                group: g,
-                currency: currency,
-                initialBalance: neg ? -v : v,
-                color: color,
-                includeInTotal: include,
-                archived: archived,
-                card: card ? (settleDay, payDay, payFrom) : (null, null, null),
-              ));
+              store.saveAccount(
+                base.copyWith(
+                  name: name.text.trim(),
+                  kind: kind,
+                  group: g,
+                  currency: currency,
+                  initialBalance: neg ? -v : v,
+                  color: color,
+                  includeInTotal: include,
+                  archived: archived,
+                  card: card ? (settleDay, payDay, payFrom) : (null, null, null),
+                ),
+              );
               Navigator.pop(context);
             },
             child: const Text('Зберегти'),

@@ -66,9 +66,11 @@ class _TransactionsPageState extends State<TransactionsPage> {
             },
       child: SafeArea(
         bottom: false,
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
+        // MM: the period, view tabs and totals stay put; only the list scrolls.
+        child: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.zero,
               child: AnimatedSize(
                 duration: const Duration(milliseconds: 250),
                 child: _searching
@@ -86,37 +88,42 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     : const SizedBox(width: double.infinity),
               ),
             ),
-            SliverToBoxAdapter(
+            Padding(
+              padding: EdgeInsets.zero,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(8, 4, 4, 0),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    MonthSwitcher(
-                      month: _month,
-                      onChanged: (m) => setState(() => _month = m),
-                    ),
-                    Positioned(
-                      right: 0,
-                      child: IconButton(
-                        tooltip: 'Пошук',
-                        visualDensity: VisualDensity.compact,
-                        icon: Icon(
-                          _searching
-                              ? Icons.close_rounded
-                              : Icons.search_rounded,
-                        ),
-                        onPressed: () => setState(() {
-                          _searching = !_searching;
-                          _query = '';
-                        }),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      MonthSwitcher(
+                        month: _month,
+                        onChanged: (m) => setState(() => _month = m),
                       ),
-                    ),
-                  ],
+                      Positioned(
+                        right: 0,
+                        child: IconButton(
+                          tooltip: 'Пошук',
+                          visualDensity: VisualDensity.compact,
+                          icon: Icon(
+                            _searching
+                                ? Icons.close_rounded
+                                : Icons.search_rounded,
+                          ),
+                          onPressed: () => setState(() {
+                            _searching = !_searching;
+                            _query = '';
+                          }),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            SliverToBoxAdapter(
+            Padding(
+              padding: EdgeInsets.zero,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: _ViewTabs(
@@ -125,7 +132,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 ),
               ),
             ),
-            SliverToBoxAdapter(
+            Padding(
+              padding: EdgeInsets.zero,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: TotalsStrip(
@@ -138,18 +146,24 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 ),
               ),
             ),
-            SliverToBoxAdapter(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 280),
-                transitionBuilder: (c, a) =>
-                    FadeTransition(opacity: a, child: c),
-                child: KeyedSubtree(
-                  key: ValueKey('$_view$_month'),
-                  child: content,
-                ),
+            Expanded(
+              child: CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 280),
+                      transitionBuilder: (c, a) =>
+                          FadeTransition(opacity: a, child: c),
+                      child: KeyedSubtree(
+                        key: ValueKey('$_view$_month'),
+                        child: content,
+                      ),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                ],
               ),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 120)),
           ],
         ),
       ),
