@@ -38,6 +38,27 @@ String? sliceKey(AppStore store, Txn t) {
 
 const _groupColors = [0xFF8BD17C, 0xFF6EC6E8, 0xFFB39DDB, 0xFFF48FB1, 0xFFFFCC80];
 
+/// MM-style colours by rank: the biggest slice is red, then orange, yellow,
+/// green, teal, blue, violet, pink — a warm-to-cool scale, so the colour
+/// itself tells how big a share is.
+const rankPalette = [
+  0xFFF0544F, // red
+  0xFFF5813F, // orange
+  0xFFF8AE3C, // amber
+  0xFFF2D04B, // yellow
+  0xFFB9D24A, // lime
+  0xFF6CC35F, // green
+  0xFF3FB89A, // teal
+  0xFF3DA8D8, // sky
+  0xFF4F7FDB, // blue
+  0xFF7D66D6, // indigo
+  0xFFA75CCB, // violet
+  0xFFD95AA0, // pink
+];
+
+/// Colour of the slice at [rank] (0 = biggest); past the palette it's grey.
+Color rankColor(int rank) => Color(rank < rankPalette.length ? rankPalette[rank] : 0xFF8E8E93);
+
 /// The category (real, or a stand-in for an account group) behind a slice key.
 Category? sliceCategory(AppStore store, String? key, TxType type) {
   if (key == null) return null;
@@ -343,7 +364,7 @@ class _StatsPageState extends State<StatsPage> {
           child: Column(
             children: [
               for (final (i, s) in slices.indexed)
-                CategoryRow(slice: s, total: total, currency: cur, index: i, onTap: s.category == null ? null : () => _openCategory(context, s.category!)),
+                CategoryRow(slice: s, total: total, currency: cur, index: i, onTap: s.category == null ? null : () => _openCategory(context, s.category!, rankColor(i))),
             ],
           ),
         ),
@@ -540,12 +561,12 @@ class _StatsPageState extends State<StatsPage> {
     );
   }
 
-  void _openCategory(BuildContext context, Category c) {
+  void _openCategory(BuildContext context, Category c, Color color) {
     final store = StoreScope.read(context);
     Navigator.push(
       context,
       MaterialPageRoute<void>(
-        builder: (_) => CategoryStatsPage(category: c, type: _type, month: store.periodOf(_anchor)),
+        builder: (_) => CategoryStatsPage(category: c, type: _type, month: store.periodOf(_anchor), color: color),
       ),
     );
   }
@@ -858,7 +879,7 @@ class LabeledPie extends StatelessWidget {
         size: const Size.fromHeight(290),
         painter: _PiePainter(
           values: [for (final s in slices) s.amount / (total == 0 ? 1 : total)],
-          colors: [for (final s in slices) Color(s.category?.color ?? 0xFF8E8E93)],
+          colors: [for (var i = 0; i < slices.length; i++) rankColor(i)],
           names: [for (final s in slices) s.category?.name ?? 'Без категорії'],
           progress: t,
           style: style,
@@ -1013,7 +1034,7 @@ class CategoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = slice.category;
-    final col = color ?? Color(c?.color ?? 0xFF8E8E93);
+    final col = color ?? rankColor(index);
     final share = total == 0 ? 0.0 : slice.amount / total;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),

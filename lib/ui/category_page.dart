@@ -11,16 +11,17 @@ import '../state/app_store.dart';
 import 'accounts_page.dart' show groupOf, openStatement;
 import 'format.dart';
 import 'glass.dart';
-import 'stats_page.dart' show CategoryRow, Slice, sliceKey, slicesFor;
+import 'stats_page.dart' show CategoryRow, Slice, rankColor, sliceKey, slicesFor;
 import 'transactions_page.dart' show DayCard;
 
 class CategoryStatsPage extends StatefulWidget {
-  const CategoryStatsPage({super.key, required this.category, required this.type, required this.month, this.backLabel});
+  const CategoryStatsPage({super.key, required this.category, required this.type, required this.month, this.backLabel, this.color});
 
   final Category category;
   final TxType type;
   final DateTime month; // accounting month (first day)
   final String? backLabel;
+  final Color? color; // the slice colour it was opened from
 
   @override
   State<CategoryStatsPage> createState() => _CategoryStatsPageState();
@@ -51,7 +52,7 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
     final store = StoreScope.of(context);
     final scheme = Theme.of(context).colorScheme;
     final c = widget.category;
-    final color = Color(c.color);
+    final color = widget.color ?? rankColor(0);
     final cur = store.baseCurrency;
     final txns = _inMonth(store, _month);
 
@@ -161,7 +162,6 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
                             currency: cur,
                             index: i,
                             fallbackName: 'Без підкатегорії',
-                            color: isGroup ? null : color,
                             onTap: s.category == null
                                 ? null
                                 : isGroup
@@ -169,7 +169,7 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
                                 : () => Navigator.push(
                                     context,
                                     MaterialPageRoute<void>(
-                                      builder: (_) => CategoryStatsPage(category: s.category!, type: widget.type, month: _month, backLabel: c.name),
+                                      builder: (_) => CategoryStatsPage(category: s.category!, type: widget.type, month: _month, backLabel: c.name, color: rankColor(i)),
                                     ),
                                   ),
                           ),
