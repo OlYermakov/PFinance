@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../data/models.dart';
 import '../state/app_store.dart';
+import 'category_page.dart';
 import 'format.dart';
 import 'edit_transaction.dart' show openTxnEditor;
 import 'theme.dart';
@@ -415,37 +416,10 @@ class _StatsPageState extends State<StatsPage> {
   }
 
   void _openCategory(BuildContext context, Category c) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
-      constraints: const BoxConstraints(maxWidth: 640),
-      builder: (ctx) {
-        final store = StoreScope.of(ctx);
-        final cur = store.baseCurrency;
-        final r = _range(store);
-        final txns = store.txns.where((t) => t.type == _type && !t.date.isBefore(r.start) && t.date.isBefore(r.end));
-        final subs = slicesFor(store, txns, parent: c.id);
-        final total = subs.fold<int>(0, (s, x) => s + x.amount);
-        return ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          children: [
-            Row(children: [
-              EmojiAvatar(emoji: c.emoji, color: Color(c.color)),
-              const SizedBox(width: 12),
-              Expanded(child: Text(c.name, style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700))),
-              Text(money(total, cur), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
-            ]),
-            const SizedBox(height: 12),
-            for (final (i, s) in subs.indexed)
-              CategoryRow(slice: s, total: total, currency: cur, index: i, fallbackName: 'Без підкатегорії', color: Color(c.color)),
-            SectionTitle('Динаміка «${c.name}»'),
-            TrendChart(month: store.periodOf(_anchor), currency: cur, categoryId: c.id, type: _type),
-          ],
-        );
-      },
+    final store = StoreScope.read(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(builder: (_) => CategoryStatsPage(category: c, type: _type, month: store.periodOf(_anchor))),
     );
   }
 }
