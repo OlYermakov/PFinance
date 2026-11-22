@@ -14,6 +14,7 @@ void main() {
     final s = AppStore(Repository(await openMemoryDatabase(newId())));
     await s.load();
     await s.importJson(File(Platform.environment['IN']!).readAsStringSync());
+    // ignore: avoid_print
     print('txns ${s.txns.length} accounts ${s.accounts.length}');
   });
 }
