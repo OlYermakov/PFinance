@@ -3,23 +3,36 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:file_saver/file_saver.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../data/models.dart';
 import '../state/app_store.dart';
-import 'accounts_page.dart' show editAccount, kindLabels;
+import 'accounts_page.dart' show EditAccountsPage, editAccount, groupOf;
+import 'app_icon.dart';
+import 'edit_transaction.dart' show openTxnEditor, repeatLabel;
 import 'export_pf.dart';
 import 'format.dart';
-import 'edit_transaction.dart' show repeatLabel;
-import 'stats_page.dart' show editBudget;
-import 'transactions_page.dart' show TxnTile;
 import 'theme.dart';
+import 'transactions_page.dart' show TxnTile;
 import 'widgets.dart';
 
 part 'more_extra.dart';
 
-/// "Більше": all settings, grouped the way Money Manager's More tab is,
-/// but split into three sections.
+const appVersion = 'v0.8';
+
+/// Full names of the supported currencies (Settings → currencies).
+const currencyNames = {
+  'UAH': 'Гривня', 'USD': 'Долар США', 'EUR': 'Євро', 'GBP': 'Фунт стерлінгів', 'PLN': 'Злотий', //
+  'CHF': 'Швейцарський франк', 'CZK': 'Чеська крона', 'CAD': 'Канадський долар', 'AUD': 'Австралійський долар',
+  'JPY': 'Єна', 'CNY': 'Юань', 'TRY': 'Турецька ліра', 'SEK': 'Шведська крона', 'NOK': 'Норвезька крона',
+  'DKK': 'Данська крона', 'HUF': 'Форинт', 'RON': 'Румунський лей', 'GEL': 'Ларі', 'KZT': 'Тенге', 'ILS': 'Шекель',
+};
+
+String currencySymbol(String c) => NumberFormat.simpleCurrency(name: c).currencySymbol;
+
+/// "Більше": settings in Money Manager's order and look (flat rows).
 class MorePage extends StatelessWidget {
   const MorePage({super.key});
 
@@ -27,170 +40,191 @@ class MorePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final pr = store.prefs;
-    void push(Widget page) => Navigator.push(context, MaterialPageRoute(builder: (_) => _Sub(child: page)));
-    String startLabel(StartPage s) => switch (s) {
-          StartPage.day => 'Записи · День',
-          StartPage.calendar => 'Записи · Календар',
-          StartPage.month => 'Записи · Місяць',
-          StartPage.summary => 'Записи · Підсумок',
-          StartPage.stats => 'Статистика',
-          StartPage.accounts => 'Рахунки',
-        };
-
-    final subs = store.prefs.rates.keys.where((c) => c != pr.baseCurrency).toList()..sort();
+    final scheme = Theme.of(context).colorScheme;
+    void push(Widget page) => Navigator.push(context, MaterialPageRoute(builder: (_) => AuroraBackground(child: page)));
+    final subs = pr.rates.keys.where((c) => c != pr.baseCurrency).toList()..sort();
     return SafeArea(
       bottom: false,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
+        padding: const EdgeInsets.only(bottom: 120),
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
             child: Row(children: [
               const PfLogo(size: 40),
               const Spacer(),
-              Text('PFinance · v0.7', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              Text('PFinance · $appVersion', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant)),
             ]),
           ),
-          const SizedBox(height: 16),
-          _Group(children: [
-            _Item(Icons.help_outline_rounded, 'Довідка', onTap: () => push(const _HelpPage())),
-          ]),
-          SectionTitle('Записи'),
           _Group(children: [
             _Item(Icons.receipt_long_outlined, 'Налаштування записів',
-                subtitle: 'Початок місяця, перенесення залишку, період, інше', onTap: () => push(_TxnSettingsPage(startLabel: startLabel))),
-            _Item(Icons.repeat_rounded, 'Повторювані записи', value: store.repeats.isEmpty ? null : '${store.repeats.length}', onTap: () => push(const RepeatsPage())),
-            _Item(Icons.content_copy_rounded, 'Копіювання записів', value: pr.copyToToday ? 'Сьогоднішня дата' : 'Дата оригіналу', onTap: () async {
-              final v = await _choose<bool>(context, 'Дата копії запису', {true: 'Сьогоднішня дата', false: 'Дата оригіналу'}, pr.copyToToday);
-              if (v != null) store.updatePrefs((p) => p.copyToToday = v);
-            }),
+                subtitle: 'Початок місяця, тижня, перенесення, час, свайп…', onTap: () => push(const _TxnSettingsPage())),
+            _Item(Icons.repeat_rounded, 'Повторювані записи', onTap: () => push(const RepeatsPage())),
+            _Item(Icons.content_copy_rounded, 'Копіювання записів', onTap: () => push(const _CopyPastePage())),
           ]),
-          SectionTitle('Категорії й рахунки'),
+          const _Band('Категорії й рахунки'),
           _Group(children: [
             _Item(Icons.south_west_rounded, 'Категорії доходів', onTap: () => push(const CategoriesPage(type: TxType.income))),
             _Item(Icons.north_east_rounded, 'Категорії витрат', onTap: () => push(const CategoriesPage(type: TxType.expense))),
             _Item(Icons.account_balance_wallet_outlined, 'Рахунки',
-                subtitle: 'Групи, рахунки, враховувати в підсумках, приховати', onTap: () => push(const _AccountsSettings())),
-            _Item(Icons.track_changes_rounded, 'Бюджет', onTap: () => push(const _BudgetsSettings())),
+                subtitle: 'Групи, рахунки, у підсумках, переказ-витрата…', onTap: () => push(const _AccountsMenu())),
+            _Item(Icons.track_changes_rounded, 'Бюджет', onTap: () => push(const _BudgetPage())),
             _Item(Icons.sell_outlined, 'Теги', onTap: () => push(const _TagsPage())),
           ]),
-          SectionTitle('Налаштування'),
+          const _Band('Налаштування'),
           _Group(children: [
             _Item(Icons.settings_backup_restore_rounded, 'Резервна копія', subtitle: 'Експорт, імпорт, повне скидання', onTap: () => push(const _BackupPage())),
-            _Item(Icons.lock_outline_rounded, 'PIN-код', value: pr.pin == null ? 'Вимкнено' : 'Увімкнено', onTap: () => _setPin(context)),
-            _Item(Icons.payments_outlined, 'Основна валюта', value: pr.baseCurrency, onTap: () => changeBaseCurrency(context)),
-            _Item(Icons.currency_exchange_rounded, 'Додаткові валюти', value: subs.isEmpty ? null : subs.join(', '), onTap: () => push(const CurrenciesPage())),
-            _Item(Icons.notifications_none_rounded, 'Нагадування', value: 'скоро', onTap: () => _info(context, 'Нагадування',
-                'Щоденне нагадування внести витрати працюватиме у версії застосунку для телефона. Браузер не вміє надійно надсилати сповіщення, коли сторінку закрито.')),
-            _Item(Icons.palette_outlined, 'Стиль', value: '${themeById(pr.themeId).name} · ${_modeLabel(pr.themeMode)}', onTap: () => push(const _ThemePage())),
-            _Item(Icons.translate_rounded, 'Мова', value: 'Українська', onTap: () => _info(context, 'Мова',
+            _Item(Icons.lock_outline_rounded, 'PIN-код', badge: pr.pin == null ? null : 'УВІМК.', onTap: () => _pinSettings(context)),
+            _Item(Icons.payments_outlined, 'Основна валюта',
+                subtitle: '${pr.baseCurrency} (${currencySymbol(pr.baseCurrency)})', onTap: () => push(const _MainCurrencyPage())),
+            _Item(Icons.currency_exchange_rounded, 'Додаткові валюти',
+                subtitle: subs.isEmpty ? null : subs.map(currencySymbol).join(', '), onTap: () => push(const CurrenciesPage())),
+            _Item(Icons.notifications_none_rounded, 'Нагадування', onTap: () => push(const _AlarmPage())),
+            _Item(Icons.palette_outlined, 'Стиль', subtitle: '${_modeLabel(pr.themeMode)} · ${themeById(pr.themeId).name}', onTap: () => push(const _ThemePage())),
+            _Item(Icons.apps_rounded, 'Іконка застосунку', onTap: () => _pickAppIcon(context)),
+            _Item(Icons.translate_rounded, 'Мова', subtitle: 'Українська', onTap: () => _info(context, 'Мова',
                 'Поки що застосунок українською. Англійська та інші мови з\'являться перед виходом для всіх.')),
+            _Item(Icons.help_outline_rounded, 'Довідка', onTap: () => push(const _HelpPage())),
           ]),
-          const SizedBox(height: 16),
-          Center(
-            child: Text('PFinance · v0.7\nДані зберігаються лише на цьому пристрої',
-                textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall),
-          ),
+          const SizedBox(height: 20),
+          Center(child: Text('Дані зберігаються лише на цьому пристрої', style: Theme.of(context).textTheme.bodySmall)),
         ],
       ),
     );
   }
-
 }
 
-Future<void> _pickMonthStart(BuildContext context) async {
-    final store = StoreScope.read(context);
-    final v = await _choose<int>(context, 'Місяць починається', {for (var d = 1; d <= 28; d++) d: '$d-го числа'}, store.prefs.monthStartDay);
-    if (v != null) store.updatePrefs((p) => p.monthStartDay = v);
-  }
+// ---- Flat building blocks ------------------------------------------------------
 
-  Future<void> _setPin(BuildContext context) async {
-    final store = StoreScope.read(context);
-    if (store.prefs.pin != null) {
-      final off = await _confirm(context, 'Вимкнути PIN-код?', 'Застосунок відкриватиметься без коду.');
-      if (off) store.updatePrefs((p) => p.pin = null);
-      return;
-    }
-    final ctrl = TextEditingController();
-    final pin = await showDialog<String>(
+/// Section band between groups ("Налаштування").
+class _Band extends StatelessWidget {
+  const _Band(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 8),
+        child: Text(text, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
+      );
+}
+
+/// Full-width rows on a flat panel, separated by hairlines.
+class _Group extends StatelessWidget {
+  const _Group({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final line = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08);
+    return Container(
+      decoration: BoxDecoration(
+        color: panelColor(context),
+        border: Border.symmetric(horizontal: BorderSide(color: line)),
+      ),
+      child: Column(children: [
+        for (final (i, c) in children.indexed) ...[
+          if (i > 0) Divider(height: 1, thickness: 1, color: line),
+          c,
+        ],
+      ]),
+    );
+  }
+}
+
+/// Settings row: optional grey icon, title (with a small accent badge),
+/// grey subtitle, and the current value in the accent colour on the right.
+class _Item extends StatelessWidget {
+  const _Item(this.icon, this.title, {this.value, this.subtitle, this.badge, this.onTap, this.danger = false, this.trailing});
+  final IconData? icon;
+  final String title;
+  final String? subtitle;
+  final String? value;
+  final String? badge;
+  final VoidCallback? onTap;
+  final bool danger;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(icon == null ? 20 : 16, 14, 16, 14),
+        child: Row(children: [
+          if (icon != null) ...[Icon(icon, color: scheme.onSurfaceVariant, size: 24), const SizedBox(width: 16)],
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Flexible(child: Text(title, style: TextStyle(fontSize: 16, color: danger ? scheme.error : null))),
+                if (badge != null) ...[
+                  const SizedBox(width: 8),
+                  Text(badge!, style: TextStyle(fontSize: 12, color: scheme.primary, fontWeight: FontWeight.w600)),
+                ],
+              ]),
+              if (subtitle != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Text(subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
+                ),
+            ]),
+          ),
+          if (value != null) ...[
+            const SizedBox(width: 12),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 170),
+              child: Text(value!, overflow: TextOverflow.ellipsis, textAlign: TextAlign.end, style: TextStyle(color: scheme.primary, fontSize: 15)),
+            ),
+          ],
+          ?trailing,
+        ]),
+      ),
+    );
+  }
+}
+
+/// Info header with a round outlined icon (MM Tag / Alarm pages).
+class _InfoHeader extends StatelessWidget {
+  const _InfoHeader(this.icon, this.text);
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      color: panelColor(context),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      child: Row(children: [
+        Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: scheme.primary)),
+          child: Icon(icon, color: scheme.primary, size: 28),
+        ),
+        const SizedBox(width: 20),
+        Expanded(child: Text(text, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14, height: 1.35))),
+      ]),
+    );
+  }
+}
+
+String _onOff(bool v) => v ? 'Увімк.' : 'Вимк.';
+
+String _modeLabel(ThemeMode m) => switch (m) {
+      ThemeMode.system => 'Як у системі',
+      ThemeMode.light => 'Світлий',
+      ThemeMode.dark => 'Темний',
+    };
+
+Future<void> _info(BuildContext context, String title, String body) => showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Новий PIN-код'),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          maxLength: 4,
-          obscureText: true,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(hintText: '4 цифри'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Скасувати')),
-          FilledButton(
-            onPressed: () {
-              if (RegExp(r'^\d{4}$').hasMatch(ctrl.text)) Navigator.pop(context, ctrl.text);
-            },
-            child: const Text('Зберегти'),
-          ),
-        ],
+        title: Text(title),
+        content: Text(body),
+        actions: [FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Зрозуміло'))],
       ),
     );
-    if (pin != null) store.updatePrefs((p) => p.pin = pin);
-  }
-
-  Future<void> _export(BuildContext context) async {
-    final store = StoreScope.read(context);
-    final json = await store.exportJson();
-    final d = DateTime.now();
-    await FileSaver.instance.saveFile(
-      name: 'pfinance-backup-${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}',
-      bytes: Uint8List.fromList(utf8.encode(json)),
-      fileExtension: 'json',
-      mimeType: MimeType.json,
-    );
-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Резервну копію збережено')));
-  }
-
-  Future<void> _import(BuildContext context) async {
-    final store = StoreScope.read(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['json']);
-    if (files.isEmpty) return;
-    final bytes = await files.single.readAsBytes();
-    if (!context.mounted) return;
-    if (!await _confirm(context, 'Відновити з копії?', 'Поточні дані буде замінено даними з файлу.')) return;
-    if (!context.mounted) return;
-    final nav = Navigator.of(context, rootNavigator: true);
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const PopScope(
-        canPop: false,
-        child: AlertDialog(
-          content: Row(children: [
-            SizedBox.square(dimension: 28, child: CircularProgressIndicator(strokeWidth: 3)),
-            SizedBox(width: 20),
-            Expanded(child: Text('Відновлюю дані…')),
-          ]),
-        ),
-      ),
-    );
-    try {
-      await store.importJson(utf8.decode(bytes));
-      nav.pop();
-      messenger.showSnackBar(const SnackBar(content: Text('Дані відновлено')));
-    } catch (e) {
-      nav.pop();
-      messenger.showSnackBar(SnackBar(content: Text('Не вдалося прочитати файл: $e')));
-    }
-  }
-
-  Future<void> _reset(BuildContext context) async {
-    final store = StoreScope.read(context);
-    if (await _confirm(context, 'Видалити всі дані?', 'Усі записи, рахунки й налаштування буде видалено без можливості відновлення.')) {
-      await store.resetAll();
-    }
-  }
 
 Future<bool> _confirm(BuildContext context, String title, String body) async =>
     await showDialog<bool>(
@@ -226,203 +260,120 @@ Future<T?> _choose<T>(BuildContext context, String title, Map<T, String> options
       ),
     );
 
-class _Group extends StatelessWidget {
-  const _Group({required this.children});
-  final List<Widget> children;
+Future<String?> _askText(BuildContext context, String title, {String initial = '', String? hint}) {
+  final ctrl = TextEditingController(text: initial);
+  return showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(title),
+      content: TextField(controller: ctrl, autofocus: true, decoration: InputDecoration(hintText: hint), onSubmitted: (v) => Navigator.pop(context, v.trim())),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Скасувати')),
+        FilledButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: const Text('Зберегти')),
+      ],
+    ),
+  );
+}
+
+// ---- PIN ------------------------------------------------------------------------
+
+Future<void> _pinSettings(BuildContext context) async {
+  final store = StoreScope.read(context);
+  if (store.prefs.pin != null) {
+    final v = await _choose<String>(context, 'PIN-код', {'change': 'Змінити PIN-код', 'off': 'Вимкнути PIN-код'}, '');
+    if (v == 'off') {
+      store.updatePrefs((p) => p.pin = null);
+      return;
+    }
+    if (v != 'change') return;
+  }
+  if (!context.mounted) return;
+  final pin = await Navigator.of(context).push<String>(MaterialPageRoute(fullscreenDialog: true, builder: (_) => const _PinSetup()));
+  if (pin != null) store.updatePrefs((p) => p.pin = pin);
+}
+
+class _PinSetup extends StatefulWidget {
+  const _PinSetup();
 
   @override
-  Widget build(BuildContext context) => GlassCard(
-        radius: 22,
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Column(children: [
-          for (final (i, c) in children.indexed) ...[
-            if (i > 0) Divider(height: 1, indent: 56, color: Colors.white.withValues(alpha: 0.06)),
-            c,
-          ],
+  State<_PinSetup> createState() => _PinSetupState();
+}
+
+class _PinSetupState extends State<_PinSetup> {
+  String? _first;
+  bool _mismatch = false;
+
+  @override
+  Widget build(BuildContext context) => PinPad(
+        message: _first == null ? (_mismatch ? 'Коди не збіглися' : 'Введи новий PIN-код') : 'Повтори PIN-код',
+        onClose: () => Navigator.pop(context),
+        onComplete: (code) async {
+          if (_first == null) {
+            setState(() {
+              _first = code;
+              _mismatch = false;
+            });
+            return true;
+          }
+          if (code == _first) {
+            Navigator.pop(context, code);
+            return true;
+          }
+          setState(() {
+            _first = null;
+            _mismatch = true;
+          });
+          return true;
+        },
+      );
+}
+
+// ---- Іконка застосунку ------------------------------------------------------------
+
+Future<void> _pickAppIcon(BuildContext context) async {
+  final store = StoreScope.read(context);
+  final v = await showModalBottomSheet<int>(
+    context: context,
+    showDragHandle: true,
+    builder: (context) => Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Іконка застосунку', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 16),
+        Wrap(spacing: 16, runSpacing: 16, children: [
+          for (var i = 0; i < appIconCount; i++)
+            GestureDetector(
+              onTap: () => Navigator.pop(context, i),
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: store.prefs.appIcon == i ? Theme.of(context).colorScheme.primary : Colors.transparent, width: 2),
+                ),
+                child: ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.asset(appIconAsset(i), width: 68, height: 68)),
+              ),
+            ),
         ]),
-      );
-}
-
-class _Item extends StatelessWidget {
-  const _Item(this.icon, this.title, {this.value, this.subtitle, this.onTap, this.danger = false});
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final String? value;
-  final VoidCallback? onTap;
-  final bool danger;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return ListTile(
-      leading: Icon(icon, color: danger ? scheme.error : scheme.primary),
-      title: Text(title, style: TextStyle(color: danger ? scheme.error : null)),
-      subtitle: subtitle == null ? null : Text(subtitle!, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
-      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-        if (value != null)
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 140),
-            child: Text(value!, overflow: TextOverflow.ellipsis, textAlign: TextAlign.end, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
-          ),
-        if (onTap != null) const Icon(Icons.chevron_right_rounded),
+        const SizedBox(height: 16),
+        Text('На телефоні нова іконка з\'явиться, коли знову додаси сайт на головний екран.',
+            style: Theme.of(context).textTheme.bodySmall),
       ]),
-      onTap: onTap,
-    );
-  }
+    ),
+  );
+  if (v == null) return;
+  await store.updatePrefs((p) => p.appIcon = v);
+  applyAppIcon(v);
 }
 
-class _Switch extends StatelessWidget {
-  const _Switch(this.icon, this.title, this.value, this.onChanged);
-  final IconData icon;
-  final String title;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) => SwitchListTile(
-        secondary: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        title: Text(title),
-        value: value,
-        onChanged: onChanged,
-      );
-}
-
-/// Sub-page chrome: aurora background + transparent app bar.
-class _Sub extends StatelessWidget {
-  const _Sub({required this.child});
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => AuroraBackground(child: child);
-}
-
-// ---- Тема ---------------------------------------------------------------------
-
-class _ThemePage extends StatelessWidget {
-  const _ThemePage();
-
-  @override
-  Widget build(BuildContext context) {
-    final store = StoreScope.of(context);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Стиль')),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        SegmentedButton<ThemeMode>(
-          segments: const [
-            ButtonSegment(value: ThemeMode.system, label: Text('Авто'), icon: Icon(Icons.brightness_auto_rounded)),
-            ButtonSegment(value: ThemeMode.light, label: Text('Світла'), icon: Icon(Icons.light_mode_rounded)),
-            ButtonSegment(value: ThemeMode.dark, label: Text('Темна'), icon: Icon(Icons.dark_mode_rounded)),
-          ],
-          selected: {store.themeMode},
-          showSelectedIcon: false,
-          onSelectionChanged: (s) => store.setThemeMode(s.first),
-        ),
-        const SizedBox(height: 20),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.4,
-          children: [
-            for (final t in appThemes)
-              GestureDetector(
-                onTap: () => store.setTheme(t.id),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOutBack,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [t.aurora[0], t.aurora[1], t.aurora[2]]),
-                    border: Border.all(color: t.id == store.themeId ? Colors.white : Colors.white24, width: t.id == store.themeId ? 3 : 1),
-                  ),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    AnimatedOpacity(
-                      opacity: t.id == store.themeId ? 1 : 0,
-                      duration: const Duration(milliseconds: 200),
-                      child: const Icon(Icons.check_circle_rounded, color: Colors.white),
-                    ),
-                    Text(t.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
-                  ]),
-                ),
-              ),
-          ],
-        ),
-      ]),
-    );
-  }
-}
-
-// ---- Рахунки / Бюджет ---------------------------------------------------------
-
-class _AccountsSettings extends StatelessWidget {
-  const _AccountsSettings();
-
-  @override
-  Widget build(BuildContext context) {
-    final store = StoreScope.of(context);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Рахунки')),
-      floatingActionButton: FloatingActionButton(onPressed: () => editAccount(context), child: const Icon(Icons.add_rounded)),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        GlassCard(
-          radius: 22,
-          child: Column(children: [
-            for (final a in store.accounts)
-              ListTile(
-                leading: Icon(kindLabels[a.kind]!.$2, color: Color(a.color)),
-                title: Text(a.name),
-                subtitle: Text('${kindLabels[a.kind]!.$1} · ${a.currency}${a.archived ? ' · прихований' : ''}'),
-                trailing: const Icon(Icons.edit_outlined),
-                onTap: () => editAccount(context, existing: a),
-              ),
-          ]),
-        ),
-      ]),
-    );
-  }
-}
-
-class _BudgetsSettings extends StatelessWidget {
-  const _BudgetsSettings();
-
-  @override
-  Widget build(BuildContext context) {
-    final store = StoreScope.of(context);
-    final cur = store.baseCurrency;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Бюджет')),
-      floatingActionButton: FloatingActionButton(onPressed: () => editBudget(context, currency: cur), child: const Icon(Icons.add_rounded)),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        if (store.budgets.isEmpty) const EmptyState(icon: Icons.track_changes_rounded, text: 'Бюджетів ще немає'),
-        if (store.budgets.isNotEmpty)
-          GlassCard(
-            radius: 22,
-            child: Column(children: [
-              for (final b in store.budgets)
-                ListTile(
-                  leading: Text(store.category(b.categoryId)?.emoji ?? '🎯', style: const TextStyle(fontSize: 20)),
-                  title: Text(store.category(b.categoryId)?.name ?? 'Усі витрати'),
-                  trailing: Text('${money(b.amount, b.currency)} / міс.'),
-                  onTap: () => editBudget(context, currency: b.currency, existing: b),
-                ),
-            ]),
-          ),
-      ]),
-    );
-  }
-}
+// ---- Валюти --------------------------------------------------------------------------
 
 Future<void> changeBaseCurrency(BuildContext context) async {
   final store = StoreScope.read(context);
   final base = store.baseCurrency;
-  final v = await _choose<String>(context, 'Основна валюта', {for (final c in currencies) c: c}, base);
+  final v = await _choose<String>(context, 'Основна валюта', {for (final c in currencies) c: '$c — ${currencyNames[c] ?? c}'}, base);
   if (v == null || v == base) return;
   await store.updatePrefs((p) {
-    // Re-express the manual rates against the new base.
+    // Re-express the rates against the new base.
     final k = p.rates[v];
     if (k != null && k > 0) {
       p.rates = {for (final e in p.rates.entries) if (e.key != v) e.key: e.value / k, base: 1 / k};
@@ -431,70 +382,158 @@ Future<void> changeBaseCurrency(BuildContext context) async {
   });
 }
 
-String _modeLabel(ThemeMode m) => switch (m) {
-      ThemeMode.system => 'авто',
-      ThemeMode.light => 'світла',
-      ThemeMode.dark => 'темна',
-    };
+/// MM "Main Currency Setting": sample, symbol position, decimals, Save.
+class _MainCurrencyPage extends StatefulWidget {
+  const _MainCurrencyPage();
 
-Future<void> _info(BuildContext context, String title, String body) => showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(body),
-        actions: [FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Зрозуміло'))],
-      ),
-    );
+  @override
+  State<_MainCurrencyPage> createState() => _MainCurrencyPageState();
+}
 
-// ---- Валюти --------------------------------------------------------------------
-
-class CurrenciesPage extends StatelessWidget {
-  const CurrenciesPage({super.key});
+class _MainCurrencyPageState extends State<_MainCurrencyPage> {
+  late final Prefs _p = StoreScope.read(context).prefs;
+  late bool _front = _p.currencyFront;
+  late bool _decimals = _p.showDecimals;
 
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final base = store.baseCurrency;
-    final others = {...store.currenciesInUse, ...store.prefs.rates.keys}.where((c) => c != base).toList()..sort();
+    final scheme = Theme.of(context).colorScheme;
+    final c = store.baseCurrency;
+    final sym = currencySymbol(c);
+    final sample = _decimals ? '1,00' : '1';
     return Scaffold(
-      appBar: AppBar(title: const Text('Додаткові валюти')),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        GlassCard(
-          radius: 22,
-          child: ListTile(
-            leading: const Icon(Icons.star_rounded),
-            title: const Text('Основна валюта'),
-            subtitle: const Text('У ній рахуються підсумки й статистика'),
-            trailing: Text(base, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-            onTap: () => changeBaseCurrency(context),
-          ),
+      appBar: AppBar(title: const Text('Основна валюта'), actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: OutlinedButton(onPressed: () => changeBaseCurrency(context), child: const Text('Змінити')),
         ),
-        SectionTitle('Курси (вручну)',
-            trailing: TextButton.icon(
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Валюта'),
-              onPressed: () async {
-                final v = await _choose<String>(context, 'Додати валюту', {for (final c in currencies.where((c) => c != base && !others.contains(c))) c: c}, '');
-                if (v != null && context.mounted) _editRate(context, v);
-              },
-            )),
-        GlassCard(
-          radius: 22,
+      ]),
+      body: ListView(children: [
+        Container(
+          color: panelColor(context),
+          padding: const EdgeInsets.symmetric(vertical: 24),
           child: Column(children: [
-            if (others.isEmpty) const Padding(padding: EdgeInsets.all(18), child: Text('Інших валют немає')),
-            for (final c in others)
-              ListTile(
-                title: Text('1 $c'),
-                trailing: Text(store.prefs.rates[c] == null ? 'курс не задано' : '= ${store.prefs.rates[c]!.toStringAsFixed(4)} $base',
-                    style: TextStyle(color: store.prefs.rates[c] == null ? AppPalette.of(context).expense : null, fontWeight: FontWeight.w600)),
-                onTap: () => _editRate(context, c),
-              ),
+            Text('$c — ${currencyNames[c] ?? c} ($sym)', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 16)),
+            const SizedBox(height: 6),
+            Text(_front ? '$sym $sample' : '$sample $sym', style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w500)),
           ]),
         ),
         const SizedBox(height: 12),
-        Text('Автоматичне оновлення курсів (ЄЦБ / НБУ) з\'явиться пізніше.', style: Theme.of(context).textTheme.bodySmall),
+        _Group(children: [
+          _Item(null, 'Позиція символу', value: _front ? 'Спереду' : 'Позаду', onTap: () => setState(() => _front = !_front)),
+          _Item(null, 'Десяткові', value: _decimals ? '1,00' : '1', onTap: () => setState(() => _decimals = !_decimals)),
+        ]),
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+            onPressed: () async {
+              await store.updatePrefs((p) {
+                p.currencyFront = _front;
+                p.showDecimals = _decimals;
+              });
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Зберегти'),
+          ),
+        ),
       ]),
     );
+  }
+}
+
+/// MM "Sub Currency Setting": "USD 1.00 = EUR 0,891108" rows, edit mode, add,
+/// and a refresh button that fetches today's rates.
+class CurrenciesPage extends StatefulWidget {
+  const CurrenciesPage({super.key});
+
+  @override
+  State<CurrenciesPage> createState() => _CurrenciesPageState();
+}
+
+class _CurrenciesPageState extends State<CurrenciesPage> {
+  bool _edit = false;
+  bool _loading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final base = store.baseCurrency;
+    final others = {...store.currenciesInUse, ...store.prefs.rates.keys}.where((c) => c != base).toList()..sort();
+    final nf = NumberFormat('#,##0.######', locale);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Додаткові валюти'), actions: [
+        IconButton(tooltip: 'Редагувати', icon: Icon(_edit ? Icons.check_rounded : Icons.edit_outlined), onPressed: () => setState(() => _edit = !_edit)),
+        IconButton(
+          tooltip: 'Додати валюту',
+          icon: const Icon(Icons.add_rounded),
+          onPressed: () async {
+            final v = await _choose<String>(context, 'Додати валюту',
+                {for (final c in currencies.where((c) => c != base && !others.contains(c))) c: '$c — ${currencyNames[c] ?? c}'}, '');
+            if (v != null && context.mounted) _editRate(context, v);
+          },
+        ),
+      ]),
+      floatingActionButton: FloatingActionButton(
+        tooltip: 'Оновити курси',
+        onPressed: _loading ? null : () => _refresh(store, others),
+        child: _loading ? const SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2.5)) : const Icon(Icons.sync_rounded),
+      ),
+      body: ListView(children: [
+        if (others.isEmpty)
+          const EmptyState(icon: Icons.currency_exchange_rounded, text: 'Додаткових валют немає.\nДодай валюту кнопкою «+».')
+        else
+          _Group(children: [
+            for (final c in others)
+              _Item(
+                null,
+                '$c 1,00 = $base ${store.prefs.rates[c] == null ? '?' : nf.format(store.prefs.rates[c])}',
+                subtitle: '$c — ${currencyNames[c] ?? c} (${currencySymbol(c)})',
+                trailing: _edit
+                    ? IconButton(
+                        icon: Icon(Icons.remove_circle_rounded, color: scheme.error),
+                        onPressed: () => store.updatePrefs((p) => p.rates = {...p.rates}..remove(c)),
+                      )
+                    : null,
+                onTap: () => _editRate(context, c),
+              ),
+          ]),
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Text('Кнопка оновлення бере сьогоднішні курси з open.er-api.com. Курс можна змінити й уручну.',
+              style: Theme.of(context).textTheme.bodySmall),
+        ),
+      ]),
+    );
+  }
+
+  Future<void> _refresh(AppStore store, List<String> codes) async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _loading = true);
+    try {
+      final res = await http.get(Uri.parse('https://open.er-api.com/v6/latest/${store.baseCurrency}'));
+      final j = jsonDecode(res.body) as Map<String, Object?>;
+      final rates = (j['rates'] as Map).cast<String, num>();
+      var n = 0;
+      await store.updatePrefs((p) {
+        final next = {...p.rates};
+        for (final c in codes) {
+          final r = rates[c];
+          if (r != null && r > 0) {
+            next[c] = double.parse((1 / r).toStringAsFixed(6));
+            n++;
+          }
+        }
+        p.rates = next;
+      });
+      messenger.showSnackBar(SnackBar(content: Text('Оновлено курсів: $n')));
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text('Не вдалося отримати курси. Перевір інтернет.')));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _editRate(BuildContext context, String c) async {
@@ -512,10 +551,7 @@ class CurrenciesPage extends StatelessWidget {
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Скасувати')),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, double.tryParse(ctrl.text.replaceAll(',', '.'))),
-            child: const Text('Зберегти'),
-          ),
+          FilledButton(onPressed: () => Navigator.pop(context, double.tryParse(ctrl.text.replaceAll(',', '.'))), child: const Text('Зберегти')),
         ],
       ),
     );
@@ -523,72 +559,107 @@ class CurrenciesPage extends StatelessWidget {
   }
 }
 
-// ---- Категорії (з підкатегоріями) -----------------------------------------------
+// ---- Категорії ---------------------------------------------------------------------
 
+/// MM category list: "Підкатегорії" switch, rows with delete, name (count) and
+/// subcategories, edit pencil and drag handle. Tapping a row opens its
+/// subcategories.
 class CategoriesPage extends StatelessWidget {
-  const CategoriesPage({super.key, required this.type});
+  const CategoriesPage({super.key, required this.type, this.parent});
   final TxType type;
+  final Category? parent;
 
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final cats = store.categoriesOf(type);
+    final scheme = Theme.of(context).colorScheme;
+    final cats = parent == null ? store.categoriesOf(type) : store.subcategoriesOf(parent!.id);
+    final line = scheme.onSurface.withValues(alpha: 0.08);
+    final title = parent?.name ?? (type == TxType.income ? 'Категорії доходів' : 'Категорії витрат');
     return Scaffold(
-      appBar: AppBar(title: Text(type == TxType.income ? 'Категорії доходів' : 'Категорії витрат')),
-      floatingActionButton: FloatingActionButton(
-        tooltip: 'Нова категорія',
-        onPressed: () => editCategory(context, type: type),
-        child: const Icon(Icons.add_rounded),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640),
-          child: ReorderableListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-            itemCount: cats.length,
-            onReorderItem: (from, to) {
-              final list = [...cats];
-              list.insert(to, list.removeAt(from));
-              for (final (i, c) in list.indexed) {
-                if (c.sort != i) store.saveCategory(c.copyWith(sort: i));
-              }
-            },
-            itemBuilder: (context, i) {
-              final c = cats[i];
-              final subs = store.subcategoriesOf(c.id);
-              return Padding(
-                key: ValueKey(c.id),
-                padding: const EdgeInsets.only(bottom: 8),
-                child: GlassCard(
-                  radius: 20,
-                  child: Column(children: [
-                    ListTile(
-                      leading: EmojiAvatar(emoji: c.emoji, color: Color(c.color)),
-                      title: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: subs.isEmpty ? null : Text(subs.map((s) => s.name).join(', '), maxLines: 1, overflow: TextOverflow.ellipsis),
-                      trailing: IconButton(
-                        tooltip: 'Додати підкатегорію',
-                        icon: const Icon(Icons.playlist_add_rounded),
-                        onPressed: () => editCategory(context, type: type, parent: c),
-                      ),
-                      onTap: () => editCategory(context, type: type, existing: c),
-                    ),
-                    if (store.prefs.subcategories)
-                      for (final s in subs)
-                        ListTile(
-                          dense: true,
-                          contentPadding: const EdgeInsets.only(left: 72, right: 16),
-                          title: Text(s.name),
-                          trailing: const Icon(Icons.edit_outlined, size: 18),
-                          onTap: () => editCategory(context, type: type, existing: s),
-                        ),
-                  ]),
-                ),
-              );
-            },
-          ),
+      appBar: AppBar(title: Text(title), actions: [
+        IconButton(
+          tooltip: parent == null ? 'Нова категорія' : 'Нова підкатегорія',
+          icon: const Icon(Icons.add_rounded),
+          onPressed: () => editCategory(context, type: type, parent: parent),
         ),
-      ),
+      ]),
+      body: Column(children: [
+        if (parent == null) ...[
+          Container(
+            color: panelColor(context),
+            child: SwitchListTile(
+              title: const Text('Підкатегорії'),
+              value: store.prefs.subcategories,
+              onChanged: (v) => store.updatePrefs((p) => p.subcategories = v),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (cats.isEmpty)
+          Expanded(child: EmptyState(icon: Icons.category_outlined, text: parent == null ? 'Категорій ще немає.\nДодай першу кнопкою «+».' : 'Підкатегорій немає.'))
+        else
+          Expanded(
+            child: ReorderableListView.builder(
+              buildDefaultDragHandles: false,
+              padding: const EdgeInsets.only(bottom: 40),
+              itemCount: cats.length,
+              onReorderItem: (from, to) {
+                final list = [...cats];
+                list.insert(to, list.removeAt(from));
+                for (final (i, c) in list.indexed) {
+                  if (c.sort != i) store.saveCategory(c.copyWith(sort: i));
+                }
+              },
+              itemBuilder: (context, i) {
+                final c = cats[i];
+                final subs = parent == null ? store.subcategoriesOf(c.id) : const <Category>[];
+                return Material(
+                  key: ValueKey(c.id),
+                  color: panelColor(context),
+                  child: InkWell(
+                    onTap: parent == null && store.prefs.subcategories
+                        ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => AuroraBackground(child: CategoriesPage(type: type, parent: c))))
+                        : () => editCategory(context, type: type, existing: c),
+                    child: Container(
+                      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: line))),
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Row(children: [
+                        IconButton(
+                          tooltip: 'Видалити',
+                          icon: Icon(Icons.remove_circle_rounded, color: scheme.error, size: 28),
+                          onPressed: () async {
+                            if (await _confirm(context, 'Видалити «${c.name}»?', 'Записи з цією категорією залишаться, але без категорії.')) {
+                              store.saveCategory(c.copyWith(deleted: true));
+                            }
+                          },
+                        ),
+                        if (hasIcon(c.emoji)) ...[Text(c.emoji, style: const TextStyle(fontSize: 20)), const SizedBox(width: 8)],
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(subs.isEmpty ? c.name : '${c.name} (${subs.length})', style: const TextStyle(fontSize: 16)),
+                            if (subs.isNotEmpty && store.prefs.subcategories)
+                              Text(subs.map((s) => s.name).join(', '),
+                                  maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
+                          ]),
+                        ),
+                        IconButton(
+                          tooltip: 'Змінити',
+                          icon: Icon(Icons.edit_outlined, color: scheme.onSurfaceVariant),
+                          onPressed: () => editCategory(context, type: type, existing: c),
+                        ),
+                        ReorderableDragStartListener(
+                          index: i,
+                          child: Padding(padding: const EdgeInsets.fromLTRB(4, 8, 16, 8), child: Icon(Icons.drag_handle_rounded, color: scheme.onSurfaceVariant)),
+                        ),
+                      ]),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+      ]),
     );
   }
 }
@@ -597,7 +668,7 @@ Future<void> editCategory(BuildContext context, {required TxType type, Category?
   final store = StoreScope.read(context);
   final isSub = parent != null || existing?.parentId != null;
   final name = TextEditingController(text: existing?.name ?? '');
-  final emoji = TextEditingController(text: existing?.emoji ?? parent?.emoji ?? '');
+  final emoji = TextEditingController(text: hasIcon(existing?.emoji) ? existing!.emoji : '');
   var color = existing?.color ?? parent?.color ?? colorChoices.first;
   await showDialog<void>(
     context: context,
@@ -624,14 +695,6 @@ Future<void> editCategory(BuildContext context, {required TxType type, Category?
           ]),
         ),
         actions: [
-          if (existing != null)
-            TextButton(
-              onPressed: () {
-                store.saveCategory(existing.copyWith(deleted: true));
-                Navigator.pop(context);
-              },
-              child: const Text('Видалити'),
-            ),
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Скасувати')),
           FilledButton(
             onPressed: () {
@@ -654,4 +717,53 @@ Future<void> editCategory(BuildContext context, {required TxType type, Category?
       ),
     ),
   );
+}
+
+// ---- Резервна копія: дії ------------------------------------------------------------------
+
+Future<void> _export(BuildContext context) async {
+  final store = StoreScope.read(context);
+  final json = await store.exportJson();
+  final d = DateTime.now();
+  await FileSaver.instance.saveFile(
+    name: 'pfinance-backup-${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}',
+    bytes: Uint8List.fromList(utf8.encode(json)),
+    fileExtension: 'json',
+    mimeType: MimeType.json,
+  );
+  if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Резервну копію збережено')));
+}
+
+Future<void> _import(BuildContext context) async {
+  final store = StoreScope.read(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['json']);
+  if (files.isEmpty) return;
+  final bytes = await files.single.readAsBytes();
+  if (!context.mounted) return;
+  if (!await _confirm(context, 'Відновити з копії?', 'Поточні дані буде замінено даними з файлу.')) return;
+  if (!context.mounted) return;
+  final nav = Navigator.of(context, rootNavigator: true);
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const PopScope(
+      canPop: false,
+      child: AlertDialog(
+        content: Row(children: [
+          SizedBox.square(dimension: 28, child: CircularProgressIndicator(strokeWidth: 3)),
+          SizedBox(width: 20),
+          Expanded(child: Text('Відновлюю дані…')),
+        ]),
+      ),
+    ),
+  );
+  try {
+    await store.importJson(utf8.decode(bytes));
+    nav.pop();
+    messenger.showSnackBar(const SnackBar(content: Text('Дані відновлено')));
+  } catch (e) {
+    nav.pop();
+    messenger.showSnackBar(SnackBar(content: Text('Не вдалося прочитати файл: $e')));
+  }
 }

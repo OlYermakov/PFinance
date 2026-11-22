@@ -1,0 +1,1 @@
+void applyAppIcon(int i) {}

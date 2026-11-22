@@ -1,5 +1,6 @@
 import 'package:excel/excel.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:money_app/ui/format.dart' as fmt;
 import 'package:money_app/data/db_factory_memory.dart';
 import 'package:money_app/data/models.dart';
 import 'package:money_app/data/repository.dart';
@@ -149,5 +150,33 @@ void main() {
     expect(parseMoney('12.3', 'USD'), 1230);
     expect(parseMoney('500', 'JPY'), 500);
     expect(parseMoney('abc', 'UAH'), isNull);
+  });
+
+  test('settings: symbol position, reset contents, repeats in advance', () async {
+    fmt.currencyFront = true;
+    expect(money(150, 'EUR'), startsWith('€'));
+    fmt.currencyFront = false;
+    expect(money(150, 'EUR'), endsWith('€'));
+
+    final s = await _store();
+    final cat = s.categoriesOf(TxType.expense).first;
+    final acc = s.accounts.first;
+    await s.saveTxn(Txn(type: TxType.expense, amount: 500, accountId: acc.id, categoryId: cat.id, date: DateTime.now()));
+    await s.resetContents();
+    expect(s.txns, isEmpty);
+    expect(s.accounts, isNotEmpty);
+    expect(s.categoriesOf(TxType.expense), isNotEmpty);
+
+    // Weekly rule starting today: in advance creates the rest of the period too.
+    await s.updatePrefs((p) => p.repeatInAdvance = true);
+    final today = DateTime.now();
+    final start = DateTime(today.year, today.month, 1, 9);
+    await s.saveRepeat(RepeatRule(
+      template: Txn(type: TxType.expense, amount: 100, accountId: acc.id, categoryId: cat.id, date: start),
+      every: RepeatEvery.week,
+      start: start,
+    ));
+    await s.runRepeats(now: start);
+    expect(s.txns.length, greaterThanOrEqualTo(4));
   });
 }

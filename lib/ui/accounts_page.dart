@@ -65,7 +65,7 @@ class AccountsPage extends StatelessWidget {
           Row(children: [
             const SizedBox(width: 96),
             Expanded(child: Text('Рахунки', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700))),
-            IconButton(tooltip: 'Редагувати список', icon: const Icon(Icons.edit_outlined), onPressed: () => _push(context, const _EditAccountsPage())),
+            IconButton(tooltip: 'Редагувати список', icon: const Icon(Icons.edit_outlined), onPressed: () => _push(context, const EditAccountsPage())),
             IconButton(tooltip: 'Новий рахунок', icon: const Icon(Icons.add_rounded), onPressed: () => editAccount(context)),
           ]),
           const SizedBox(height: 8),
@@ -115,7 +115,7 @@ class AccountsPage extends StatelessWidget {
               padding: const EdgeInsets.only(top: 14),
               child: Center(
                 child: TextButton(
-                  onPressed: () => _push(context, const _EditAccountsPage()),
+                  onPressed: () => _push(context, const EditAccountsPage()),
                   child: Text('Приховані рахунки: $hidden'),
                 ),
               ),
@@ -725,8 +725,8 @@ class _LinePainter extends CustomPainter {
 
 // ---- Edit list: delete, hide, reorder ----------------------------------------------------
 
-class _EditAccountsPage extends StatelessWidget {
-  const _EditAccountsPage();
+class EditAccountsPage extends StatelessWidget {
+  const EditAccountsPage({super.key});
 
   @override
   Widget build(BuildContext context) {

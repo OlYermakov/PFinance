@@ -11,10 +11,18 @@ import 'widgets.dart';
 
 /// Opens the full-screen record editor (Money Manager layout: labelled rows on
 /// top, a picker panel at the bottom).
-Future<void> openTxnEditor(BuildContext context, {Txn? existing, DateTime? date, int? amount}) =>
-    Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => AuroraBackground(child: TxnEditor(existing: existing, date: date, amount: amount)),
-    ));
+Future<void> openTxnEditor(
+  BuildContext context, {
+  Txn? existing,
+  DateTime? date,
+  int? amount,
+}) => Navigator.of(context).push(
+  MaterialPageRoute<void>(
+    builder: (_) => AuroraBackground(
+      child: TxnEditor(existing: existing, date: date, amount: amount),
+    ),
+  ),
+);
 
 enum _Field { account, toAccount, category, amount, toAmount, fee }
 
@@ -36,7 +44,11 @@ class _TxnEditorState extends State<TxnEditor> {
   String? _categoryId; // top-level
   String? _subId;
   String? _expanded; // category whose subcategories are open in the panel
-  final _expr = <_Field, String>{_Field.amount: '', _Field.toAmount: '', _Field.fee: ''};
+  final _expr = <_Field, String>{
+    _Field.amount: '',
+    _Field.toAmount: '',
+    _Field.fee: '',
+  };
   bool _showFee = false;
   final _note = TextEditingController();
   final _noteFocus = FocusNode();
@@ -54,7 +66,17 @@ class _TxnEditorState extends State<TxnEditor> {
     final e = widget.existing;
     _type = e?.type ?? TxType.expense;
     final now = DateTime.now();
-    _date = e?.date ?? (widget.date != null ? DateTime(widget.date!.year, widget.date!.month, widget.date!.day, now.hour, now.minute) : now);
+    _date =
+        e?.date ??
+        (widget.date != null
+            ? DateTime(
+                widget.date!.year,
+                widget.date!.month,
+                widget.date!.day,
+                now.hour,
+                now.minute,
+              )
+            : now);
     _accountId = e?.accountId ?? store.lastUsedAccountId;
     _toAccountId = e?.toAccountId;
     final c = store.category(e?.categoryId);
@@ -68,9 +90,19 @@ class _TxnEditorState extends State<TxnEditor> {
     if (e != null) {
       final cur = store.account(e.accountId)?.currency ?? store.baseCurrency;
       _expr[_Field.amount] = _input(e.amount, cur);
-      if (e.toAmount != null) _expr[_Field.toAmount] = _input(e.toAmount!, store.account(e.toAccountId)?.currency ?? cur);
+      if (e.toAmount != null) {
+        _expr[_Field.toAmount] = _input(
+          e.toAmount!,
+          store.account(e.toAccountId)?.currency ?? cur,
+        );
+      }
     } else {
-      if (widget.amount != null) _expr[_Field.amount] = _input(widget.amount!, store.account(_accountId)?.currency ?? store.baseCurrency);
+      if (widget.amount != null) {
+        _expr[_Field.amount] = _input(
+          widget.amount!,
+          store.account(_accountId)?.currency ?? store.baseCurrency,
+        );
+      }
       // Like Money Manager: a new record starts with the category grid open.
       _panel = _Field.category;
     }
@@ -86,7 +118,8 @@ class _TxnEditorState extends State<TxnEditor> {
     super.dispose();
   }
 
-  static String _input(int minor, String cur) => minorToInput(minor, cur).replaceAll('.', ',');
+  static String _input(int minor, String cur) =>
+      minorToInput(minor, cur).replaceAll('.', ',');
 
   int? _minor(_Field f, String currency) {
     final v = evalExpression(_expr[f]!);
@@ -108,13 +141,22 @@ class _TxnEditorState extends State<TxnEditor> {
     final store = StoreScope.read(context);
     setState(() {
       _error = null;
-      if (from == _Field.account && _type == TxType.transfer && _toAccountId == null) {
+      if (from == _Field.account &&
+          _type == TxType.transfer &&
+          _toAccountId == null) {
         _panel = _Field.toAccount;
-      } else if (from == _Field.account && _type != TxType.transfer && _categoryId == null) {
+      } else if (from == _Field.account &&
+          _type != TxType.transfer &&
+          _categoryId == null) {
         _panel = _Field.category;
-      } else if ((from == _Field.category || from == _Field.toAccount || from == _Field.account) && _expr[_Field.amount]!.isEmpty) {
+      } else if ((from == _Field.category ||
+              from == _Field.toAccount ||
+              from == _Field.account) &&
+          _expr[_Field.amount]!.isEmpty) {
         _panel = _Field.amount;
-      } else if (from == _Field.amount && _crossCurrency(store) && _expr[_Field.toAmount]!.isEmpty) {
+      } else if (from == _Field.amount &&
+          _crossCurrency(store) &&
+          _expr[_Field.toAmount]!.isEmpty) {
         _panel = _Field.toAmount;
       } else {
         _panel = null;
@@ -124,24 +166,63 @@ class _TxnEditorState extends State<TxnEditor> {
 
   bool _crossCurrency(AppStore store) {
     final a = store.account(_accountId), b = store.account(_toAccountId);
-    return _type == TxType.transfer && a != null && b != null && a.currency != b.currency;
+    return _type == TxType.transfer &&
+        a != null &&
+        b != null &&
+        a.currency != b.currency;
+  }
+
+  /// Note history for the chosen category (MM "Note button").
+  Future<void> _pickNote(AppStore store) async {
+    final notes = store.noteSuggestions(_subId ?? _categoryId, '');
+    final v = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => notes.isEmpty
+          ? const Padding(
+              padding: EdgeInsets.fromLTRB(24, 0, 24, 32),
+              child: Text('Нотаток для цієї категорії ще немає'),
+            )
+          : ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.only(bottom: 24),
+              children: [
+                for (final n in notes)
+                  ListTile(
+                    title: Text(n),
+                    onTap: () => Navigator.pop(context, n),
+                  ),
+              ],
+            ),
+    );
+    if (v != null) setState(() => _note.text = v);
   }
 
   Future<void> _save({bool keepOpen = false, bool copy = false}) async {
     final store = StoreScope.read(context);
     final acc = store.account(_accountId);
     if (acc == null) return setState(() => _error = 'Обери рахунок');
-    if (_type != TxType.transfer && _categoryId == null) return setState(() => _error = 'Обери категорію');
+    if (_type != TxType.transfer && _categoryId == null) {
+      return setState(() => _error = 'Обери категорію');
+    }
     final amount = _minor(_Field.amount, acc.currency);
-    if (amount == null || amount == 0) return setState(() => _error = 'Введи суму');
+    if (amount == null || amount == 0) {
+      return setState(() => _error = 'Введи суму');
+    }
     int? toAmount;
     int? fee;
     if (_type == TxType.transfer) {
       final to = store.account(_toAccountId);
-      if (to == null || to.id == acc.id) return setState(() => _error = 'Обери рахунок, куди переказ');
+      if (to == null || to.id == acc.id) {
+        return setState(() => _error = 'Обери рахунок, куди переказ');
+      }
       if (to.currency != acc.currency) {
         toAmount = _minor(_Field.toAmount, to.currency);
-        if (toAmount == null || toAmount == 0) return setState(() => _error = 'Введи суму зарахування в ${to.currency}');
+        if (toAmount == null || toAmount == 0) {
+          return setState(
+            () => _error = 'Введи суму зарахування в ${to.currency}',
+          );
+        }
       }
       if (_showFee) fee = _minor(_Field.fee, acc.currency);
     }
@@ -160,25 +241,36 @@ class _TxnEditorState extends State<TxnEditor> {
     await store.saveTxn(txn);
     if (fee != null && fee > 0) {
       // A transfer fee is an expense on the sending account.
-      await store.saveTxn(Txn(
-        type: TxType.expense,
-        amount: fee,
-        accountId: acc.id,
-        categoryId: _feeCategory(store)?.id,
-        date: txn.date,
-        note: 'Комісія за переказ',
-      ));
+      await store.saveTxn(
+        Txn(
+          type: TxType.expense,
+          amount: fee,
+          accountId: acc.id,
+          categoryId: _feeCategory(store)?.id,
+          date: txn.date,
+          note: 'Комісія за переказ',
+        ),
+      );
     }
     if (_repeat != null && _isNew && !copy) {
       // This record is the first occurrence; the rule makes the next ones.
-      await store.saveRepeat(RepeatRule(template: txn, every: _repeat!, start: txn.date, lastDone: txn.date));
+      await store.saveRepeat(
+        RepeatRule(
+          template: txn,
+          every: _repeat!,
+          start: txn.date,
+          lastDone: txn.date,
+        ),
+      );
       _repeat = null;
     }
     HapticFeedback.lightImpact();
     if (!mounted) return;
     if (copy) {
       Navigator.pop(context);
-      messenger.showSnackBar(SnackBar(content: Text('Скопійовано на ${shortDate(txn.date)}')));
+      messenger.showSnackBar(
+        SnackBar(content: Text('Скопійовано на ${shortDate(txn.date)}')),
+      );
       return;
     }
     if (keepOpen) {
@@ -201,21 +293,46 @@ class _TxnEditorState extends State<TxnEditor> {
 
   Category? _feeCategory(AppStore store) {
     final cats = store.categoriesOf(TxType.expense);
-    return cats.where((c) => c.name.toLowerCase().contains('коміс')).firstOrNull ??
+    return cats
+            .where((c) => c.name.toLowerCase().contains('коміс'))
+            .firstOrNull ??
         cats.where((c) => c.name == 'Інше').firstOrNull ??
         cats.lastOrNull;
   }
 
   Future<void> _pickDate() async {
     _open(null);
-    final d = await showDatePicker(context: context, initialDate: _date, firstDate: DateTime(2000), lastDate: DateTime(2100));
-    if (d != null) setState(() => _date = DateTime(d.year, d.month, d.day, _date.hour, _date.minute));
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (d != null) {
+      setState(
+        () =>
+            _date = DateTime(d.year, d.month, d.day, _date.hour, _date.minute),
+      );
+    }
   }
 
   Future<void> _pickTime() async {
     _open(null);
-    final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_date));
-    if (t != null) setState(() => _date = DateTime(_date.year, _date.month, _date.day, t.hour, t.minute));
+    final t = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_date),
+    );
+    if (t != null) {
+      setState(
+        () => _date = DateTime(
+          _date.year,
+          _date.month,
+          _date.day,
+          t.hour,
+          t.minute,
+        ),
+      );
+    }
   }
 
   Future<void> _addTag() async {
@@ -227,38 +344,73 @@ class _TxnEditorState extends State<TxnEditor> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Тег'),
-        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          TextField(
-            controller: ctrl,
-            autofocus: true,
-            decoration: const InputDecoration(prefixText: '#', hintText: 'відпустка'),
-            onSubmitted: (v) => Navigator.pop(context, v),
-          ),
-          if (existing.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Wrap(spacing: 6, runSpacing: 6, children: [
-              for (final t in existing.take(12)) ActionChip(label: Text('#$t'), onPressed: () => Navigator.pop(context, t)),
-            ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              decoration: const InputDecoration(
+                prefixText: '#',
+                hintText: 'відпустка',
+              ),
+              onSubmitted: (v) => Navigator.pop(context, v),
+            ),
+            if (existing.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final t in existing.take(12))
+                    ActionChip(
+                      label: Text('#$t'),
+                      onPressed: () => Navigator.pop(context, t),
+                    ),
+                ],
+              ),
+            ],
           ],
-        ]),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Скасувати')),
-          FilledButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('Додати')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Скасувати'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, ctrl.text),
+            child: const Text('Додати'),
+          ),
         ],
       ),
     );
-    final clean = tag?.trim().replaceAll('#', '').replaceAll(RegExp(r'\s+'), '_');
+    final clean = tag
+        ?.trim()
+        .replaceAll('#', '')
+        .replaceAll(RegExp(r'\s+'), '_');
     if (clean == null || clean.isEmpty) return;
     if (_tagsOf(_note.text).contains(clean.toLowerCase())) return;
     setState(() => _note.text = '${_note.text.trim()} #$clean'.trim());
   }
 
   static final _tagRe = RegExp(r'#([\p{L}\p{N}_-]+)', unicode: true);
-  static List<String> _tagsOf(String note) => [for (final m in _tagRe.allMatches(note)) m.group(1)!.toLowerCase()];
+  static List<String> _tagsOf(String note) => [
+    for (final m in _tagRe.allMatches(note)) m.group(1)!.toLowerCase(),
+  ];
 
   void _removeTag(String tag) => setState(() {
-        _note.text = _note.text.replaceAll(RegExp('\\s*#${RegExp.escape(tag)}(?![\\p{L}\\p{N}_-])', unicode: true, caseSensitive: false), '').trim();
-      });
+    _note.text = _note.text
+        .replaceAll(
+          RegExp(
+            '\\s*#${RegExp.escape(tag)}(?![\\p{L}\\p{N}_-])',
+            unicode: true,
+            caseSensitive: false,
+          ),
+          '',
+        )
+        .trim();
+  });
 
   Future<void> _templates() async {
     _open(null);
@@ -267,66 +419,108 @@ class _TxnEditorState extends State<TxnEditor> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (context) => StatefulBuilder(builder: (context, setSheet) {
-        final list = StoreScope.of(context).templates.where((t) => t.type == _type).toList();
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text('Шаблони', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 4),
-            Text('Часті записи одним дотиком: оренда, кава, проїзд.', style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 12),
-            for (final t in list)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Text(store.category(t.categoryId)?.emoji ?? (t.type == TxType.transfer ? '🔁' : '⭐'), style: const TextStyle(fontSize: 22)),
-                title: Text(t.note.isNotEmpty ? t.note : txnTitle(store, t)),
-                subtitle: Text('${txnTitle(store, t)} · ${store.account(t.accountId)?.name ?? ''}'),
-                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                  if (t.amount > 0) Text(money(t.amount, store.currencyOf(t)), style: const TextStyle(fontWeight: FontWeight.w700)),
-                  IconButton(
-                    tooltip: 'Видалити шаблон',
-                    icon: const Icon(Icons.close_rounded, size: 18),
-                    onPressed: () async {
-                      await store.deleteTemplate(t);
-                      setSheet(() {});
-                    },
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheet) {
+          final list = StoreScope.of(context).templates
+              .where((t) => t.type == _type)
+              .toList();
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Шаблони', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 4),
+                Text(
+                  'Часті записи одним дотиком: оренда, кава, проїзд.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 12),
+                for (final t in list)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Text(
+                      store.category(t.categoryId)?.emoji ??
+                          (t.type == TxType.transfer ? '🔁' : '⭐'),
+                      style: const TextStyle(fontSize: 22),
+                    ),
+                    title: Text(
+                      t.note.isNotEmpty ? t.note : txnTitle(store, t),
+                    ),
+                    subtitle: Text(
+                      '${txnTitle(store, t)} · ${store.account(t.accountId)?.name ?? ''}',
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (t.amount > 0)
+                          Text(
+                            money(t.amount, store.currencyOf(t)),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        IconButton(
+                          tooltip: 'Видалити шаблон',
+                          icon: const Icon(Icons.close_rounded, size: 18),
+                          onPressed: () async {
+                            await store.deleteTemplate(t);
+                            setSheet(() {});
+                          },
+                        ),
+                      ],
+                    ),
+                    onTap: () => Navigator.pop(context, t),
                   ),
-                ]),
-                onTap: () => Navigator.pop(context, t),
-              ),
-            if (list.isEmpty) const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Шаблонів ще немає.')),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.star_outline_rounded),
-              label: const Text('Зберегти поточний запис як шаблон'),
-              onPressed: () async {
-                final acc = store.account(_accountId);
-                await store.saveTemplate(Txn(
-                  type: _type,
-                  amount: acc == null ? 0 : (_minor(_Field.amount, acc.currency) ?? 0),
-                  accountId: _accountId ?? '',
-                  toAccountId: _type == TxType.transfer ? _toAccountId : null,
-                  categoryId: _type == TxType.transfer ? null : (_subId ?? _categoryId),
-                  date: _date,
-                  note: _note.text.trim(),
-                ));
-                setSheet(() {});
-              },
+                if (list.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Text('Шаблонів ще немає.'),
+                  ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.star_outline_rounded),
+                  label: const Text('Зберегти поточний запис як шаблон'),
+                  onPressed: () async {
+                    final acc = store.account(_accountId);
+                    await store.saveTemplate(
+                      Txn(
+                        type: _type,
+                        amount: acc == null
+                            ? 0
+                            : (_minor(_Field.amount, acc.currency) ?? 0),
+                        accountId: _accountId ?? '',
+                        toAccountId: _type == TxType.transfer
+                            ? _toAccountId
+                            : null,
+                        categoryId: _type == TxType.transfer
+                            ? null
+                            : (_subId ?? _categoryId),
+                        date: _date,
+                        note: _note.text.trim(),
+                      ),
+                    );
+                    setSheet(() {});
+                  },
+                ),
+              ],
             ),
-          ]),
-        );
-      }),
+          );
+        },
+      ),
     );
     if (picked == null || !mounted) return;
     setState(() {
       _type = picked.type;
-      if (store.account(picked.accountId) != null) _accountId = picked.accountId;
+      if (store.account(picked.accountId) != null) {
+        _accountId = picked.accountId;
+      }
       _toAccountId = picked.toAccountId;
       final c = store.category(picked.categoryId);
       _categoryId = c?.parentId ?? c?.id;
       _subId = c?.parentId != null ? c!.id : null;
-      if (picked.amount > 0) _expr[_Field.amount] = _input(picked.amount, store.currencyOf(picked));
+      if (picked.amount > 0) {
+        _expr[_Field.amount] = _input(picked.amount, store.currencyOf(picked));
+      }
       _note.text = picked.note;
       _panel = picked.amount > 0 ? null : _Field.amount;
     });
@@ -354,7 +548,9 @@ class _TxnEditorState extends State<TxnEditor> {
     };
     final cat = store.category(_subId ?? _categoryId);
     final top = store.category(_categoryId);
-    final suggestions = _type == TxType.transfer ? const <String>[] : store.noteSuggestions(_subId ?? _categoryId, _note.text);
+    final suggestions = _type == TxType.transfer || !store.prefs.noteSuggestions
+        ? const <String>[]
+        : store.noteSuggestions(_subId ?? _categoryId, _note.text);
     final tags = _tagsOf(_note.text);
     final cur = acc?.currency ?? store.baseCurrency;
 
@@ -362,13 +558,34 @@ class _TxnEditorState extends State<TxnEditor> {
       final e = _expr[f]!;
       final v = evalExpression(e);
       final hasOp = RegExp(r'[+−×÷]').hasMatch(e);
-      return Row(children: [
-        Expanded(
-          child: Text(e, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: accent), maxLines: 1, overflow: TextOverflow.ellipsis),
-        ),
-        if (hasOp && v != null) Text('= ${_CalcPad.fmt(v)}  ', style: TextStyle(color: scheme.onSurfaceVariant)),
-        Text(currency, style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600)),
-      ]);
+      return Row(
+        children: [
+          Expanded(
+            child: Text(
+              e,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: accent,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (hasOp && v != null)
+            Text(
+              '= ${_CalcPad.fmt(v)}  ',
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            ),
+          Text(
+            currency,
+            style: TextStyle(
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      );
     }
 
     final form = ListView(
@@ -376,7 +593,11 @@ class _TxnEditorState extends State<TxnEditor> {
       children: [
         _TypeTabs(
           value: _type,
-          colors: {TxType.income: incomeColor(context, store), TxType.expense: p.expense, TxType.transfer: scheme.onSurface},
+          colors: {
+            TxType.income: incomeColor(context, store),
+            TxType.expense: p.expense,
+            TxType.transfer: scheme.onSurface,
+          },
           onChanged: (t) => setState(() {
             if (_type != t) {
               _categoryId = null;
@@ -385,7 +606,9 @@ class _TxnEditorState extends State<TxnEditor> {
             }
             _type = t;
             _error = null;
-            _panel = t == TxType.transfer ? (_toAccountId == null ? _Field.toAccount : _Field.amount) : _Field.category;
+            _panel = t == TxType.transfer
+                ? (_toAccountId == null ? _Field.toAccount : _Field.amount)
+                : _Field.category;
           }),
         ),
         const SizedBox(height: 8),
@@ -393,54 +616,78 @@ class _TxnEditorState extends State<TxnEditor> {
           label: 'Дата',
           accent: accent,
           trailing: _isNew ? _repeatButton(scheme) : null,
-          child: Row(children: [
-            InkWell(onTap: _pickDate, child: Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Text(_dateLabel(_date), style: _valueStyle))),
-            const SizedBox(width: 14),
-            InkWell(
-              onTap: _pickTime,
-              child: Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Text(TimeOfDay.fromDateTime(_date).format(context), style: _valueStyle)),
-            ),
-          ]),
-        ),
-        _FormRow(
-          label: _type == TxType.transfer ? 'Звідки' : 'Рахунок',
-          accent: accent,
-          active: _panel == _Field.account,
-          onTap: () => _open(_Field.account),
-          trailing: _type == TxType.transfer
-              ? IconButton(
-                  tooltip: 'Поміняти місцями',
-                  icon: const Icon(Icons.swap_vert_rounded),
-                  onPressed: () => setState(() {
-                    final a = _accountId;
-                    _accountId = _toAccountId ?? _accountId;
-                    _toAccountId = a;
-                  }),
-                )
-              : null,
-          child: Text(acc?.name ?? '', style: _valueStyle),
-        ),
-        if (_type == TxType.transfer)
-          _FormRow(
-            label: 'Куди',
-            accent: accent,
-            active: _panel == _Field.toAccount,
-            onTap: () => _open(_Field.toAccount),
-            child: Text(to?.name ?? '', style: _valueStyle),
-          )
-        else
-          _FormRow(
-            label: 'Категорія',
-            accent: accent,
-            active: _panel == _Field.category,
-            onTap: () => _open(_Field.category),
-            child: Text(
-              cat == null ? '' : (cat.parentId != null ? '${top?.name ?? ''} / ${cat.name}' : cat.name),
-              style: _valueStyle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+          child: Row(
+            children: [
+              InkWell(
+                onTap: _pickDate,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Text(_dateLabel(_date), style: _valueStyle),
+                ),
+              ),
+              if (store.prefs.timeMode != 0) ...[
+                const SizedBox(width: 14),
+                InkWell(
+                  onTap: _pickTime,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Text(
+                      TimeOfDay.fromDateTime(_date).format(context),
+                      style: _valueStyle,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
+        ),
+        ...(() {
+          final accRow = _FormRow(
+            label: _type == TxType.transfer ? 'Звідки' : 'Рахунок',
+            accent: accent,
+            active: _panel == _Field.account,
+            onTap: () => _open(_Field.account),
+            trailing: _type == TxType.transfer
+                ? IconButton(
+                    tooltip: 'Поміняти місцями',
+                    icon: const Icon(Icons.swap_vert_rounded),
+                    onPressed: () => setState(() {
+                      final a = _accountId;
+                      _accountId = _toAccountId ?? _accountId;
+                      _toAccountId = a;
+                    }),
+                  )
+                : null,
+            child: Text(acc?.name ?? '', style: _valueStyle),
+          );
+          final Widget catRow = _type == TxType.transfer
+              ? _FormRow(
+                  label: 'Куди',
+                  accent: accent,
+                  active: _panel == _Field.toAccount,
+                  onTap: () => _open(_Field.toAccount),
+                  child: Text(to?.name ?? '', style: _valueStyle),
+                )
+              : _FormRow(
+                  label: 'Категорія',
+                  accent: accent,
+                  active: _panel == _Field.category,
+                  onTap: () => _open(_Field.category),
+                  child: Text(
+                    cat == null
+                        ? ''
+                        : (cat.parentId != null
+                              ? '${top?.name ?? ''} / ${cat.name}'
+                              : cat.name),
+                    style: _valueStyle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+          return store.prefs.categoryFirst && _type != TxType.transfer
+              ? [catRow, accRow]
+              : [accRow, catRow];
+        })(),
         _FormRow(
           label: 'Сума',
           accent: accent,
@@ -452,7 +699,9 @@ class _TxnEditorState extends State<TxnEditor> {
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       visualDensity: VisualDensity.compact,
-                      backgroundColor: _showFee ? scheme.primary.withValues(alpha: 0.15) : null,
+                      backgroundColor: _showFee
+                          ? scheme.primary.withValues(alpha: 0.15)
+                          : null,
                     ),
                     onPressed: () => setState(() {
                       _showFee = !_showFee;
@@ -484,6 +733,13 @@ class _TxnEditorState extends State<TxnEditor> {
           label: 'Нотатка',
           accent: accent,
           active: _noteFocus.hasFocus,
+          trailing: store.prefs.noteButton && _type != TxType.transfer
+              ? IconButton(
+                  tooltip: 'Попередні нотатки',
+                  icon: const Icon(Icons.notes_rounded),
+                  onPressed: () => _pickNote(store),
+                )
+              : null,
           child: TextField(
             controller: _note,
             focusNode: _noteFocus,
@@ -505,89 +761,153 @@ class _TxnEditorState extends State<TxnEditor> {
         if (suggestions.isNotEmpty && !suggestions.contains(_note.text))
           Padding(
             padding: const EdgeInsets.only(top: 8, left: 96),
-            child: Wrap(spacing: 6, runSpacing: 6, children: [
-              for (final s in suggestions.take(6))
-                ActionChip(visualDensity: VisualDensity.compact, label: Text(s), onPressed: () => setState(() => _note.text = s)),
-            ]),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final s in suggestions.take(6))
+                  ActionChip(
+                    visualDensity: VisualDensity.compact,
+                    label: Text(s),
+                    onPressed: () => setState(() => _note.text = s),
+                  ),
+              ],
+            ),
           ),
         const SizedBox(height: 14),
-        Wrap(spacing: 8, runSpacing: 8, children: [
-          for (final t in tags) InputChip(label: Text('#$t'), onDeleted: () => _removeTag(t), visualDensity: VisualDensity.compact),
-          ActionChip(avatar: const Icon(Icons.add_rounded, size: 18), label: const Text('Тег'), onPressed: _addTag),
-        ]),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final t in tags)
+              InputChip(
+                label: Text('#$t'),
+                onDeleted: () => _removeTag(t),
+                visualDensity: VisualDensity.compact,
+              ),
+            ActionChip(
+              avatar: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Тег'),
+              onPressed: _addTag,
+            ),
+          ],
+        ),
         AnimatedSize(
           duration: const Duration(milliseconds: 200),
           child: _error == null
               ? const SizedBox(width: double.infinity)
-              : Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: TextStyle(color: scheme.error, fontWeight: FontWeight.w600))),
+              : Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Text(
+                    _error!,
+                    style: TextStyle(
+                      color: scheme.error,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
         ),
         if (_savedInSeries > 0)
           Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: Text('Збережено записів: $_savedInSeries', style: TextStyle(color: scheme.onSurfaceVariant)),
+            child: Text(
+              'Збережено записів: $_savedInSeries',
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            ),
           ),
         const SizedBox(height: 18),
-        Row(children: [
-          if (!_isNew) ...[
-            IconButton.outlined(
-              tooltip: 'Видалити',
-              icon: const Icon(Icons.delete_outline_rounded),
-              onPressed: () async {
-                await store.deleteTxn(widget.existing!);
-                if (context.mounted) Navigator.pop(context);
-              },
-            ),
-            const SizedBox(width: 8),
-            IconButton.outlined(tooltip: 'Копіювати', icon: const Icon(Icons.copy_rounded), onPressed: () => _save(copy: true)),
-            const SizedBox(width: 8),
-          ],
-          Expanded(
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: _type == TxType.transfer ? scheme.primary : accent,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(52),
+        Row(
+          children: [
+            if (!_isNew) ...[
+              IconButton.outlined(
+                tooltip: 'Видалити',
+                icon: const Icon(Icons.delete_outline_rounded),
+                onPressed: () async {
+                  await store.deleteTxn(widget.existing!);
+                  if (context.mounted) Navigator.pop(context);
+                },
               ),
-              onPressed: () => _save(),
-              child: const Text('Зберегти', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-            ),
-          ),
-          if (_isNew) ...[
-            const SizedBox(width: 8),
+              const SizedBox(width: 8),
+              if (store.prefs.copyPaste) ...[
+                IconButton.outlined(
+                  tooltip: 'Копіювати',
+                  icon: const Icon(Icons.copy_rounded),
+                  onPressed: () => _save(copy: true),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ],
             Expanded(
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-                onPressed: () => _save(keepOpen: true),
-                child: const Text('Продовжити'),
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: _type == TxType.transfer
+                      ? scheme.primary
+                      : accent,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(52),
+                ),
+                onPressed: () => _save(),
+                child: const Text(
+                  'Зберегти',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
               ),
             ),
+            if (_isNew) ...[
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                  ),
+                  onPressed: () => _save(keepOpen: true),
+                  child: const Text('Продовжити'),
+                ),
+              ),
+            ],
           ],
-        ]),
+        ),
       ],
     );
 
     return Scaffold(
       appBar: AppBar(
-        title: AnimatedSwitcher(duration: const Duration(milliseconds: 200), child: Text(title, key: ValueKey(title))),
+        title: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: Text(title, key: ValueKey(title)),
+        ),
         centerTitle: true,
-        actions: [IconButton(tooltip: 'Шаблони', icon: const Icon(Icons.star_outline_rounded), onPressed: _templates)],
+        actions: [
+          IconButton(
+            tooltip: 'Шаблони',
+            icon: const Icon(Icons.star_outline_rounded),
+            onPressed: _templates,
+          ),
+        ],
       ),
       body: SafeArea(
         top: false,
-        child: Column(children: [
-          Expanded(child: form),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 260),
-            curve: Curves.easeOutCubic,
-            alignment: Alignment.topCenter,
-            child: _panel == null ? const SizedBox(width: double.infinity) : _buildPanel(store, accent),
-          ),
-        ]),
+        child: Column(
+          children: [
+            Expanded(child: form),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: _panel == null
+                  ? const SizedBox(width: double.infinity)
+                  : _buildPanel(store, accent),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  static const _valueStyle = TextStyle(fontSize: 17, fontWeight: FontWeight.w600);
+  static const _valueStyle = TextStyle(
+    fontSize: 17,
+    fontWeight: FontWeight.w600,
+  );
 
   static String _dateLabel(DateTime d) {
     final w = weekdayShort(d);
@@ -595,35 +915,55 @@ class _TxnEditorState extends State<TxnEditor> {
   }
 
   Widget _repeatButton(ColorScheme scheme) => PopupMenuButton<String>(
-        tooltip: 'Повторювати',
-        initialValue: _repeat?.name ?? 'none',
-        onSelected: (v) => setState(() => _repeat = RepeatEvery.values.asNameMap()[v]),
-        itemBuilder: (_) => [
-          const PopupMenuItem(value: 'none', child: Text('Не повторювати')),
-          for (final r in RepeatEvery.values) PopupMenuItem(value: r.name, child: Text(repeatLabel(r))),
+    tooltip: 'Повторювати',
+    initialValue: _repeat?.name ?? 'none',
+    onSelected: (v) =>
+        setState(() => _repeat = RepeatEvery.values.asNameMap()[v]),
+    itemBuilder: (_) => [
+      const PopupMenuItem(value: 'none', child: Text('Не повторювати')),
+      for (final r in RepeatEvery.values)
+        PopupMenuItem(value: r.name, child: Text(repeatLabel(r))),
+    ],
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.repeat_rounded,
+            color: _repeat == null ? scheme.onSurfaceVariant : scheme.primary,
+          ),
+          Text(
+            _repeat == null ? 'Повтор' : repeatShort(_repeat!),
+            style: TextStyle(
+              fontSize: 11,
+              color: _repeat == null ? scheme.onSurfaceVariant : scheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.repeat_rounded, color: _repeat == null ? scheme.onSurfaceVariant : scheme.primary),
-            Text(_repeat == null ? 'Повтор' : repeatShort(_repeat!),
-                style: TextStyle(fontSize: 11, color: _repeat == null ? scheme.onSurfaceVariant : scheme.primary, fontWeight: FontWeight.w600)),
-          ]),
-        ),
-      );
+      ),
+    ),
+  );
 
   Widget _buildPanel(AppStore store, Color accent) {
     final f = _panel!;
     final scheme = Theme.of(context).colorScheme;
     final (String title, VoidCallback? edit, Widget body) = switch (f) {
       _Field.account || _Field.toAccount => (
-          'Рахунок',
-          null,
-          _Grid(
-            accent: accent,
-            cells: [
-              for (final a in store.activeAccounts.where((a) => f == _Field.account || a.id != _accountId))
-                _Cell(a.name, selected: a.id == (f == _Field.account ? _accountId : _toAccountId), onTap: () {
+        'Рахунок',
+        null,
+        _Grid(
+          accent: accent,
+          cells: [
+            for (final a in store.activeAccounts.where(
+              (a) => f == _Field.account || a.id != _accountId,
+            ))
+              _Cell(
+                a.name,
+                selected:
+                    a.id == (f == _Field.account ? _accountId : _toAccountId),
+                onTap: () {
                   setState(() {
                     if (f == _Field.account) {
                       _accountId = a.id;
@@ -633,155 +973,243 @@ class _TxnEditorState extends State<TxnEditor> {
                     }
                   });
                   _advance(f);
-                }),
-              _Cell('Додати', muted: true, onTap: () => editAccount(context)),
-            ],
-          ),
+                },
+              ),
+            _Cell('Додати', muted: true, onTap: () => editAccount(context)),
+          ],
         ),
-      _Field.category => ('Категорія', () => _pushPage(CategoriesPage(type: _type)), _categoryGrid(store, accent)),
+      ),
+      _Field.category => (
+        'Категорія',
+        () => _pushPage(CategoriesPage(type: _type)),
+        _categoryGrid(store, accent),
+      ),
       _ => (
-          switch (f) {
-            _Field.toAmount => 'Зараховано',
-            _Field.fee => 'Комісія',
-            _ => 'Сума',
+        switch (f) {
+          _Field.toAmount => 'Зараховано',
+          _Field.fee => 'Комісія',
+          _ => 'Сума',
+        },
+        null,
+        _CalcPad(
+          accent: _type == TxType.transfer ? scheme.primary : accent,
+          onKey: (k) => setState(() => _expr[f] = _CalcPad.apply(_expr[f]!, k)),
+          onDone: () {
+            final v = evalExpression(_expr[f]!);
+            setState(() => _expr[f] = v == null ? '' : _CalcPad.fmt(v));
+            _advance(f);
           },
-          null,
-          _CalcPad(
-            accent: _type == TxType.transfer ? scheme.primary : accent,
-            onKey: (k) => setState(() => _expr[f] = _CalcPad.apply(_expr[f]!, k)),
-            onDone: () {
-              final v = evalExpression(_expr[f]!);
-              setState(() => _expr[f] = v == null ? '' : _CalcPad.fmt(v));
-              _advance(f);
-            },
-          ),
         ),
+      ),
     };
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface.withValues(alpha: 0.92),
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.10)),
+        ),
       ),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          height: 48,
-          padding: const EdgeInsets.only(left: 16),
-          color: Colors.white.withValues(alpha: 0.06),
-          child: Row(children: [
-            Expanded(child: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: scheme.onSurfaceVariant))),
-            if (edit != null) IconButton(tooltip: 'Редагувати', icon: const Icon(Icons.edit_outlined), onPressed: edit),
-            IconButton(tooltip: 'Закрити', icon: const Icon(Icons.close_rounded), onPressed: () => _open(null)),
-          ]),
-        ),
-        ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.42),
-          child: SingleChildScrollView(child: body),
-        ),
-      ]),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            height: 48,
+            padding: const EdgeInsets.only(left: 16),
+            color: Colors.white.withValues(alpha: 0.06),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                ),
+                if (edit != null)
+                  IconButton(
+                    tooltip: 'Редагувати',
+                    icon: const Icon(Icons.edit_outlined),
+                    onPressed: edit,
+                  ),
+                IconButton(
+                  tooltip: 'Закрити',
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => _open(null),
+                ),
+              ],
+            ),
+          ),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.42,
+            ),
+            child: SingleChildScrollView(child: body),
+          ),
+        ],
+      ),
     );
   }
 
-  void _pushPage(Widget page) => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => AuroraBackground(child: page)));
+  void _pushPage(Widget page) => Navigator.push(
+    context,
+    MaterialPageRoute<void>(builder: (_) => AuroraBackground(child: page)),
+  );
 
   Widget _categoryGrid(AppStore store, Color accent) {
     final useSubs = store.prefs.subcategories;
     final cells = <_Cell>[
       for (final c in store.categoriesOf(_type))
-        _categoryCell(store, c, useSubs ? store.subcategoriesOf(c.id) : const <Category>[]),
-      _Cell('Додати', muted: true, onTap: () => editCategory(context, type: _type)),
+        _categoryCell(
+          store,
+          c,
+          useSubs ? store.subcategoriesOf(c.id) : const <Category>[],
+        ),
+      _Cell(
+        'Додати',
+        muted: true,
+        onTap: () => editCategory(context, type: _type),
+      ),
     ];
     final rows = <Widget>[];
     for (var i = 0; i < cells.length; i += 3) {
       final row = cells.sublist(i, (i + 3).clamp(0, cells.length));
       rows.add(_Grid(accent: accent, cells: row));
-      final open = row.where((c) => c.id != null && c.id == _expanded).firstOrNull;
+      final open = row
+          .where((c) => c.id != null && c.id == _expanded)
+          .firstOrNull;
       if (open != null) {
-        rows.add(_Grid(
-          accent: accent,
-          tinted: true,
-          cells: [
-            for (final s in store.subcategoriesOf(open.id!))
-              _Cell(s.name, selected: _subId == s.id, onTap: () {
-                setState(() {
-                  _categoryId = open.id;
-                  _subId = s.id;
-                });
-                _advance(_Field.category);
-              }),
-            _Cell('Додати', muted: true, onTap: () => editCategory(context, type: _type, parent: store.category(open.id))),
-          ],
-        ));
+        rows.add(
+          _Grid(
+            accent: accent,
+            tinted: true,
+            cells: [
+              for (final s in store.subcategoriesOf(open.id!))
+                _Cell(
+                  s.name,
+                  selected: _subId == s.id,
+                  onTap: () {
+                    setState(() {
+                      _categoryId = open.id;
+                      _subId = s.id;
+                    });
+                    _advance(_Field.category);
+                  },
+                ),
+              _Cell(
+                'Додати',
+                muted: true,
+                onTap: () => editCategory(
+                  context,
+                  type: _type,
+                  parent: store.category(open.id),
+                ),
+              ),
+            ],
+          ),
+        );
       }
     }
     return Column(children: rows);
   }
 
   _Cell _categoryCell(AppStore store, Category c, List<Category> subs) => _Cell(
-        c.name,
-        emoji: hasIcon(c.emoji) ? c.emoji : null,
-        id: c.id,
-        selected: _categoryId == c.id || _expanded == c.id,
-        chevron: subs.isEmpty ? null : (_expanded == c.id ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded),
-        onTap: () {
-          if (subs.isNotEmpty && _expanded != c.id) {
-            setState(() => _expanded = c.id);
-            return;
-          }
-          // Tapping an open category again picks it without a subcategory.
-          setState(() {
-            _categoryId = c.id;
-            _subId = null;
-          });
-          _advance(_Field.category);
-        },
-      );
+    c.name,
+    emoji: hasIcon(c.emoji) ? c.emoji : null,
+    id: c.id,
+    selected: _categoryId == c.id || _expanded == c.id,
+    chevron: subs.isEmpty
+        ? null
+        : (_expanded == c.id
+              ? Icons.keyboard_arrow_up_rounded
+              : Icons.keyboard_arrow_down_rounded),
+    onTap: () {
+      if (subs.isNotEmpty && _expanded != c.id) {
+        setState(() => _expanded = c.id);
+        return;
+      }
+      // Tapping an open category again picks it without a subcategory.
+      setState(() {
+        _categoryId = c.id;
+        _subId = null;
+      });
+      _advance(_Field.category);
+    },
+  );
 }
 
 class _TypeTabs extends StatelessWidget {
-  const _TypeTabs({required this.value, required this.colors, required this.onChanged});
+  const _TypeTabs({
+    required this.value,
+    required this.colors,
+    required this.onChanged,
+  });
   final TxType value;
   final Map<TxType, Color> colors;
   final ValueChanged<TxType> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    const labels = {TxType.income: 'Дохід', TxType.expense: 'Витрата', TxType.transfer: 'Переказ'};
-    return Row(children: [
-      for (final t in [TxType.income, TxType.expense, TxType.transfer])
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: GestureDetector(
-              onTap: () => onChanged(t),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                height: 44,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  color: t == value ? colors[t]!.withValues(alpha: 0.14) : Colors.white.withValues(alpha: 0.05),
-                  border: Border.all(color: t == value ? colors[t]! : Colors.white.withValues(alpha: 0.10), width: t == value ? 1.6 : 1),
-                ),
-                child: Text(
-                  labels[t]!,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: t == value ? FontWeight.w700 : FontWeight.w500,
-                    color: t == value ? colors[t] : Theme.of(context).colorScheme.onSurfaceVariant,
+    const labels = {
+      TxType.income: 'Дохід',
+      TxType.expense: 'Витрата',
+      TxType.transfer: 'Переказ',
+    };
+    return Row(
+      children: [
+        for (final t in [TxType.income, TxType.expense, TxType.transfer])
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: GestureDetector(
+                onTap: () => onChanged(t),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: t == value
+                        ? colors[t]!.withValues(alpha: 0.14)
+                        : Colors.white.withValues(alpha: 0.05),
+                    border: Border.all(
+                      color: t == value
+                          ? colors[t]!
+                          : Colors.white.withValues(alpha: 0.10),
+                      width: t == value ? 1.6 : 1,
+                    ),
+                  ),
+                  child: Text(
+                    labels[t]!,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: t == value
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: t == value
+                          ? colors[t]
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-    ]);
+      ],
+    );
   }
 }
 
 /// One labelled line of the form: grey label on the left, value on an
 /// underline that takes the type colour while its picker is open.
 class _FormRow extends StatelessWidget {
-  const _FormRow({required this.label, required this.child, required this.accent, this.active = false, this.onTap, this.trailing});
+  const _FormRow({
+    required this.label,
+    required this.child,
+    required this.accent,
+    this.active = false,
+    this.onTap,
+    this.trailing,
+  });
   final String label;
   final Widget child;
   final Color accent;
@@ -796,31 +1224,65 @@ class _FormRow extends StatelessWidget {
       onTap: onTap,
       child: SizedBox(
         height: 58,
-        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          SizedBox(
-            width: 96,
-            child: Align(alignment: Alignment.centerLeft, child: Text(label, style: TextStyle(fontSize: 15, color: scheme.onSurfaceVariant))),
-          ),
-          Expanded(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: active ? accent : Colors.white.withValues(alpha: 0.12), width: active ? 2 : 1)),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 96,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
               ),
-              child: Row(children: [
-                Expanded(child: Align(alignment: Alignment.centerLeft, child: child)),
-                ?trailing,
-              ]),
             ),
-          ),
-        ]),
+            Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: active
+                          ? accent
+                          : Colors.white.withValues(alpha: 0.12),
+                      width: active ? 2 : 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: child,
+                      ),
+                    ),
+                    ?trailing,
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _Cell {
-  const _Cell(this.label, {required this.onTap, this.emoji, this.selected = false, this.muted = false, this.chevron, this.id});
+  const _Cell(
+    this.label, {
+    required this.onTap,
+    this.emoji,
+    this.selected = false,
+    this.muted = false,
+    this.chevron,
+    this.id,
+  });
   final String label;
   final String? emoji;
   final VoidCallback onTap;
@@ -849,49 +1311,85 @@ class _Grid extends StatelessWidget {
       }
       rows.add(r);
     }
-    return Column(children: [
-      for (final r in rows)
-        Row(children: [
-          for (final c in r)
-            Expanded(
-              child: Container(
-                height: 58,
-                decoration: BoxDecoration(
-                  color: tinted ? accent.withValues(alpha: 0.10) : ((c?.selected ?? false) ? Colors.white.withValues(alpha: 0.06) : null),
-                  border: Border(right: BorderSide(color: line), bottom: BorderSide(color: line)),
-                ),
-                child: c == null
-                    ? null
-                    : InkWell(
-                        onTap: c.onTap,
-                        child: Stack(alignment: Alignment.center, children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            child: Text(
-                              c.emoji == null ? c.label : '${c.emoji} ${c.label}',
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: c.selected ? FontWeight.w700 : FontWeight.w500,
-                                color: c.selected ? accent : (c.muted ? scheme.onSurfaceVariant : null),
-                              ),
+    return Column(
+      children: [
+        for (final r in rows)
+          Row(
+            children: [
+              for (final c in r)
+                Expanded(
+                  child: Container(
+                    height: 58,
+                    decoration: BoxDecoration(
+                      color: tinted
+                          ? accent.withValues(alpha: 0.10)
+                          : ((c?.selected ?? false)
+                                ? Colors.white.withValues(alpha: 0.06)
+                                : null),
+                      border: Border(
+                        right: BorderSide(color: line),
+                        bottom: BorderSide(color: line),
+                      ),
+                    ),
+                    child: c == null
+                        ? null
+                        : InkWell(
+                            onTap: c.onTap,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                  ),
+                                  child: Text(
+                                    c.emoji == null
+                                        ? c.label
+                                        : '${c.emoji} ${c.label}',
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: c.selected
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      color: c.selected
+                                          ? accent
+                                          : (c.muted
+                                                ? scheme.onSurfaceVariant
+                                                : null),
+                                    ),
+                                  ),
+                                ),
+                                if (c.chevron != null)
+                                  Positioned(
+                                    bottom: 2,
+                                    child: Icon(
+                                      c.chevron,
+                                      size: 16,
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
-                          if (c.chevron != null) Positioned(bottom: 2, child: Icon(c.chevron, size: 16, color: scheme.onSurfaceVariant)),
-                        ]),
-                      ),
-              ),
-            ),
-        ]),
-    ]);
+                  ),
+                ),
+            ],
+          ),
+      ],
+    );
   }
 }
 
 /// Amount keypad with a built-in calculator (+ − × ÷).
 class _CalcPad extends StatelessWidget {
-  const _CalcPad({required this.accent, required this.onKey, required this.onDone});
+  const _CalcPad({
+    required this.accent,
+    required this.onKey,
+    required this.onDone,
+  });
   final Color accent;
   final ValueChanged<String> onKey;
   final VoidCallback onDone;
@@ -910,7 +1408,9 @@ class _CalcPad extends StatelessWidget {
       if (_ops.contains(last)) return e.substring(0, e.length - 1) + k;
       return e + k;
     }
-    final current = RegExp(r'[0-9,]*$').firstMatch(e)!.group(0)!; // number being typed
+    final current = RegExp(r'[0-9,]*$')
+        .firstMatch(e)!
+        .group(0)!; // number being typed
     if (k == ',') {
       if (current.contains(',')) return e;
       return current.isEmpty ? '${e}0,' : '$e,';
@@ -931,30 +1431,87 @@ class _CalcPad extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final line = Colors.white.withValues(alpha: 0.07);
-    Widget key(String k, {int flex = 1, Color? bg, Color? fg, VoidCallback? onTap}) => Expanded(
-          flex: flex,
-          child: Container(
-            height: 54,
-            decoration: BoxDecoration(color: bg, border: Border(right: BorderSide(color: line), bottom: BorderSide(color: line))),
-            child: InkWell(
-              onTap: onTap ?? () => onKey(k),
-              child: Center(
-                child: k == '⌫' ? const Icon(Icons.backspace_outlined) : Text(k, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: fg)),
-              ),
-            ),
+    Widget key(
+      String k, {
+      int flex = 1,
+      Color? bg,
+      Color? fg,
+      VoidCallback? onTap,
+    }) => Expanded(
+      flex: flex,
+      child: Container(
+        height: 54,
+        decoration: BoxDecoration(
+          color: bg,
+          border: Border(
+            right: BorderSide(color: line),
+            bottom: BorderSide(color: line),
           ),
-        );
+        ),
+        child: InkWell(
+          onTap: onTap ?? () => onKey(k),
+          child: Center(
+            child: k == '⌫'
+                ? const Icon(Icons.backspace_outlined)
+                : Text(
+                    k,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      color: fg,
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
     final opBg = Colors.white.withValues(alpha: 0.05);
-    return Column(children: [
-      Row(children: [for (final k in ['+', '−', '×', '÷']) key(k, bg: opBg, fg: scheme.primary)]),
-      Row(children: [key('7'), key('8'), key('9'), key('⌫', bg: opBg)]),
-      Row(children: [key('4'), key('5'), key('6'), key('=', bg: opBg, fg: scheme.primary)]),
-      Row(children: [key('1'), key('2'), key('3'), key(',', bg: opBg)]),
-      Row(children: [
-        key('0', flex: 2),
-        key('Готово', flex: 2, bg: accent.withValues(alpha: 0.85), fg: Colors.white, onTap: onDone),
-      ]),
-    ]);
+    return Column(
+      children: [
+        Row(
+          children: [
+            for (final k in ['+', '−', '×', '÷'])
+              key(k, bg: opBg, fg: scheme.primary),
+          ],
+        ),
+        Row(
+          children: [
+            key('7'),
+            key('8'),
+            key('9'),
+            key('⌫', bg: opBg),
+          ],
+        ),
+        Row(
+          children: [
+            key('4'),
+            key('5'),
+            key('6'),
+            key('=', bg: opBg, fg: scheme.primary),
+          ],
+        ),
+        Row(
+          children: [
+            key('1'),
+            key('2'),
+            key('3'),
+            key(',', bg: opBg),
+          ],
+        ),
+        Row(
+          children: [
+            key('0', flex: 2),
+            key(
+              'Готово',
+              flex: 2,
+              bg: accent.withValues(alpha: 0.85),
+              fg: Colors.white,
+              onTap: onDone,
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }
 
@@ -962,7 +1519,10 @@ class _CalcPad extends StatelessWidget {
 /// ignored ("12+" → 12). Null if there is no number.
 double? evalExpression(String s) {
   if (s.isEmpty) return null;
-  final tokens = RegExp(r'[0-9]+(?:,[0-9]*)?|[+−×÷]').allMatches(s).map((m) => m.group(0)!).toList();
+  final tokens = RegExp(r'[0-9]+(?:,[0-9]*)?|[+−×÷]')
+      .allMatches(s)
+      .map((m) => m.group(0)!)
+      .toList();
   if (tokens.join() != s) return null;
   final nums = <double>[];
   final ops = <String>[];
@@ -974,7 +1534,9 @@ double? evalExpression(String s) {
       nums.add(v);
       expectNumber = false;
       if (ops.isNotEmpty && (ops.last == '×' || ops.last == '÷')) {
-        final b = nums.removeLast(), a = nums.removeLast(), op = ops.removeLast();
+        final b = nums.removeLast(),
+            a = nums.removeLast(),
+            op = ops.removeLast();
         if (op == '÷' && b == 0) return null;
         nums.add(op == '×' ? a * b : a / b);
       }
@@ -993,17 +1555,17 @@ double? evalExpression(String s) {
 }
 
 String repeatLabel(RepeatEvery r) => switch (r) {
-      RepeatEvery.day => 'Щодня',
-      RepeatEvery.week => 'Щотижня',
-      RepeatEvery.twoWeeks => 'Кожні 2 тижні',
-      RepeatEvery.month => 'Щомісяця',
-      RepeatEvery.year => 'Щороку',
-    };
+  RepeatEvery.day => 'Щодня',
+  RepeatEvery.week => 'Щотижня',
+  RepeatEvery.twoWeeks => 'Кожні 2 тижні',
+  RepeatEvery.month => 'Щомісяця',
+  RepeatEvery.year => 'Щороку',
+};
 
 String repeatShort(RepeatEvery r) => switch (r) {
-      RepeatEvery.day => 'день',
-      RepeatEvery.week => 'тиждень',
-      RepeatEvery.twoWeeks => '2 тижні',
-      RepeatEvery.month => 'місяць',
-      RepeatEvery.year => 'рік',
-    };
+  RepeatEvery.day => 'день',
+  RepeatEvery.week => 'тиждень',
+  RepeatEvery.twoWeeks => '2 тижні',
+  RepeatEvery.month => 'місяць',
+  RepeatEvery.year => 'рік',
+};

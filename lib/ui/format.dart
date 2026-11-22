@@ -5,6 +5,9 @@ const locale = 'uk';
 /// Global display option (Settings → decimals).
 bool showDecimals = true;
 
+/// Currency symbol in front of the number ("€ 1,00") instead of behind.
+bool currencyFront = false;
+
 const currencies = <String>[
   'UAH', 'USD', 'EUR', 'GBP', 'PLN', 'CHF', 'CZK', 'CAD', 'AUD', 'JPY', //
   'CNY', 'TRY', 'SEK', 'NOK', 'DKK', 'HUF', 'RON', 'GEL', 'KZT', 'ILS',
@@ -23,7 +26,11 @@ String money(int minor, String currency, {bool sign = false}) {
   final v = minor / _pow10(d);
   if (!showDecimals) f.maximumFractionDigits = 0;
   if (!showDecimals) f.minimumFractionDigits = 0;
-  final s = f.format(showDecimals ? v.abs() : v.abs().roundToDouble());
+  var s = f.format(showDecimals ? v.abs() : v.abs().roundToDouble());
+  if (currencyFront) {
+    final sym = f.currencySymbol;
+    s = '$sym ${s.replaceAll(sym, '').trim()}';
+  }
   if (minor < 0) return '−$s';
   if (sign && minor > 0) return '+$s';
   return s;

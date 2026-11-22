@@ -36,7 +36,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
       list = list.where((t) {
         return t.note.toLowerCase().contains(q) ||
             txnTitle(store, t).toLowerCase().contains(q) ||
-            (store.account(t.accountId)?.name.toLowerCase().contains(q) ?? false);
+            (store.account(t.accountId)?.name.toLowerCase().contains(q) ??
+                false);
       }).toList();
     }
     final tot = store.totalsBase(list);
@@ -49,73 +50,109 @@ class _TransactionsPageState extends State<TransactionsPage> {
       RecordsView.summary => _SummaryView(month: _month, txns: list),
     };
 
-    return SafeArea(
-      bottom: false,
-      child: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 12, 0),
-              child: Row(children: [
-                const Spacer(),
-                IconButton(
-                  tooltip: 'Пошук',
-                  icon: Icon(_searching ? Icons.close_rounded : Icons.search_rounded),
-                  onPressed: () => setState(() {
-                    _searching = !_searching;
-                    _query = '';
-                  }),
+    final swipePeriod = store.prefs.swipe == 'period';
+    return GestureDetector(
+      onHorizontalDragEnd: !swipePeriod
+          ? null
+          : (d) {
+              final v = d.primaryVelocity ?? 0;
+              if (v.abs() < 300) return;
+              setState(
+                () => _month = DateTime(
+                  _month.year,
+                  _month.month + (v < 0 ? 1 : -1),
                 ),
-              ]),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: AnimatedSize(
-              duration: const Duration(milliseconds: 250),
-              child: _searching
-                  ? Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                      child: TextField(
-                        autofocus: true,
-                        decoration: const InputDecoration(hintText: 'Нотатка, категорія або рахунок', prefixIcon: Icon(Icons.search_rounded)),
-                        onChanged: (v) => setState(() => _query = v.trim()),
+              );
+            },
+      child: SafeArea(
+        bottom: false,
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 12, 0),
+                child: Row(
+                  children: [
+                    const Spacer(),
+                    IconButton(
+                      tooltip: 'Пошук',
+                      icon: Icon(
+                        _searching ? Icons.close_rounded : Icons.search_rounded,
                       ),
-                    )
-                  : const SizedBox(width: double.infinity),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Center(child: MonthSwitcher(month: _month, onChanged: (m) => setState(() => _month = m))),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: _ViewTabs(value: _view, onChanged: (v) => setState(() => _view = v)),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: TotalsStrip(
-                income: tot.income,
-                expense: tot.expense,
-                currency: cur,
-                carry: store.prefs.carryOver && _query.isEmpty ? store.carryBefore(store.periodRange(_month).start) : null,
+                      onPressed: () => setState(() {
+                        _searching = !_searching;
+                        _query = '';
+                      }),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          SliverToBoxAdapter(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 280),
-              transitionBuilder: (c, a) => FadeTransition(opacity: a, child: c),
-              child: KeyedSubtree(key: ValueKey('$_view$_month'), child: content),
+            SliverToBoxAdapter(
+              child: AnimatedSize(
+                duration: const Duration(milliseconds: 250),
+                child: _searching
+                    ? Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                        child: TextField(
+                          autofocus: true,
+                          decoration: const InputDecoration(
+                            hintText: 'Нотатка, категорія або рахунок',
+                            prefixIcon: Icon(Icons.search_rounded),
+                          ),
+                          onChanged: (v) => setState(() => _query = v.trim()),
+                        ),
+                      )
+                    : const SizedBox(width: double.infinity),
+              ),
             ),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: 120)),
-        ],
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Center(
+                  child: MonthSwitcher(
+                    month: _month,
+                    onChanged: (m) => setState(() => _month = m),
+                  ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: _ViewTabs(
+                  value: _view,
+                  onChanged: (v) => setState(() => _view = v),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: TotalsStrip(
+                  income: tot.income,
+                  expense: tot.expense,
+                  currency: cur,
+                  carry: store.prefs.carryOver && _query.isEmpty
+                      ? store.carryBefore(store.periodRange(_month).start)
+                      : null,
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 280),
+                transitionBuilder: (c, a) =>
+                    FadeTransition(opacity: a, child: c),
+                child: KeyedSubtree(
+                  key: ValueKey('$_view$_month'),
+                  child: content,
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+          ],
+        ),
       ),
     );
   }
@@ -142,51 +179,71 @@ class _ViewTabs extends StatelessWidget {
       radius: 999,
       blur: 16,
       padding: const EdgeInsets.all(4),
-      child: LayoutBuilder(builder: (context, c) {
-        final w = c.maxWidth / 4;
-        return SizedBox(
-          height: 36,
-          child: Stack(children: [
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 320),
-              curve: Curves.easeOutBack,
-              left: idx * w,
-              top: 0,
-              bottom: 0,
-              width: w,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  gradient: LinearGradient(colors: [p.gradient.first.withValues(alpha: 0.85), p.gradient.last.withValues(alpha: 0.85)]),
-                  boxShadow: [BoxShadow(color: p.gradient.first.withValues(alpha: 0.35), blurRadius: 14)],
-                ),
-              ),
-            ),
-            Row(children: [
-              for (final v in RecordsView.values)
-                Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => onChanged(v),
-                    child: Center(
-                      child: AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 200),
-                        style: TextStyle(
-                          fontFamily: 'Outfit',
-                          fontFamilyFallback: const ['Manrope'],
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: v == value ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        child: Text(_labels[v]!),
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final w = c.maxWidth / 4;
+          return SizedBox(
+            height: 36,
+            child: Stack(
+              children: [
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 320),
+                  curve: Curves.easeOutBack,
+                  left: idx * w,
+                  top: 0,
+                  bottom: 0,
+                  width: w,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      gradient: LinearGradient(
+                        colors: [
+                          p.gradient.first.withValues(alpha: 0.85),
+                          p.gradient.last.withValues(alpha: 0.85),
+                        ],
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: p.gradient.first.withValues(alpha: 0.35),
+                          blurRadius: 14,
+                        ),
+                      ],
                     ),
                   ),
                 ),
-            ]),
-          ]),
-        );
-      }),
+                Row(
+                  children: [
+                    for (final v in RecordsView.values)
+                      Expanded(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => onChanged(v),
+                          child: Center(
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 200),
+                              style: TextStyle(
+                                fontFamily: 'Outfit',
+                                fontFamilyFallback: const ['Manrope'],
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: v == value
+                                    ? Colors.white
+                                    : Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                              ),
+                              child: Text(_labels[v]!),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -200,22 +257,32 @@ class _DayView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (txns.isEmpty) {
-      return const EmptyState(icon: Icons.receipt_long_outlined, text: 'Записів за цей період немає.\nНатисни «+», щоб додати.');
+      return const EmptyState(
+        icon: Icons.receipt_long_outlined,
+        text: 'Записів за цей період немає.\nНатисни «+», щоб додати.',
+      );
     }
     final days = <DateTime, List<Txn>>{};
     for (final t in txns) {
-      days.putIfAbsent(DateTime(t.date.year, t.date.month, t.date.day), () => []).add(t);
+      days
+          .putIfAbsent(
+            DateTime(t.date.year, t.date.month, t.date.day),
+            () => [],
+          )
+          .add(t);
     }
-    return Column(children: [
-      for (final (i, e) in days.entries.indexed)
-        _Appear(
-          index: i,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: DayCard(day: e.key, txns: e.value),
+    return Column(
+      children: [
+        for (final (i, e) in days.entries.indexed)
+          _Appear(
+            index: i,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: DayCard(day: e.key, txns: e.value),
+            ),
           ),
-        ),
-    ]);
+      ],
+    );
   }
 }
 
@@ -226,12 +293,15 @@ class _Appear extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0, end: 1),
-        duration: Duration(milliseconds: 380 + (index.clamp(0, 8)) * 60),
-        curve: Curves.easeOutCubic,
-        builder: (context, t, c) => Opacity(opacity: t, child: Transform.translate(offset: Offset(0, (1 - t) * 16), child: c)),
-        child: child,
-      );
+    tween: Tween(begin: 0, end: 1),
+    duration: Duration(milliseconds: 380 + (index.clamp(0, 8)) * 60),
+    curve: Curves.easeOutCubic,
+    builder: (context, t, c) => Opacity(
+      opacity: t,
+      child: Transform.translate(offset: Offset(0, (1 - t) * 16), child: c),
+    ),
+    child: child,
+  );
 }
 
 /// A glass card for one day: big date, weekday, day totals and its records.
@@ -251,37 +321,88 @@ class DayCard extends StatelessWidget {
     return GlassCard(
       radius: 24,
       padding: const EdgeInsets.only(top: 12, bottom: 6),
-      child: Column(children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-            Text('${day.day}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1)),
-            const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                color: (weekend ? p.expense : Theme.of(context).colorScheme.primary).withValues(alpha: 0.18),
-              ),
-              child: Text(weekdayShort(day), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: weekend ? p.expense : null)),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  '${day.day}',
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color:
+                        (weekend
+                                ? p.expense
+                                : Theme.of(context).colorScheme.primary)
+                            .withValues(alpha: 0.18),
+                  ),
+                  child: Text(
+                    weekdayShort(day),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: weekend ? p.expense : null,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  DateFormatCache.monthYear(day),
+                  style: TextStyle(fontSize: 12, color: muted),
+                ),
+                const Spacer(),
+                if (t.income > 0)
+                  Text(
+                    money(t.income, cur),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: incomeColor(context, store),
+                    ),
+                  ),
+                if (t.income > 0 && t.expense > 0) const SizedBox(width: 10),
+                if (t.expense > 0)
+                  Text(
+                    money(t.expense, cur),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: p.expense,
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Text(DateFormatCache.monthYear(day), style: TextStyle(fontSize: 12, color: muted)),
-            const Spacer(),
-            if (t.income > 0) Text(money(t.income, cur), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: incomeColor(context, store))),
-            if (t.income > 0 && t.expense > 0) const SizedBox(width: 10),
-            if (t.expense > 0) Text(money(t.expense, cur), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: p.expense)),
-          ]),
-        ),
-        Divider(height: 1, indent: 18, endIndent: 18, color: Colors.white.withValues(alpha: 0.08)),
-        for (final x in txns) TxnTile(txn: x),
-      ]),
+          ),
+          Divider(
+            height: 1,
+            indent: 18,
+            endIndent: 18,
+            color: Colors.white.withValues(alpha: 0.08),
+          ),
+          for (final x in txns) TxnTile(txn: x),
+        ],
+      ),
     );
   }
 }
 
 class DateFormatCache {
-  static String monthYear(DateTime d) => '${d.month.toString().padLeft(2, '0')}.${d.year}';
+  static String monthYear(DateTime d) =>
+      '${d.month.toString().padLeft(2, '0')}.${d.year}';
 }
 
 class TxnTile extends StatelessWidget {
@@ -309,7 +430,7 @@ class TxnTile extends StatelessWidget {
         title = 'Переказ';
         subtitle = [
           '${acc?.name ?? '?'} → ${to?.name ?? '?'}',
-          if (txn.note.isNotEmpty) txn.note,
+          if (txn.note.isNotEmpty && store.prefs.showNote) txn.note,
         ].join(' · ');
         avatar = EmojiAvatar(emoji: '🔄', color: scheme.primary);
         amountColor = scheme.onSurface;
@@ -318,15 +439,49 @@ class TxnTile extends StatelessWidget {
         title = top?.name ?? 'Без категорії';
         subtitle = [
           if (cat != null && top != null && cat.id != top.id) cat.name,
-          if (txn.note.isNotEmpty) txn.note,
+          if (txn.note.isNotEmpty && store.prefs.showNote) txn.note,
           acc?.name ?? '',
         ].join(' · ');
-        avatar = EmojiAvatar(emoji: top?.emoji ?? '•', color: Color(top?.color ?? 0xFF8E8E93), size: 38);
+        avatar = EmojiAvatar(
+          emoji: top?.emoji ?? '•',
+          color: Color(top?.color ?? 0xFF8E8E93),
+          size: 38,
+        );
         final income = txn.type == TxType.income;
         amountColor = income ? incomeColor(context, store) : p.expense;
         amountText = money(txn.amount, cur);
     }
 
+    final timeText = store.prefs.timeMode == 2
+        ? TimeOfDay.fromDateTime(txn.date).format(context)
+        : null;
+    final tile = ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18),
+      visualDensity: const VisualDensity(vertical: -1),
+      leading: avatar,
+      title: Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        [?timeText, subtitle].join(' · '),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(color: scheme.onSurfaceVariant),
+      ),
+      trailing: Text(
+        amountText,
+        style: TextStyle(
+          color: amountColor,
+          fontWeight: FontWeight.w700,
+          fontSize: 15,
+        ),
+      ),
+      onTap: () => openTxnEditor(context, existing: txn),
+    );
+    if (store.prefs.swipe != 'delete') return tile;
     return Dismissible(
       key: ValueKey(txn.id),
       direction: DismissDirection.endToStart,
@@ -340,20 +495,17 @@ class TxnTile extends StatelessWidget {
         store.deleteTxn(txn);
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(
-            content: const Text('Запис видалено'),
-            action: SnackBarAction(label: 'Повернути', onPressed: () => store.saveTxn(txn.copyWith(deleted: false))),
-          ));
+          ..showSnackBar(
+            SnackBar(
+              content: const Text('Запис видалено'),
+              action: SnackBarAction(
+                label: 'Повернути',
+                onPressed: () => store.saveTxn(txn.copyWith(deleted: false)),
+              ),
+            ),
+          );
       },
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18),
-        visualDensity: const VisualDensity(vertical: -1),
-        leading: avatar,
-        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: scheme.onSurfaceVariant)),
-        trailing: Text(amountText, style: TextStyle(color: amountColor, fontWeight: FontWeight.w700, fontSize: 15)),
-        onTap: () => openTxnEditor(context, existing: txn),
-      ),
+      child: tile,
     );
   }
 }
@@ -378,21 +530,33 @@ class _CalendarView extends StatelessWidget {
       gridStart = gridStart.subtract(const Duration(days: 1));
     }
     final days = <DateTime>[];
-    for (var d = gridStart; d.isBefore(r.end) || days.length % 7 != 0; d = DateTime(d.year, d.month, d.day + 1)) {
+    for (
+      var d = gridStart;
+      d.isBefore(r.end) || days.length % 7 != 0;
+      d = DateTime(d.year, d.month, d.day + 1)
+    ) {
       days.add(d);
     }
     final byDay = <DateTime, ({int inc, int exp})>{};
     for (final t in txns) {
       final k = DateTime(t.date.year, t.date.month, t.date.day);
       final cur = byDay[k] ?? (inc: 0, exp: 0);
-      if (t.type == TxType.income) byDay[k] = (inc: cur.inc + store.baseAmount(t), exp: cur.exp);
-      if (t.type == TxType.expense) byDay[k] = (inc: cur.inc, exp: cur.exp + store.baseAmount(t));
+      if (t.type == TxType.income) {
+        byDay[k] = (inc: cur.inc + store.baseAmount(t), exp: cur.exp);
+      }
+      if (t.type == TxType.expense) {
+        byDay[k] = (inc: cur.inc, exp: cur.exp + store.baseAmount(t));
+      }
     }
     final today = DateTime.now();
-    final names = monday ? ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'] : ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+    final names = monday
+        ? ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд']
+        : ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
     String compact(int minor) {
       final v = minor / 100;
-      if (v >= 1000) return '${(v / 1000).toStringAsFixed(v >= 10000 ? 0 : 1)}k';
+      if (v >= 1000) {
+        return '${(v / 1000).toStringAsFixed(v >= 10000 ? 0 : 1)}k';
+      }
       return v.toStringAsFixed(0);
     }
 
@@ -401,60 +565,111 @@ class _CalendarView extends StatelessWidget {
       child: GlassCard(
         radius: 24,
         padding: const EdgeInsets.all(10),
-        child: Column(children: [
-          Row(children: [
-            for (final (i, n) in names.indexed)
-              Expanded(
-                child: Center(
-                  child: Text(n,
-                      style: TextStyle(
+        child: Column(
+          children: [
+            Row(
+              children: [
+                for (final (i, n) in names.indexed)
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        n,
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: (monday ? i >= 5 : (i == 0 || i == 6)) ? p.expense : scheme.onSurfaceVariant)),
-                ),
-              ),
-          ]),
-          const SizedBox(height: 6),
-          GridView.count(
-            crossAxisCount: 7,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: 0.72,
-            mainAxisSpacing: 4,
-            crossAxisSpacing: 4,
-            children: [
-              for (final d in days)
-                Builder(builder: (context) {
-                  final inRange = !d.isBefore(r.start) && d.isBefore(r.end);
-                  final v = byDay[d];
-                  final isToday = d.year == today.year && d.month == today.month && d.day == today.day;
-                  return GestureDetector(
-                    onTap: inRange ? () => _openDay(context, d) : null,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.fromLTRB(4, 4, 4, 2),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: isToday ? scheme.primary.withValues(alpha: 0.22) : Colors.white.withValues(alpha: inRange ? 0.04 : 0),
-                        border: isToday ? Border.all(color: scheme.primary.withValues(alpha: 0.7)) : null,
-                      ),
-                      child: Opacity(
-                        opacity: inRange ? 1 : 0.3,
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text('${d.day}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                          const Spacer(),
-                          if (v != null && v.inc > 0)
-                            FittedBox(child: Text(compact(v.inc), style: TextStyle(fontSize: 10, color: incomeColor(context, store), fontWeight: FontWeight.w600))),
-                          if (v != null && v.exp > 0)
-                            FittedBox(child: Text(compact(v.exp), style: TextStyle(fontSize: 10, color: p.expense, fontWeight: FontWeight.w600))),
-                        ]),
+                          color: (monday ? i >= 5 : (i == 0 || i == 6))
+                              ? p.expense
+                              : scheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
-                  );
-                }),
-            ],
-          ),
-        ]),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            GridView.count(
+              crossAxisCount: 7,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              childAspectRatio: 0.72,
+              mainAxisSpacing: 4,
+              crossAxisSpacing: 4,
+              children: [
+                for (final d in days)
+                  Builder(
+                    builder: (context) {
+                      final inRange = !d.isBefore(r.start) && d.isBefore(r.end);
+                      final v = byDay[d];
+                      final isToday =
+                          d.year == today.year &&
+                          d.month == today.month &&
+                          d.day == today.day;
+                      return GestureDetector(
+                        onTap: inRange ? () => _openDay(context, d) : null,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.fromLTRB(4, 4, 4, 2),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: isToday
+                                ? scheme.primary.withValues(alpha: 0.22)
+                                : Colors.white.withValues(
+                                    alpha: inRange ? 0.04 : 0,
+                                  ),
+                            border: isToday
+                                ? Border.all(
+                                    color: scheme.primary.withValues(
+                                      alpha: 0.7,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          child: Opacity(
+                            opacity: inRange ? 1 : 0.3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${d.day}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const Spacer(),
+                                if (v != null && v.inc > 0)
+                                  FittedBox(
+                                    child: Text(
+                                      compact(v.inc),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: incomeColor(context, store),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                if (v != null && v.exp > 0)
+                                  FittedBox(
+                                    child: Text(
+                                      compact(v.exp),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: p.expense,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -471,23 +686,39 @@ class _CalendarView extends StatelessWidget {
         final list = store.txnsOnDay(d);
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text(dayTitle(d), style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            if (list.isEmpty)
-              const Padding(padding: EdgeInsets.all(16), child: Text('Записів немає', textAlign: TextAlign.center))
-            else
-              Flexible(child: ListView(shrinkWrap: true, children: [for (final t in list) TxnTile(txn: t)])),
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Додати на цей день'),
-              onPressed: () {
-                Navigator.pop(ctx);
-                openTxnEditor(context, date: d);
-              },
-            ),
-          ]),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                dayTitle(d),
+                style: Theme.of(ctx).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              if (list.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('Записів немає', textAlign: TextAlign.center),
+                )
+              else
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [for (final t in list) TxnTile(txn: t)],
+                  ),
+                ),
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Додати на цей день'),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  openTxnEditor(context, date: d);
+                },
+              ),
+            ],
+          ),
         );
       },
     );
@@ -523,33 +754,66 @@ class _WeeksView extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: GlassCard(
         radius: 24,
-        child: Column(children: [
-          for (final (a, b) in weeks.reversed)
-            Builder(builder: (context) {
-              final t = store.totalsBase(txns.where((x) => !x.date.isBefore(a) && x.date.isBefore(b)));
-              final current = !now.isBefore(a) && now.isBefore(b);
-              return Container(
-                color: current ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12) : null,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                child: Row(children: [
-                  Expanded(
-                    child: Text('${shortDayMonth(a)} – ${shortDayMonth(b.subtract(const Duration(days: 1)))}',
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                  ),
-                  Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Text(money(t.income, cur), style: TextStyle(fontSize: 13, color: incomeColor(context, store))),
-                    Text(money(t.expense, cur), style: TextStyle(fontSize: 13, color: p.expense)),
-                  ]),
-                  const SizedBox(width: 16),
-                  SizedBox(
-                    width: 96,
-                    child: Text(money(t.income - t.expense, cur, sign: true),
-                        textAlign: TextAlign.end, style: const TextStyle(fontWeight: FontWeight.w700)),
-                  ),
-                ]),
-              );
-            }),
-        ]),
+        child: Column(
+          children: [
+            for (final (a, b) in weeks.reversed)
+              Builder(
+                builder: (context) {
+                  final t = store.totalsBase(
+                    txns.where(
+                      (x) => !x.date.isBefore(a) && x.date.isBefore(b),
+                    ),
+                  );
+                  final current = !now.isBefore(a) && now.isBefore(b);
+                  return Container(
+                    color: current
+                        ? Theme.of(context).colorScheme.primary
+                              .withValues(alpha: 0.12)
+                        : null,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 14,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${shortDayMonth(a)} – ${shortDayMonth(b.subtract(const Duration(days: 1)))}',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              money(t.income, cur),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: incomeColor(context, store),
+                              ),
+                            ),
+                            Text(
+                              money(t.expense, cur),
+                              style: TextStyle(fontSize: 13, color: p.expense),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 16),
+                        SizedBox(
+                          width: 96,
+                          child: Text(
+                            money(t.income - t.expense, cur, sign: true),
+                            textAlign: TextAlign.end,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -573,7 +837,7 @@ class _SummaryView extends StatelessWidget {
     final range = store.periodRange(month);
 
     // Accounts: expenses (with the account groups they came from) and
-    // transfers into accounts that are not counted in totals.
+    // transfers into accounts marked "Переказ-витрата".
     final groups = <String>{};
     var transferOut = 0;
     for (final t in txns) {
@@ -581,11 +845,25 @@ class _SummaryView extends StatelessWidget {
       if (t.type == TxType.expense && a != null) groups.add(groupOf(a));
       if (t.type == TxType.transfer) {
         final to = store.account(t.toAccountId ?? '');
-        if (a != null && a.includeInTotal && to != null && !to.includeInTotal) transferOut += store.baseAmount(t);
+        if (to != null && store.prefs.transferExpense.contains(to.id)) {
+          transferOut += store.baseAmount(t);
+        }
       }
     }
 
-    final overall = store.budgets.where((b) => b.categoryId == null && b.currency == cur).firstOrNull;
+    // Total budget: an explicit overall budget, else the sum of the expense
+    // category budgets (as Money Manager does).
+    final overall = store.budgets
+        .where((b) => b.categoryId == null && b.currency == cur)
+        .firstOrNull;
+    final catSum = store.budgets
+        .where((b) =>
+            b.categoryId != null &&
+            b.currency == cur &&
+            store.category(b.categoryId)?.type == TxType.expense &&
+            store.category(b.categoryId)?.parentId == null)
+        .fold<int>(0, (s, b) => s + b.amount);
+    final limit = overall?.amount ?? (catSum > 0 ? catSum : null);
 
     // Repeating records still due in this period (from today on).
     final today = DateTime.now();
@@ -594,128 +872,223 @@ class _SummaryView extends StatelessWidget {
     for (final r in store.repeats) {
       for (var n = 0; n < 5000; n++) {
         final d = r.occurrence(n);
-        if (!d.isBefore(range.end) || (r.end != null && d.isAfter(r.end!))) break;
-        if (!d.isBefore(from) && (r.lastDone == null || d.isAfter(r.lastDone!))) upcoming.add((d, r));
+        if (!d.isBefore(range.end) || (r.end != null && d.isAfter(r.end!))) {
+          break;
+        }
+        if (!d.isBefore(from) && (r.lastDone == null || d.isAfter(r.lastDone!))) {
+          upcoming.add((d, r));
+        }
       }
     }
     upcoming.sort((a, b) => a.$1.compareTo(b.$1));
 
-    Widget section(IconData icon, String title, {Widget? trailing, required Widget child}) => Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-          color: scheme.surface.withValues(alpha: 0),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Row(children: [
+    Widget section(
+      IconData icon,
+      String title, {
+      Widget? trailing,
+      required Widget child,
+    }) => Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      color: scheme.surface.withValues(alpha: 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
               Icon(icon, size: 24, color: muted),
               const SizedBox(width: 12),
-              Expanded(child: title.isEmpty ? const SizedBox() : Text.rich(_titleSpan(title, p.expense), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600))),
+              Expanded(
+                child: title.isEmpty
+                    ? const SizedBox()
+                    : Text.rich(
+                        _titleSpan(title, p.expense),
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+              ),
               ?trailing,
-            ]),
-            const SizedBox(height: 14),
-            child,
-          ]),
-        );
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
 
     Widget box(List<Widget> rows) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-          decoration: BoxDecoration(
-            border: Border.all(color: scheme.onSurface.withValues(alpha: 0.14)),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(children: rows),
-        );
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: scheme.onSurface.withValues(alpha: 0.14)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(children: rows),
+    );
 
-    Widget line(String label, String value, {Color? color, String? lead}) => Padding(
+    Widget line(String label, String value, {Color? color, String? lead}) =>
+        Padding(
           padding: const EdgeInsets.symmetric(vertical: 5),
-          child: Row(children: [
-            if (lead != null) SizedBox(width: 52, child: Text(lead, style: TextStyle(color: muted))),
-            Expanded(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: muted))),
-            const SizedBox(width: 10),
-            Text(value, style: TextStyle(color: color ?? muted, fontWeight: FontWeight.w500)),
-          ]),
+          child: Row(
+            children: [
+              if (lead != null)
+                SizedBox(
+                  width: 52,
+                  child: Text(lead, style: TextStyle(color: muted)),
+                ),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: muted),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                value,
+                style: TextStyle(
+                  color: color ?? muted,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         );
 
-    final divider = Divider(height: 1, thickness: 1, color: scheme.onSurface.withValues(alpha: 0.08));
+    final divider = Divider(
+      height: 1,
+      thickness: 1,
+      color: scheme.onSurface.withValues(alpha: 0.08),
+    );
     final groupList = groups.toList()..sort();
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      section(
-        Icons.account_balance_wallet_outlined,
-        'Рахунки',
-        child: box([
-          line(groupList.isEmpty ? 'Витрати' : 'Витрати (${groupList.join(', ')})', money(now.expense, cur)),
-          if (transferOut > 0) line('Переказ-витрата', money(transferOut, cur)),
-        ]),
-      ),
-      divider,
-      section(
-        Icons.track_changes_rounded,
-        'Бюджет',
-        child: overall == null
-            ? Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () => editBudget(context, currency: cur),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Встановити загальний бюджет'),
-                ),
-              )
-            : InkWell(
-                onTap: () => editBudget(context, currency: cur, existing: overall),
-                child: _SummaryBudget(spent: now.expense, limit: overall.amount, currency: cur, range: range),
-              ),
-      ),
-      divider,
-      section(
-        Icons.repeat_rounded,
-        'Повтор (${upcoming.length})',
-        trailing: IconButton(
-          tooltip: 'Повторювані записи',
-          icon: const Icon(Icons.settings_outlined),
-          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const RepeatsPage())),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        section(
+          Icons.account_balance_wallet_outlined,
+          'Рахунки',
+          child: box([
+            line(
+              groupList.isEmpty
+                  ? 'Витрати'
+                  : 'Витрати (${groupList.join(', ')})',
+              money(now.expense, cur),
+            ),
+            if (transferOut > 0)
+              line('Переказ-витрата', money(transferOut, cur)),
+          ]),
         ),
-        child: upcoming.isEmpty
-            ? Text('Немає запланованих записів до кінця періоду', style: TextStyle(color: muted))
-            : box([
-                for (final (d, r) in upcoming)
-                  line(
-                    '${r.template.note.isNotEmpty ? r.template.note : txnTitle(store, r.template)}, ${repeatLabel(r.every).toLowerCase()}',
-                    money(r.template.amount, store.account(r.template.accountId)?.currency ?? cur),
-                    lead: '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}',
-                    color: r.template.type == TxType.income ? incomeColor(context, store) : r.template.type == TxType.expense ? p.expense : null,
+        divider,
+        section(
+          Icons.track_changes_rounded,
+          'Бюджет',
+          child: limit == null
+              ? Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => editBudget(context, currency: cur),
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Встановити загальний бюджет'),
                   ),
-              ]),
-      ),
-      divider,
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
-        child: OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size.fromHeight(52),
-            side: BorderSide(color: scheme.onSurface.withValues(alpha: 0.18)),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            foregroundColor: scheme.onSurface,
-          ),
-          onPressed: () => exportForPf(context),
-          icon: const Icon(Icons.table_view_rounded, color: Color(0xFF21A366)),
-          label: const Text('Експорт даних в Excel'),
+                )
+              : InkWell(
+                  onTap: overall == null
+                      ? null
+                      : () => editBudget(context, currency: cur, existing: overall),
+                  child: _SummaryBudget(
+                    spent: now.expense,
+                    limit: limit,
+                    currency: cur,
+                    range: range,
+                  ),
+                ),
         ),
-      ),
-    ]);
+        divider,
+        section(
+          Icons.repeat_rounded,
+          'Повтор (${upcoming.length})',
+          trailing: IconButton(
+            tooltip: 'Повторювані записи',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const RepeatsPage()),
+            ),
+          ),
+          child: upcoming.isEmpty
+              ? Text(
+                  'Немає запланованих записів до кінця періоду',
+                  style: TextStyle(color: muted),
+                )
+              : box([
+                  for (final (d, r) in upcoming)
+                    line(
+                      '${r.template.note.isNotEmpty ? r.template.note : txnTitle(store, r.template)}, ${repeatLabel(r.every).toLowerCase()}',
+                      money(
+                        r.template.amount,
+                        store.account(r.template.accountId)?.currency ?? cur,
+                      ),
+                      lead:
+                          '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}',
+                      color: r.template.type == TxType.income
+                          ? incomeColor(context, store)
+                          : r.template.type == TxType.expense
+                          ? p.expense
+                          : null,
+                    ),
+                ]),
+        ),
+        divider,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+          child: OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+              side: BorderSide(color: scheme.onSurface.withValues(alpha: 0.18)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              foregroundColor: scheme.onSurface,
+            ),
+            onPressed: () => exportForPf(context),
+            icon: const Icon(
+              Icons.table_view_rounded,
+              color: Color(0xFF21A366),
+            ),
+            label: const Text('Експорт даних в Excel'),
+          ),
+        ),
+      ],
+    );
   }
 
   /// "Повтор (5)": the count in the accent red, like the reference.
   static InlineSpan _titleSpan(String title, Color accent) {
     final m = RegExp(r'^(.*) \((\d+)\)$').firstMatch(title);
     if (m == null) return TextSpan(text: title);
-    return TextSpan(children: [TextSpan(text: '${m.group(1)} '), TextSpan(text: '(${m.group(2)})', style: TextStyle(color: accent, fontWeight: FontWeight.w400))]);
+    return TextSpan(
+      children: [
+        TextSpan(text: '${m.group(1)} '),
+        TextSpan(
+          text: '(${m.group(2)})',
+          style: TextStyle(color: accent, fontWeight: FontWeight.w400),
+        ),
+      ],
+    );
   }
 }
 
 /// Total budget row: label and amount on the left, a bar with a "Сьогодні"
 /// marker and percent on the right, spent and remaining underneath.
 class _SummaryBudget extends StatelessWidget {
-  const _SummaryBudget({required this.spent, required this.limit, required this.currency, required this.range});
+  const _SummaryBudget({
+    required this.spent,
+    required this.limit,
+    required this.currency,
+    required this.range,
+  });
   final int spent, limit;
   final String currency;
   final ({DateTime start, DateTime end}) range;
@@ -727,75 +1100,150 @@ class _SummaryBudget extends StatelessWidget {
     final muted = scheme.onSurfaceVariant;
     final now = DateTime.now();
     final total = range.end.difference(range.start).inMinutes;
-    final pace = now.isBefore(range.start) ? 0.0 : now.isAfter(range.end) ? 1.0 : now.difference(range.start).inMinutes / total;
+    final pace = now.isBefore(range.start)
+        ? 0.0
+        : now.isAfter(range.end)
+        ? 1.0
+        : now.difference(range.start).inMinutes / total;
     final ratio = limit == 0 ? 0.0 : spent / limit;
     final barColor = ratio > 1 ? p.expense : scheme.primary;
-    return Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-      SizedBox(
-        width: 120,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Загальний бюджет', style: TextStyle(color: muted, fontSize: 13)),
-          const SizedBox(height: 4),
-          Text(money(limit, currency), style: const TextStyle(fontSize: 16)),
-        ]),
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: LayoutBuilder(builder: (context, c) {
-          final w = c.maxWidth;
-          final x = (w * pace).clamp(0.0, w);
-          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            SizedBox(
-              height: 26,
-              child: Stack(clipBehavior: Clip.none, children: [
-                Positioned(
-                  left: (x - 32).clamp(0.0, w - 64),
-                  width: 64,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(color: scheme.onSurface.withValues(alpha: 0.35), borderRadius: BorderRadius.circular(10)),
-                    child: const Text('Сьогодні', style: TextStyle(fontSize: 11, color: Colors.white)),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Загальний бюджет',
+                style: TextStyle(color: muted, fontSize: 13),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                money(limit, currency),
+                style: const TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, c) {
+              final w = c.maxWidth;
+              final x = (w * pace).clamp(0.0, w);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    height: 26,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Positioned(
+                          left: (x - 32).clamp(0.0, w - 64),
+                          width: 64,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: scheme.onSurface.withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text(
+                              'Сьогодні',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ]),
-            ),
-            const SizedBox(height: 2),
-            SizedBox(
-              height: 26,
-              child: Stack(children: [
-                Positioned.fill(child: ColoredBox(color: scheme.onSurface.withValues(alpha: 0.08))),
-                Positioned.fill(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: FractionallySizedBox(widthFactor: ratio.clamp(0.0, 1.0), heightFactor: 1, child: ColoredBox(color: barColor)),
+                  const SizedBox(height: 2),
+                  SizedBox(
+                    height: 26,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: ColoredBox(
+                            color: scheme.onSurface.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: FractionallySizedBox(
+                              widthFactor: ratio.clamp(0.0, 1.0),
+                              heightFactor: 1,
+                              child: ColoredBox(color: barColor),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: x - 1,
+                          top: 0,
+                          bottom: 0,
+                          child: Container(width: 1.5, color: scheme.surface),
+                        ),
+                        Positioned(
+                          right: 6,
+                          top: 0,
+                          bottom: 0,
+                          child: Center(
+                            child: Text(
+                              '${(ratio * 100).round()}%',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                Positioned(left: x - 1, top: 0, bottom: 0, child: Container(width: 1.5, color: scheme.surface)),
-                Positioned(
-                  right: 6,
-                  top: 0,
-                  bottom: 0,
-                  child: Center(child: Text('${(ratio * 100).round()}%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
-                ),
-              ]),
-            ),
-            const SizedBox(height: 6),
-            Row(children: [
-              Text(money(spent, currency), style: TextStyle(color: barColor, fontSize: 15)),
-              const Spacer(),
-              Text(money(limit - spent, currency), style: TextStyle(fontSize: 15, color: limit - spent < 0 ? p.expense : null)),
-            ]),
-          ]);
-        }),
-      ),
-    ]);
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Text(
+                        money(spent, currency),
+                        style: TextStyle(color: barColor, fontSize: 15),
+                      ),
+                      const Spacer(),
+                      Text(
+                        money(limit - spent, currency),
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: limit - spent < 0 ? p.expense : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
 }
 
 /// Budget progress with a "today" pace marker.
 class BudgetBar extends StatelessWidget {
-  const BudgetBar({super.key, required this.title, required this.spent, required this.limit, required this.currency, required this.month, this.leading});
+  const BudgetBar({
+    super.key,
+    required this.title,
+    required this.spent,
+    required this.limit,
+    required this.currency,
+    required this.month,
+    this.leading,
+  });
   final String title;
   final int spent;
   final int limit;
@@ -810,44 +1258,85 @@ class BudgetBar extends StatelessWidget {
     final r = store.periodRange(month);
     final now = DateTime.now();
     final total = r.end.difference(r.start).inHours;
-    final pace = now.isBefore(r.start) ? 0.0 : now.isAfter(r.end) ? 1.0 : now.difference(r.start).inHours / total;
+    final pace = now.isBefore(r.start)
+        ? 0.0
+        : now.isAfter(r.end)
+        ? 1.0
+        : now.difference(r.start).inHours / total;
     final ratio = limit == 0 ? 0.0 : spent / limit;
     final over = ratio > 1;
-    final color = over ? p.expense : (ratio > pace + 0.05 ? const Color(0xFFFF9F0A) : p.income);
+    final color = over
+        ? p.expense
+        : (ratio > pace + 0.05 ? const Color(0xFFFF9F0A) : p.income);
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-    final daysLeft = r.end.difference(now.isBefore(r.start) ? r.start : DateTime(now.year, now.month, now.day)).inDays.clamp(1, 31);
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        if (leading != null) ...[leading!, const SizedBox(width: 10)],
-        Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700))),
-        Text('${money(spent, currency)} / ${money(limit, currency)}', style: TextStyle(fontSize: 13, color: muted)),
-      ]),
-      const SizedBox(height: 10),
-      LayoutBuilder(builder: (context, c) {
-        return Stack(clipBehavior: Clip.none, children: [
-          TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: ratio.clamp(0, 1)),
-            duration: const Duration(milliseconds: 800),
-            curve: Curves.easeOutCubic,
-            builder: (context, v, _) => ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(value: v, minHeight: 10, color: color, backgroundColor: color.withValues(alpha: 0.15)),
+    final daysLeft = r.end
+        .difference(
+          now.isBefore(r.start)
+              ? r.start
+              : DateTime(now.year, now.month, now.day),
+        )
+        .inDays
+        .clamp(1, 31);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            if (leading != null) ...[leading!, const SizedBox(width: 10)],
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
-          ),
-          Positioned(
-            left: (c.maxWidth * pace).clamp(0, c.maxWidth - 2),
-            top: -4,
-            child: Container(width: 2, height: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8)),
-          ),
-        ]);
-      }),
-      const SizedBox(height: 6),
-      Text(
-        over
-            ? 'Перевищено на ${money(spent - limit, currency)}'
-            : 'Залишилось ${money(limit - spent, currency)} · ${money(((limit - spent) / daysLeft).round(), currency)} на день',
-        style: TextStyle(fontSize: 12, color: over ? p.expense : muted),
-      ),
-    ]);
+            Text(
+              '${money(spent, currency)} / ${money(limit, currency)}',
+              style: TextStyle(fontSize: 13, color: muted),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        LayoutBuilder(
+          builder: (context, c) {
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: ratio.clamp(0, 1)),
+                  duration: const Duration(milliseconds: 800),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, v, _) => ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: v,
+                      minHeight: 10,
+                      color: color,
+                      backgroundColor: color.withValues(alpha: 0.15),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: (c.maxWidth * pace).clamp(0, c.maxWidth - 2),
+                  top: -4,
+                  child: Container(
+                    width: 2,
+                    height: 18,
+                    color: Theme.of(context).colorScheme.onSurface
+                        .withValues(alpha: 0.8),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 6),
+        Text(
+          over
+              ? 'Перевищено на ${money(spent - limit, currency)}'
+              : 'Залишилось ${money(limit - spent, currency)} · ${money(((limit - spent) / daysLeft).round(), currency)} на день',
+          style: TextStyle(fontSize: 12, color: over ? p.expense : muted),
+        ),
+      ],
+    );
   }
 }

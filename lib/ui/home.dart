@@ -205,82 +205,16 @@ class LockScreen extends StatefulWidget {
 }
 
 class _LockScreenState extends State<LockScreen> {
-  String _entered = '';
-  bool _wrong = false;
-
-  void _tap(String d) {
-    if (_entered.length >= 4) return;
-    setState(() {
-      _wrong = false;
-      _entered += d;
-    });
-    if (_entered.length == 4) {
-      final store = StoreScope.read(context);
-      if (_entered == store.prefs.pin) {
-        store.unlock();
-      } else {
-        HapticFeedback.heavyImpact();
-        setState(() {
-          _wrong = true;
-          _entered = '';
-        });
-      }
-    }
-  }
-
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    Widget key(String label, {VoidCallback? onTap, IconData? icon}) => Padding(
-          padding: const EdgeInsets.all(8),
-          child: GlassCard(
-            radius: 40,
-            blur: 14,
-            onTap: onTap ?? () => _tap(label),
-            child: SizedBox(
-              width: 72,
-              height: 72,
-              child: Center(
-                child: icon != null ? Icon(icon) : Text(label, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ),
-        );
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.lock_outline_rounded, size: 40, color: scheme.onSurfaceVariant),
-            const SizedBox(height: 32),
-            Text(_wrong ? 'Невірний PIN' : 'Введи PIN', style: TextStyle(color: _wrong ? scheme.error : null, fontSize: 16)),
-            const SizedBox(height: 16),
-            Row(mainAxisSize: MainAxisSize.min, children: [
-              for (var i = 0; i < 4; i++)
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  margin: const EdgeInsets.all(8),
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: i < _entered.length ? scheme.primary : Colors.transparent,
-                    border: Border.all(color: scheme.onSurfaceVariant),
-                  ),
-                ),
-            ]),
-            const SizedBox(height: 24),
-            for (final row in const [['1', '2', '3'], ['4', '5', '6'], ['7', '8', '9']])
-              Row(mainAxisSize: MainAxisSize.min, children: [for (final d in row) key(d)]),
-            Row(mainAxisSize: MainAxisSize.min, children: [
-              const SizedBox(width: 88),
-              key('0'),
-              key('', icon: Icons.backspace_outlined, onTap: () {
-                if (_entered.isNotEmpty) setState(() => _entered = _entered.substring(0, _entered.length - 1));
-              }),
-            ]),
-          ]),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => PinPad(
+        title: 'PFinance',
+        message: 'Введи PIN-код',
+        errorText: 'Невірний PIN-код',
+        onComplete: (code) async {
+          final store = StoreScope.read(context);
+          if (code != store.prefs.pin) return false;
+          store.unlock();
+          return true;
+        },
+      );
 }

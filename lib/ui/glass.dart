@@ -18,6 +18,10 @@ class AuroraBackground extends StatelessWidget {
   }
 }
 
+/// Background of a flat settings/list panel (MM-style rows).
+Color panelColor(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1B1E25) : Colors.white;
+
 /// Flat section panel (Money Manager–like): a quiet solid surface with no
 /// blur, rim or glow, so lists read as plain rows.
 class GlassCard extends StatelessWidget {

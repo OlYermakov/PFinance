@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/services.dart';
 
 import '../data/models.dart';
 import '../state/app_store.dart';
@@ -265,4 +266,114 @@ class SectionTitle extends StatelessWidget {
           ?trailing,
         ]),
       );
+}
+
+/// Full-screen 4-digit PIN keypad (MM "Passcode"): message, four circles and
+/// a plain number pad at the bottom. [onComplete] returns false to reject
+/// the code (the pad then clears and shows [errorText]).
+class PinPad extends StatefulWidget {
+  const PinPad({super.key, required this.message, required this.onComplete, this.errorText, this.onClose, this.title = 'PIN-код'});
+  final String title;
+  final String message;
+  final String? errorText;
+  final Future<bool> Function(String code) onComplete;
+  final VoidCallback? onClose;
+
+  @override
+  State<PinPad> createState() => _PinPadState();
+}
+
+class _PinPadState extends State<PinPad> {
+  String _code = '';
+  bool _wrong = false;
+
+  @override
+  void didUpdateWidget(PinPad old) {
+    super.didUpdateWidget(old);
+    if (old.message != widget.message) _code = '';
+  }
+
+  Future<void> _tap(String d) async {
+    if (_code.length >= 4) return;
+    setState(() {
+      _wrong = false;
+      _code += d;
+    });
+    if (_code.length == 4) {
+      final ok = await widget.onComplete(_code);
+      if (!mounted) return;
+      if (!ok) {
+        HapticFeedback.heavyImpact();
+        setState(() {
+          _wrong = true;
+          _code = '';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    Widget key(String label, {VoidCallback? onTap, IconData? icon}) => Expanded(
+          child: InkWell(
+            onTap: onTap ?? () => _tap(label),
+            child: SizedBox(
+              height: 76,
+              child: Center(child: icon != null ? Icon(icon, size: 30) : Text(label, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w300))),
+            ),
+          ),
+        );
+    return Scaffold(
+      backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF111318) : const Color(0xFFF2F3F7),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: widget.onClose == null ? null : IconButton(icon: const Icon(Icons.close_rounded), onPressed: widget.onClose),
+        title: Text(widget.title),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: Column(children: [
+          const Spacer(flex: 2),
+          Icon(Icons.lock_rounded, size: 40, color: scheme.onSurface),
+          const SizedBox(height: 20),
+          Text(widget.message, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 24),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            for (var i = 0; i < 4; i++)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 10),
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: i < _code.length ? scheme.onSurface : Colors.transparent,
+                  border: Border.all(color: scheme.onSurface, width: 1.4),
+                ),
+              ),
+          ]),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 20,
+            child: _wrong && widget.errorText != null ? Text(widget.errorText!, style: TextStyle(color: scheme.error)) : null,
+          ),
+          const Spacer(flex: 3),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(children: [
+              for (final row in const [['1', '2', '3'], ['4', '5', '6'], ['7', '8', '9']]) Row(children: [for (final d in row) key(d)]),
+              Row(children: [
+                const Expanded(child: SizedBox()),
+                key('0'),
+                key('', icon: Icons.backspace_outlined, onTap: () {
+                  if (_code.isNotEmpty) setState(() => _code = _code.substring(0, _code.length - 1));
+                }),
+              ]),
+            ]),
+          ),
+          const SizedBox(height: 16),
+        ]),
+      ),
+    );
+  }
 }

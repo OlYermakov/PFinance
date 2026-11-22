@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'data/repository.dart';
 import 'state/app_store.dart';
+import 'ui/app_icon.dart';
 import 'ui/home.dart';
 import 'ui/theme.dart';
 
@@ -11,6 +12,7 @@ Future<void> main() async {
   await initializeDateFormatting('uk');
   final store = AppStore(await Repository.open());
   await store.load();
+  applyAppIcon(store.prefs.appIcon);
   runApp(MoneyApp(store: store));
 }
 

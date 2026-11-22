@@ -25,6 +25,21 @@ class Prefs {
   bool carryOver = false; // add the balance of earlier periods to "Разом"
   bool copyToToday = true; // a copied record gets today's date (else the original date)
   String? pin; // 4 digits; local convenience lock, not encryption
+  // MM "Transaction Settings"
+  int timeMode = 1; // 0: no time, 1: input only, 2: input and show in lists
+  String swipe = 'delete'; // 'period' (change period), 'delete', 'off'
+  bool showNote = true; // show the note in record lists
+  bool categoryFirst = false; // input order: category before account
+  bool noteButton = true; // note-history button in the editor
+  bool copyPaste = true; // copy button for records
+  // MM "Main currency": symbol in front ("€ 1,00") or behind ("1,00 €")
+  bool currencyFront = false;
+  // MM "Repeat Setting → Timing of reflection": on the date or whole period in advance
+  bool repeatInAdvance = false;
+  // MM "Transfer-Expense": transfers into these accounts count as expenses
+  List<String> transferExpense = [];
+  List<String> savedTags = [];
+  int appIcon = 0;
   Map<String, double> rates = {}; // 1 unit of currency = rate × base
 
   Map<String, Object?> toJson() => {
@@ -43,6 +58,17 @@ class Prefs {
         'copyToToday': copyToToday,
         'pin': pin,
         'rates': rates,
+        'timeMode': timeMode,
+        'swipe': swipe,
+        'showNote': showNote,
+        'categoryFirst': categoryFirst,
+        'noteButton': noteButton,
+        'copyPaste': copyPaste,
+        'currencyFront': currencyFront,
+        'repeatInAdvance': repeatInAdvance,
+        'transferExpense': transferExpense,
+        'savedTags': savedTags,
+        'appIcon': appIcon,
       };
 
   void apply(Map<String, Object?> j) {
@@ -60,6 +86,19 @@ class Prefs {
     carryOver = j['carryOver'] as bool? ?? carryOver;
     copyToToday = j['copyToToday'] as bool? ?? copyToToday;
     pin = j['pin'] as String?;
+    timeMode = (j['timeMode'] as num?)?.toInt() ?? timeMode;
+    swipe = j['swipe'] as String? ?? swipe;
+    showNote = j['showNote'] as bool? ?? showNote;
+    categoryFirst = j['categoryFirst'] as bool? ?? categoryFirst;
+    noteButton = j['noteButton'] as bool? ?? noteButton;
+    copyPaste = j['copyPaste'] as bool? ?? copyPaste;
+    currencyFront = j['currencyFront'] as bool? ?? currencyFront;
+    repeatInAdvance = j['repeatInAdvance'] as bool? ?? repeatInAdvance;
+    final te = j['transferExpense'];
+    if (te is List) transferExpense = [for (final x in te) x as String];
+    final st = j['savedTags'];
+    if (st is List) savedTags = [for (final x in st) x as String];
+    appIcon = (j['appIcon'] as num?)?.toInt() ?? appIcon;
     final r = j['rates'];
     if (r is Map) {
       rates = {for (final e in r.entries) e.key as String: (e.value as num).toDouble()};
@@ -113,6 +152,7 @@ class AppStore extends ChangeNotifier {
     await runRepeats();
     unlocked = prefs.pin == null;
     fmt.showDecimals = prefs.showDecimals;
+    fmt.currencyFront = prefs.currencyFront;
     _sortTxns();
     notifyListeners();
   }
@@ -152,6 +192,7 @@ class AppStore extends ChangeNotifier {
 
   List<Account> get accounts =>
       _accounts.where((a) => !a.deleted).toList()..sort((a, b) => a.sort.compareTo(b.sort));
+  List<Account> get deletedAccounts => _accounts.where((a) => a.deleted).toList();
   List<Account> get activeAccounts => accounts.where((a) => !a.archived).toList();
 
   /// Top-level categories of a type.
@@ -331,7 +372,9 @@ class AppStore extends ChangeNotifier {
 
   /// Creates the records that have come due since the last run.
   Future<int> runRepeats({DateTime? now}) async {
-    final at = now ?? DateTime.now();
+    final today = now ?? DateTime.now();
+    // "In advance": create the whole current period's records at once.
+    final at = prefs.repeatInAdvance ? periodRange(periodOf(today)).end.subtract(const Duration(minutes: 1)) : today;
     var made = 0;
     for (var i = 0; i < _repeats.length; i++) {
       final r = _repeats[i];
@@ -431,6 +474,9 @@ class AppStore extends ChangeNotifier {
         m[k] = (count: o.count + 1, sum: o.sum + signed);
       }
     }
+    for (final t in prefs.savedTags) {
+      m.putIfAbsent(t.toLowerCase(), () => (count: 0, sum: 0));
+    }
     final out = [for (final e in m.entries) (tag: e.key, count: e.value.count, sum: e.value.sum)];
     out.sort((a, b) => b.count.compareTo(a.count));
     return out;
@@ -439,6 +485,7 @@ class AppStore extends ChangeNotifier {
   Future<void> updatePrefs(void Function(Prefs p) change) async {
     change(prefs);
     fmt.showDecimals = prefs.showDecimals;
+    fmt.currencyFront = prefs.currencyFront;
     await repo.setSetting('prefs', prefs.toJson());
     notifyListeners();
   }
@@ -460,6 +507,20 @@ class AppStore extends ChangeNotifier {
     final data = jsonDecode(json) as Map<String, Object?>;
     await repo.importAll(data);
     await load();
+  }
+
+  /// MM "Reset contents only": drops records, repeats and budgets but keeps
+  /// accounts, categories and settings.
+  Future<void> resetContents() async {
+    for (final t in txns) {
+      await saveTxn(t.copyWith(deleted: true));
+    }
+    for (final b in budgets) {
+      await saveBudget(b.copyWith(deleted: true));
+    }
+    _repeats = [];
+    await _saveRepeats();
+    notifyListeners();
   }
 
   Future<void> resetAll() async {
