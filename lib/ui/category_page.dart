@@ -8,6 +8,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../data/models.dart';
 import '../state/app_store.dart';
+import 'accounts_page.dart' show groupOf, openStatement;
 import 'format.dart';
 import 'glass.dart';
 import 'stats_page.dart' show CategoryRow, Slice, sliceKey, slicesFor;
@@ -41,9 +42,9 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
   }
 
   void _go(int d) => setState(() {
-        _month = DateTime(_month.year, _month.month + d);
-        _shift = 0;
-      });
+    _month = DateTime(_month.year, _month.month + d);
+    _shift = 0;
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +59,22 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
     final months = [for (var i = -4; i <= 2; i++) DateTime(_month.year, _month.month + i + _shift)];
     final values = [for (final m in months) _inMonth(store, m).fold<int>(0, (s, t) => s + store.baseAmount(t))];
 
-    final List<Slice> subs = c.parentId == null && store.subcategoriesOf(c.id).isNotEmpty ? slicesFor(store, txns, parent: c.id) : const <Slice>[];
+    // A transfer-expense group (MM): its accounts instead of sub-categories.
+    final isGroup = c.id.startsWith('grp:');
+    final groupAccounts = isGroup
+        ? store.accounts.where((a) => store.prefs.transferExpense.contains(a.id) && groupOf(a) == c.name).toList()
+        : const <Account>[];
+    final List<Slice> subs = isGroup
+        ? ([
+            for (final a in groupAccounts)
+              Slice(
+                Category(id: a.id, name: a.name, type: widget.type, color: a.color),
+                txns.where((t) => (widget.type == TxType.expense ? t.toAccountId : t.accountId) == a.id).fold<int>(0, (s, t) => s + store.baseAmount(t)),
+              ),
+          ]..sort((x, y) => y.amount.compareTo(x.amount)))
+        : c.parentId == null && store.subcategoriesOf(c.id).isNotEmpty
+        ? slicesFor(store, txns, parent: c.id)
+        : const <Slice>[];
     final subTotal = subs.fold<int>(0, (s, x) => s + x.amount);
 
     final days = <DateTime, List<Txn>>{};
@@ -79,76 +95,100 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
         title: Text(c.name),
         centerTitle: true,
       ),
-      body: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
-        Container(
-          color: panelColor(context),
-          child: Row(children: [
-            IconButton(icon: const Icon(Icons.chevron_left_rounded), onPressed: () => _go(-1)),
-            Expanded(child: Text(monthTitle(_month), textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600))),
-            IconButton(icon: const Icon(Icons.chevron_right_rounded), onPressed: () => _go(1)),
-          ]),
-        ),
-        Container(
-          color: panelColor(context),
-          margin: const EdgeInsets.only(top: 1),
-          padding: const EdgeInsets.only(top: 8, bottom: 6),
-          child: Stack(children: [
-            _LineChart(
-              months: months,
-              values: values,
-              selected: months.indexWhere((m) => m.year == _month.year && m.month == _month.month),
-              color: color,
-              onTap: (i) => setState(() {
-                _month = months[i];
-                _shift = 0;
-              }),
-            ),
-            Positioned(
-              right: 4,
-              top: 50,
-              child: Column(children: [
-                _RoundBtn(icon: Icons.keyboard_double_arrow_right_rounded, onTap: () => setState(() => _shift += 3)),
-                const SizedBox(height: 6),
-                _RoundBtn(icon: Icons.keyboard_double_arrow_left_rounded, onTap: () => setState(() => _shift -= 3)),
-              ]),
-            ),
-          ]),
-        ),
-        if (subs.isNotEmpty)
+      body: ListView(
+        padding: const EdgeInsets.only(bottom: 32),
+        children: [
           Container(
             color: panelColor(context),
-            margin: const EdgeInsets.only(top: 12),
-            child: Column(children: [
-              for (final (i, s) in subs.indexed)
-                CategoryRow(
-                  slice: s,
-                  total: subTotal,
-                  currency: cur,
-                  index: i,
-                  fallbackName: 'Без підкатегорії',
-                  color: color,
-                  onTap: s.category == null
-                      ? null
-                      : () => Navigator.push(
-                            context,
-                            MaterialPageRoute<void>(
-                              builder: (_) => CategoryStatsPage(category: s.category!, type: widget.type, month: _month, backLabel: c.name),
-                            ),
-                          ),
+            child: Row(
+              children: [
+                IconButton(icon: const Icon(Icons.chevron_left_rounded), onPressed: () => _go(-1)),
+                Expanded(
+                  child: Text(
+                    monthTitle(_month),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                  ),
                 ),
-            ]),
+                IconButton(icon: const Icon(Icons.chevron_right_rounded), onPressed: () => _go(1)),
+              ],
+            ),
           ),
-        if (days.isEmpty)
-          Padding(
-            padding: const EdgeInsets.all(32),
-            child: Text('Записів за цей місяць немає', textAlign: TextAlign.center, style: TextStyle(color: scheme.onSurfaceVariant)),
+          Container(
+            color: panelColor(context),
+            margin: const EdgeInsets.only(top: 1),
+            padding: const EdgeInsets.only(top: 8, bottom: 6),
+            child: Stack(
+              children: [
+                _LineChart(
+                  months: months,
+                  values: values,
+                  selected: months.indexWhere((m) => m.year == _month.year && m.month == _month.month),
+                  color: color,
+                  onTap: (i) => setState(() {
+                    _month = months[i];
+                    _shift = 0;
+                  }),
+                ),
+                Positioned(
+                  right: 4,
+                  top: 50,
+                  child: Column(
+                    children: [
+                      _RoundBtn(icon: Icons.keyboard_double_arrow_right_rounded, onTap: () => setState(() => _shift += 3)),
+                      const SizedBox(height: 6),
+                      _RoundBtn(icon: Icons.keyboard_double_arrow_left_rounded, onTap: () => setState(() => _shift -= 3)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        for (final e in days.entries)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: DayCard(day: e.key, txns: e.value),
-          ),
-      ]),
+          if (subs.isNotEmpty)
+            Container(
+              color: panelColor(context),
+              margin: const EdgeInsets.only(top: 12),
+              child: Column(
+                children: [
+                  for (final (i, s) in subs.indexed)
+                    CategoryRow(
+                      slice: s,
+                      total: subTotal,
+                      currency: cur,
+                      index: i,
+                      fallbackName: 'Без підкатегорії',
+                      color: isGroup ? null : color,
+                      onTap: s.category == null
+                          ? null
+                          : isGroup
+                          ? () => openStatement(context, store.account(s.category!.id)!)
+                          : () => Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (_) => CategoryStatsPage(category: s.category!, type: widget.type, month: _month, backLabel: c.name),
+                              ),
+                            ),
+                    ),
+                ],
+              ),
+            ),
+          if (days.isEmpty && !isGroup)
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text(
+                'Записів за цей місяць немає',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: scheme.onSurfaceVariant),
+              ),
+            ),
+          if (!isGroup)
+            for (final e in days.entries)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: DayCard(day: e.key, txns: e.value),
+              ),
+        ],
+      ),
     );
   }
 }
@@ -160,14 +200,17 @@ class _RoundBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: Colors.white.withValues(alpha: 0.06),
-        shape: const CircleBorder(),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onTap,
-          child: Padding(padding: const EdgeInsets.all(8), child: Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-        ),
-      );
+    color: Colors.white.withValues(alpha: 0.06),
+    shape: const CircleBorder(),
+    child: InkWell(
+      customBorder: const CircleBorder(),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
+      ),
+    ),
+  );
 }
 
 /// MM-style monthly line: value labels above the points, selected month
@@ -184,57 +227,73 @@ class _LineChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final now = DateTime.now();
-    return LayoutBuilder(builder: (context, box) {
-      final w = box.maxWidth;
-      final step = (w - 56) / (months.length - 1); // room for the arrows on the right
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapUp: (d) {
-          final i = ((d.localPosition.dx - 24) / step).round().clamp(0, months.length - 1);
-          onTap(i);
-        },
-        child: Column(children: [
-          SizedBox(
-            height: 170,
-            width: w,
-            child: CustomPaint(
-              painter: _LinePainter(
-                values: values,
-                selected: selected,
-                color: color,
-                step: step,
-                text: scheme.onSurfaceVariant,
-                strong: scheme.onSurface,
-                grid: scheme.onSurface.withValues(alpha: 0.05),
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 38,
-            child: Stack(children: [
-              for (final (i, m) in months.indexed)
-                Positioned(
-                  left: 24 + step * i - 30,
-                  width: 60,
-                  child: Column(children: [
-                    Text(
-                      monthTitle(m).substring(0, 3),
-                      style: TextStyle(fontSize: 14, color: i == selected ? const Color(0xFFFF6B5E) : scheme.onSurfaceVariant),
-                    ),
-                    if (m.year != now.year && (i == 0 || m.month == 1))
-                      Text('${m.year}', style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
-                  ]),
+    return LayoutBuilder(
+      builder: (context, box) {
+        final w = box.maxWidth;
+        final step = (w - 56) / (months.length - 1); // room for the arrows on the right
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapUp: (d) {
+            final i = ((d.localPosition.dx - 24) / step).round().clamp(0, months.length - 1);
+            onTap(i);
+          },
+          child: Column(
+            children: [
+              SizedBox(
+                height: 170,
+                width: w,
+                child: CustomPaint(
+                  painter: _LinePainter(
+                    values: values,
+                    selected: selected,
+                    color: color,
+                    step: step,
+                    text: scheme.onSurfaceVariant,
+                    strong: scheme.onSurface,
+                    grid: scheme.onSurface.withValues(alpha: 0.05),
+                  ),
                 ),
-            ]),
+              ),
+              SizedBox(
+                height: 38,
+                child: Stack(
+                  children: [
+                    for (final (i, m) in months.indexed)
+                      Positioned(
+                        left: 24 + step * i - 30,
+                        width: 60,
+                        child: Column(
+                          children: [
+                            Text(
+                              monthTitle(m).substring(0, 3),
+                              style: TextStyle(fontSize: 14, color: i == selected ? const Color(0xFFFF6B5E) : scheme.onSurfaceVariant),
+                            ),
+                            if (m.year != now.year && (i == 0 || m.month == 1))
+                              Text('${m.year}', style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ]),
-      );
-    });
+        );
+      },
+    );
   }
 }
 
 class _LinePainter extends CustomPainter {
-  _LinePainter({required this.values, required this.selected, required this.color, required this.step, required this.text, required this.strong, required this.grid});
+  _LinePainter({
+    required this.values,
+    required this.selected,
+    required this.color,
+    required this.step,
+    required this.text,
+    required this.strong,
+    required this.grid,
+  });
   final List<int> values;
   final int selected;
   final Color color;
@@ -254,9 +313,7 @@ class _LinePainter extends CustomPainter {
     }
     final maxV = math.max(1, values.fold<int>(0, math.max));
     const top = 34.0, bottom = 12.0;
-    final pts = [
-      for (final (i, v) in values.indexed) Offset(24 + step * i, size.height - bottom - (size.height - top - bottom) * v / maxV),
-    ];
+    final pts = [for (final (i, v) in values.indexed) Offset(24 + step * i, size.height - bottom - (size.height - top - bottom) * v / maxV)];
     final line = Paint()
       ..color = color
       ..strokeWidth = 3
