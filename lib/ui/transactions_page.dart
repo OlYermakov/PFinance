@@ -3,7 +3,10 @@ import 'package:material_ui/material_ui.dart';
 import '../data/models.dart';
 import '../state/app_store.dart';
 import 'edit_transaction.dart';
+import 'accounts_page.dart' show groupOf;
 import 'export_pf.dart';
+import 'more_page.dart' show RepeatsPage;
+import 'stats_page.dart' show editBudget;
 import 'format.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -563,85 +566,231 @@ class _SummaryView extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final p = AppPalette.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final muted = scheme.onSurfaceVariant;
     final cur = store.baseCurrency;
-    final prev = store.totalsBase(store.txnsInPeriod(DateTime(month.year, month.month - 1)));
     final now = store.totalsBase(txns);
+    final range = store.periodRange(month);
 
-    // Expenses per account.
-    final perAcc = <String, int>{};
-    for (final t in txns.where((t) => t.type == TxType.expense)) {
-      perAcc[t.accountId] = (perAcc[t.accountId] ?? 0) + store.baseAmount(t);
+    // Accounts: expenses (with the account groups they came from) and
+    // transfers into accounts that are not counted in totals.
+    final groups = <String>{};
+    var transferOut = 0;
+    for (final t in txns) {
+      final a = store.account(t.accountId);
+      if (t.type == TxType.expense && a != null) groups.add(groupOf(a));
+      if (t.type == TxType.transfer) {
+        final to = store.account(t.toAccountId ?? '');
+        if (a != null && a.includeInTotal && to != null && !to.includeInTotal) transferOut += store.baseAmount(t);
+      }
     }
+
     final overall = store.budgets.where((b) => b.categoryId == null && b.currency == cur).firstOrNull;
 
-    String diff(int a, int b) {
-      if (b == 0) return '—';
-      final pct = ((a - b) / b * 100).round();
-      return '${pct > 0 ? '+' : ''}$pct%';
+    // Repeating records still due in this period (from today on).
+    final today = DateTime.now();
+    final from = today.isAfter(range.start) ? today : range.start;
+    final upcoming = <(DateTime, RepeatRule)>[];
+    for (final r in store.repeats) {
+      for (var n = 0; n < 5000; n++) {
+        final d = r.occurrence(n);
+        if (!d.isBefore(range.end) || (r.end != null && d.isAfter(r.end!))) break;
+        if (!d.isBefore(from) && (r.lastDone == null || d.isAfter(r.lastDone!))) upcoming.add((d, r));
+      }
     }
+    upcoming.sort((a, b) => a.$1.compareTo(b.$1));
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        GlassCard(
-          radius: 24,
-          padding: const EdgeInsets.all(18),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Порівняно з попереднім періодом', style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 12),
-            _row(context, 'Дохід', money(prev.income, cur), diff(now.income, prev.income), incomeColor(context, store)),
-            _row(context, 'Витрати', money(prev.expense, cur), diff(now.expense, prev.expense), p.expense),
+    Widget section(IconData icon, String title, {Widget? trailing, required Widget child}) => Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+          color: scheme.surface.withValues(alpha: 0),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              Icon(icon, size: 24, color: muted),
+              const SizedBox(width: 12),
+              Expanded(child: title.isEmpty ? const SizedBox() : Text.rich(_titleSpan(title, p.expense), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600))),
+              ?trailing,
+            ]),
+            const SizedBox(height: 14),
+            child,
           ]),
-        ),
-        if (overall != null) ...[
-          const SizedBox(height: 12),
-          GlassCard(
-            radius: 24,
-            padding: const EdgeInsets.all(18),
-            child: BudgetBar(title: 'Загальний бюджет', spent: now.expense, limit: overall.amount, currency: cur, month: month),
+        );
+
+    Widget box(List<Widget> rows) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          decoration: BoxDecoration(
+            border: Border.all(color: scheme.onSurface.withValues(alpha: 0.14)),
+            borderRadius: BorderRadius.circular(8),
           ),
-        ],
-        const SizedBox(height: 12),
-        GlassCard(
-          radius: 24,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Padding(padding: EdgeInsets.fromLTRB(18, 8, 18, 4), child: Text('Витрати за рахунками', style: TextStyle(fontWeight: FontWeight.w700))),
-            if (perAcc.isEmpty) const Padding(padding: EdgeInsets.all(18), child: Text('Немає витрат')),
-            for (final e in perAcc.entries)
-              ListTile(
-                dense: true,
-                leading: Icon(Icons.circle, size: 12, color: Color(store.account(e.key)?.color ?? 0xFF8E8E93)),
-                title: Text(store.account(e.key)?.name ?? '?'),
-                trailing: Text(money(e.value, cur), style: TextStyle(fontWeight: FontWeight.w600, color: p.expense)),
+          child: Column(children: rows),
+        );
+
+    Widget line(String label, String value, {Color? color, String? lead}) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          child: Row(children: [
+            if (lead != null) SizedBox(width: 52, child: Text(lead, style: TextStyle(color: muted))),
+            Expanded(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: muted))),
+            const SizedBox(width: 10),
+            Text(value, style: TextStyle(color: color ?? muted, fontWeight: FontWeight.w500)),
+          ]),
+        );
+
+    final divider = Divider(height: 1, thickness: 1, color: scheme.onSurface.withValues(alpha: 0.08));
+    final groupList = groups.toList()..sort();
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      section(
+        Icons.account_balance_wallet_outlined,
+        'Рахунки',
+        child: box([
+          line(groupList.isEmpty ? 'Витрати' : 'Витрати (${groupList.join(', ')})', money(now.expense, cur)),
+          if (transferOut > 0) line('Переказ-витрата', money(transferOut, cur)),
+        ]),
+      ),
+      divider,
+      section(
+        Icons.track_changes_rounded,
+        'Бюджет',
+        child: overall == null
+            ? Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => editBudget(context, currency: cur),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Встановити загальний бюджет'),
+                ),
+              )
+            : InkWell(
+                onTap: () => editBudget(context, currency: cur, existing: overall),
+                child: _SummaryBudget(spent: now.expense, limit: overall.amount, currency: cur, range: range),
               ),
-          ]),
+      ),
+      divider,
+      section(
+        Icons.repeat_rounded,
+        'Повтор (${upcoming.length})',
+        trailing: IconButton(
+          tooltip: 'Повторювані записи',
+          icon: const Icon(Icons.settings_outlined),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const RepeatsPage())),
         ),
-        const SizedBox(height: 12),
-        GlassCard(
-          radius: 24,
-          onTap: () => exportForPf(context),
-          padding: const EdgeInsets.all(18),
-          child: const Row(children: [
-            Icon(Icons.table_view_rounded),
-            SizedBox(width: 12),
-            Expanded(child: Text('Експорт в Excel для PF', style: TextStyle(fontWeight: FontWeight.w700))),
-            Icon(Icons.chevron_right_rounded),
-          ]),
+        child: upcoming.isEmpty
+            ? Text('Немає запланованих записів до кінця періоду', style: TextStyle(color: muted))
+            : box([
+                for (final (d, r) in upcoming)
+                  line(
+                    '${r.template.note.isNotEmpty ? r.template.note : txnTitle(store, r.template)}, ${repeatLabel(r.every).toLowerCase()}',
+                    money(r.template.amount, store.account(r.template.accountId)?.currency ?? cur),
+                    lead: '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}',
+                    color: r.template.type == TxType.income ? incomeColor(context, store) : r.template.type == TxType.expense ? p.expense : null,
+                  ),
+              ]),
+      ),
+      divider,
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+        child: OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(52),
+            side: BorderSide(color: scheme.onSurface.withValues(alpha: 0.18)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            foregroundColor: scheme.onSurface,
+          ),
+          onPressed: () => exportForPf(context),
+          icon: const Icon(Icons.table_view_rounded, color: Color(0xFF21A366)),
+          label: const Text('Експорт даних в Excel'),
         ),
-      ]),
-    );
+      ),
+    ]);
   }
 
-  Widget _row(BuildContext context, String label, String prev, String diff, Color color) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(children: [
-          Expanded(child: Text(label)),
-          Text('було $prev', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
-          const SizedBox(width: 12),
-          SizedBox(width: 56, child: Text(diff, textAlign: TextAlign.end, style: TextStyle(fontWeight: FontWeight.w700, color: color))),
+  /// "Повтор (5)": the count in the accent red, like the reference.
+  static InlineSpan _titleSpan(String title, Color accent) {
+    final m = RegExp(r'^(.*) \((\d+)\)$').firstMatch(title);
+    if (m == null) return TextSpan(text: title);
+    return TextSpan(children: [TextSpan(text: '${m.group(1)} '), TextSpan(text: '(${m.group(2)})', style: TextStyle(color: accent, fontWeight: FontWeight.w400))]);
+  }
+}
+
+/// Total budget row: label and amount on the left, a bar with a "Сьогодні"
+/// marker and percent on the right, spent and remaining underneath.
+class _SummaryBudget extends StatelessWidget {
+  const _SummaryBudget({required this.spent, required this.limit, required this.currency, required this.range});
+  final int spent, limit;
+  final String currency;
+  final ({DateTime start, DateTime end}) range;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final p = AppPalette.of(context);
+    final muted = scheme.onSurfaceVariant;
+    final now = DateTime.now();
+    final total = range.end.difference(range.start).inMinutes;
+    final pace = now.isBefore(range.start) ? 0.0 : now.isAfter(range.end) ? 1.0 : now.difference(range.start).inMinutes / total;
+    final ratio = limit == 0 ? 0.0 : spent / limit;
+    final barColor = ratio > 1 ? p.expense : scheme.primary;
+    return Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+      SizedBox(
+        width: 120,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Загальний бюджет', style: TextStyle(color: muted, fontSize: 13)),
+          const SizedBox(height: 4),
+          Text(money(limit, currency), style: const TextStyle(fontSize: 16)),
         ]),
-      );
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: LayoutBuilder(builder: (context, c) {
+          final w = c.maxWidth;
+          final x = (w * pace).clamp(0.0, w);
+          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            SizedBox(
+              height: 26,
+              child: Stack(clipBehavior: Clip.none, children: [
+                Positioned(
+                  left: (x - 32).clamp(0.0, w - 64),
+                  width: 64,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: scheme.onSurface.withValues(alpha: 0.35), borderRadius: BorderRadius.circular(10)),
+                    child: const Text('Сьогодні', style: TextStyle(fontSize: 11, color: Colors.white)),
+                  ),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 2),
+            SizedBox(
+              height: 26,
+              child: Stack(children: [
+                Positioned.fill(child: ColoredBox(color: scheme.onSurface.withValues(alpha: 0.08))),
+                Positioned.fill(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: FractionallySizedBox(widthFactor: ratio.clamp(0.0, 1.0), heightFactor: 1, child: ColoredBox(color: barColor)),
+                  ),
+                ),
+                Positioned(left: x - 1, top: 0, bottom: 0, child: Container(width: 1.5, color: scheme.surface)),
+                Positioned(
+                  right: 6,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(child: Text('${(ratio * 100).round()}%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 6),
+            Row(children: [
+              Text(money(spent, currency), style: TextStyle(color: barColor, fontSize: 15)),
+              const Spacer(),
+              Text(money(limit - spent, currency), style: TextStyle(fontSize: 15, color: limit - spent < 0 ? p.expense : null)),
+            ]),
+          ]);
+        }),
+      ),
+    ]);
+  }
 }
 
 /// Budget progress with a "today" pace marker.

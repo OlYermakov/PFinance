@@ -59,7 +59,7 @@ class MorePage extends StatelessWidget {
           _Group(children: [
             _Item(Icons.receipt_long_outlined, 'Налаштування записів',
                 subtitle: 'Початок місяця, перенесення залишку, період, інше', onTap: () => push(_TxnSettingsPage(startLabel: startLabel))),
-            _Item(Icons.repeat_rounded, 'Повторювані записи', value: store.repeats.isEmpty ? null : '${store.repeats.length}', onTap: () => push(const _RepeatsPage())),
+            _Item(Icons.repeat_rounded, 'Повторювані записи', value: store.repeats.isEmpty ? null : '${store.repeats.length}', onTap: () => push(const RepeatsPage())),
             _Item(Icons.content_copy_rounded, 'Копіювання записів', value: pr.copyToToday ? 'Сьогоднішня дата' : 'Дата оригіналу', onTap: () async {
               final v = await _choose<bool>(context, 'Дата копії запису', {true: 'Сьогоднішня дата', false: 'Дата оригіналу'}, pr.copyToToday);
               if (v != null) store.updatePrefs((p) => p.copyToToday = v);

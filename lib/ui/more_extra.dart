@@ -48,8 +48,8 @@ class _TxnSettingsPage extends StatelessWidget {
 
 // ---- Повторювані записи (MM: Repeat Setting) ----------------------------------------
 
-class _RepeatsPage extends StatelessWidget {
-  const _RepeatsPage();
+class RepeatsPage extends StatelessWidget {
+  const RepeatsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
