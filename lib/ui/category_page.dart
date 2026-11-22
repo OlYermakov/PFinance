@@ -10,7 +10,7 @@ import '../data/models.dart';
 import '../state/app_store.dart';
 import 'format.dart';
 import 'glass.dart';
-import 'stats_page.dart' show CategoryRow, Slice, slicesFor;
+import 'stats_page.dart' show CategoryRow, Slice, sliceKey, slicesFor;
 import 'transactions_page.dart' show DayCard;
 
 class CategoryStatsPage extends StatefulWidget {
@@ -32,7 +32,7 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
   bool _matches(AppStore store, Txn t) {
     if (store.flowOf(t) != widget.type) return false;
     final c = widget.category;
-    return c.parentId == null ? store.topCategory(t.categoryId)?.id == c.id : t.categoryId == c.id;
+    return c.parentId == null ? sliceKey(store, t) == c.id : t.categoryId == c.id;
   }
 
   List<Txn> _inMonth(AppStore store, DateTime m) {

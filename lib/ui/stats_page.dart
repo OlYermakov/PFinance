@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../data/models.dart';
 import '../state/app_store.dart';
+import 'accounts_page.dart' show groupOf;
 import 'category_page.dart';
 import 'format.dart';
 import 'edit_transaction.dart' show openTxnEditor;
@@ -24,20 +25,43 @@ class Slice {
   final int amount;
 }
 
+/// Top-level slice key of a record: its top category, or for a transfer that
+/// counts as income/expense (MM "Transfer-Expense") the group of the
+/// transfer-expense account, as `grp:<group>`.
+String? sliceKey(AppStore store, Txn t) {
+  if (t.type != TxType.transfer) return store.topCategory(t.categoryId)?.id;
+  final f = store.flowOf(t);
+  if (f == null) return null;
+  final a = store.account(f == TxType.expense ? t.toAccountId : t.accountId);
+  return a == null ? null : 'grp:${groupOf(a)}';
+}
+
+const _groupColors = [0xFF8BD17C, 0xFF6EC6E8, 0xFFB39DDB, 0xFFF48FB1, 0xFFFFCC80];
+
+/// The category (real, or a stand-in for an account group) behind a slice key.
+Category? sliceCategory(AppStore store, String? key, TxType type) {
+  if (key == null) return null;
+  if (!key.startsWith('grp:')) return store.category(key);
+  final name = key.substring(4);
+  return Category(id: key, name: name, type: type, color: _groupColors[name.hashCode.abs() % _groupColors.length]);
+}
+
 /// Sums [txns] by top-level category (or by sub-category of [parent]).
 List<Slice> slicesFor(AppStore store, Iterable<Txn> txns, {String? parent}) {
   final by = <String?, int>{};
+  TxType type = TxType.expense;
   for (final t in txns) {
     final String? key;
     if (parent == null) {
-      key = store.topCategory(t.categoryId)?.id;
+      key = sliceKey(store, t);
+      type = store.flowOf(t) ?? type;
     } else {
       if (store.topCategory(t.categoryId)?.id != parent) continue;
       key = t.categoryId == parent ? null : t.categoryId;
     }
     by[key] = (by[key] ?? 0) + store.baseAmount(t);
   }
-  return [for (final e in by.entries) Slice(store.category(e.key), e.value)]..sort((a, b) => b.amount.compareTo(a.amount));
+  return [for (final e in by.entries) Slice(sliceCategory(store, e.key, type), e.value)]..sort((a, b) => b.amount.compareTo(a.amount));
 }
 
 enum StatsTab { stats, budget, notes }
@@ -295,7 +319,7 @@ class _StatsPageState extends State<StatsPage> {
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(children: [
             CategoryRow(slice: sl, total: total, currency: cur, index: i),
-            for (final t in (txns.where((t) => store.topCategory(t.categoryId)?.id == sl.category?.id).toList()
+            for (final t in (txns.where((t) => sliceKey(store, t) == sl.category?.id).toList()
               ..sort((a, b) => b.date.compareTo(a.date)))) ...[
               Divider(height: 1, indent: 16, color: Colors.white.withValues(alpha: 0.06)),
               InkWell(
