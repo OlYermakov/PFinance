@@ -419,67 +419,59 @@ class TxnTile extends StatelessWidget {
     final top = store.topCategory(txn.categoryId);
     final cat = store.category(txn.categoryId);
 
-    final String title;
-    final String subtitle;
-    final Widget avatar;
+    // MM-style row: category on the left (grey), note in bold with the
+    // account (and repeat frequency) under it, amount on the right.
+    final String left1, left2, title, under;
     final Color amountColor;
-    final String amountText;
+    final showNote = store.prefs.showNote && txn.note.isNotEmpty;
+    final rule = store.repeats.where((r) {
+      final t = r.template;
+      return t.type == txn.type && t.accountId == txn.accountId && t.categoryId == txn.categoryId && t.note == txn.note && t.amount == txn.amount;
+    }).firstOrNull;
+    final repeat = rule == null ? '' : ' (${repeatLabel(rule.every)})';
     switch (txn.type) {
       case TxType.transfer:
         final to = store.account(txn.toAccountId);
-        title = 'Переказ';
-        subtitle = [
-          '${acc?.name ?? '?'} → ${to?.name ?? '?'}',
-          if (txn.note.isNotEmpty && store.prefs.showNote) txn.note,
-        ].join(' · ');
-        avatar = EmojiAvatar(emoji: '🔄', color: scheme.primary);
-        amountColor = scheme.onSurface;
-        amountText = money(txn.amount, cur);
+        left1 = 'Переказ';
+        left2 = '';
+        title = showNote ? txn.note : '${acc?.name ?? '?'} → ${to?.name ?? '?'}';
+        under = showNote ? '${acc?.name ?? '?'} → ${to?.name ?? '?'}$repeat' : repeat.trim();
+        final f = store.flowOf(txn);
+        amountColor = f == TxType.expense ? p.expense : (f == TxType.income ? incomeColor(context, store) : scheme.onSurface);
       case TxType.income || TxType.expense:
-        title = top?.name ?? 'Без категорії';
-        subtitle = [
-          if (cat != null && top != null && cat.id != top.id) cat.name,
-          if (txn.note.isNotEmpty && store.prefs.showNote) txn.note,
-          acc?.name ?? '',
-        ].join(' · ');
-        avatar = EmojiAvatar(
-          emoji: top?.emoji ?? '•',
-          color: Color(top?.color ?? 0xFF8E8E93),
-          size: 38,
-        );
-        final income = txn.type == TxType.income;
-        amountColor = income ? incomeColor(context, store) : p.expense;
-        amountText = money(txn.amount, cur);
+        left1 = top?.name ?? 'Без категорії';
+        left2 = cat != null && top != null && cat.id != top.id ? cat.name : '';
+        title = showNote ? txn.note : '';
+        under = '${acc?.name ?? ''}$repeat';
+        amountColor = txn.type == TxType.income ? incomeColor(context, store) : p.expense;
     }
-
-    final timeText = store.prefs.timeMode == 2
-        ? TimeOfDay.fromDateTime(txn.date).format(context)
-        : null;
-    final tile = ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18),
-      visualDensity: const VisualDensity(vertical: -1),
-      leading: avatar,
-      title: Text(
-        title,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text(
-        [?timeText, subtitle].join(' · '),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(color: scheme.onSurfaceVariant),
-      ),
-      trailing: Text(
-        amountText,
-        style: TextStyle(
-          color: amountColor,
-          fontWeight: FontWeight.w700,
-          fontSize: 15,
-        ),
-      ),
+    final timeText = store.prefs.timeMode == 2 ? TimeOfDay.fromDateTime(txn.date).format(context) : null;
+    final muted = TextStyle(color: scheme.onSurfaceVariant, fontSize: 13.5);
+    final second = [?timeText, if (under.isNotEmpty) under].join(' · ');
+    final tile = InkWell(
       onTap: () => openTxnEditor(context, existing: txn),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        child: Row(children: [
+          SizedBox(
+            width: 92,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(left1, maxLines: 1, overflow: TextOverflow.ellipsis, style: muted),
+              if (left2.isNotEmpty) Text(left2, maxLines: 1, overflow: TextOverflow.ellipsis, style: muted),
+            ]),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (title.isNotEmpty)
+                Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5)),
+              if (second.isNotEmpty) Text(second, maxLines: 1, overflow: TextOverflow.ellipsis, style: muted),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          Text(money(txn.amount, cur), style: TextStyle(color: amountColor, fontWeight: FontWeight.w600, fontSize: 15.5)),
+        ]),
+      ),
     );
     if (store.prefs.swipe != 'delete') return tile;
     return Dismissible(
