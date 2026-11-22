@@ -827,8 +827,8 @@ class _WeeksView extends StatelessWidget {
                               .withValues(alpha: 0.12)
                         : null,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 14,
+                      horizontal: 16,
+                      vertical: 8,
                     ),
                     child: Row(
                       children: [
@@ -948,14 +948,14 @@ class _SummaryView extends StatelessWidget {
       required Widget child,
     }) => Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
       color: scheme.surface.withValues(alpha: 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              Icon(icon, size: 24, color: muted),
+              Icon(icon, size: 21, color: muted),
               const SizedBox(width: 12),
               Expanded(
                 child: title.isEmpty
@@ -963,7 +963,7 @@ class _SummaryView extends StatelessWidget {
                     : Text.rich(
                         _titleSpan(title, p.expense),
                         style: const TextStyle(
-                          fontSize: 19,
+                          fontSize: 17,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -971,7 +971,7 @@ class _SummaryView extends StatelessWidget {
               ?trailing,
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           child,
         ],
       ),

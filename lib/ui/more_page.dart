@@ -21,7 +21,7 @@ import 'widgets.dart';
 
 part 'more_extra.dart';
 
-const appVersion = 'v0.9.13';
+const appVersion = 'v0.9.14';
 
 /// Full names of the supported currencies (Settings → currencies).
 const currencyNames = {
@@ -104,7 +104,7 @@ class _Band extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 22, 20, 8),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
         child: Text(text, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
       );
 }
@@ -151,7 +151,7 @@ class _Item extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(icon == null ? 20 : 16, 14, 16, 14),
+        padding: EdgeInsets.fromLTRB(icon == null ? 20 : 16, 11, 16, 11),
         child: Row(children: [
           if (icon != null) ...[Icon(icon, color: scheme.onSurfaceVariant, size: 24), const SizedBox(width: 16)],
           Expanded(

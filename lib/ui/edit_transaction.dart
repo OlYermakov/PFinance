@@ -1013,7 +1013,7 @@ class _TxnEditorState extends State<TxnEditor> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            height: 48,
+            height: 42,
             padding: const EdgeInsets.only(left: 16),
             color: Colors.white.withValues(alpha: 0.06),
             child: Row(
@@ -1164,7 +1164,7 @@ class _TypeTabs extends StatelessWidget {
                 onTap: () => onChanged(t),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
-                  height: 44,
+                  height: 36,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
@@ -1223,7 +1223,7 @@ class _FormRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: SizedBox(
-        height: 58,
+        height: 48,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1319,7 +1319,7 @@ class _Grid extends StatelessWidget {
               for (final c in r)
                 Expanded(
                   child: Container(
-                    height: 58,
+                    height: 48,
                     decoration: BoxDecoration(
                       color: tinted
                           ? accent.withValues(alpha: 0.10)
@@ -1440,7 +1440,7 @@ class _CalcPad extends StatelessWidget {
     }) => Expanded(
       flex: flex,
       child: Container(
-        height: 54,
+        height: 50,
         decoration: BoxDecoration(
           color: bg,
           border: Border(

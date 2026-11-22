@@ -182,7 +182,7 @@ class _StatsPageState extends State<StatsPage> {
     return SafeArea(
       bottom: false,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
         children: [
           Row(children: [
             Expanded(
@@ -245,7 +245,7 @@ class _StatsPageState extends State<StatsPage> {
                   onTap: _tab == StatsTab.budget ? null : () => setState(() => _type = t),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 6),
                     decoration: BoxDecoration(
                       border: Border(
                         bottom: BorderSide(
@@ -258,8 +258,8 @@ class _StatsPageState extends State<StatsPage> {
                       Text(label, style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant)),
                       Text(money(v, cur),
                           style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                             color: (_tab == StatsTab.budget ? t == TxType.expense : _type == t) ? null : scheme.onSurfaceVariant,
                           )),
                     ]),
@@ -401,7 +401,7 @@ class _StatsPageState extends State<StatsPage> {
           InkWell(
             onTap: () => _openNote(context, e.key, e.value.list),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+              padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
               child: Row(children: [
                 Expanded(
                   child: Text(e.key.isEmpty ? 'Без нотатки' : e.key,
@@ -541,7 +541,7 @@ class _BudgetView extends StatelessWidget {
             Text('Залишок (місяць)', style: TextStyle(color: scheme.onSurfaceVariant)),
             const SizedBox(height: 4),
             AnimatedMoney(limitTotal - spentTotal, currency,
-                style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: limitTotal - spentTotal < 0 ? AppPalette.of(context).expense : null)),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: limitTotal - spentTotal < 0 ? AppPalette.of(context).expense : null)),
           ]),
         ),
         FilledButton.tonal(
@@ -607,7 +607,7 @@ class _BudgetRow extends StatelessWidget {
     final barColor = over ? AppPalette.of(context).expense : scheme.primary;
     final muted = scheme.onSurfaceVariant;
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, showToday ? 30 : 14, 16, 14),
+      padding: EdgeInsets.fromLTRB(16, showToday ? 26 : 10, 16, 10),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         SizedBox(
           width: 118,
