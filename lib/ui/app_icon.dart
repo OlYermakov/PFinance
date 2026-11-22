@@ -9,3 +9,7 @@ String appIconAsset(int i) => 'assets/images/app_icons/icon$i.png';
 /// A phone keeps the icon it had when the page was added to the home screen,
 /// so a new choice shows after re-adding it.
 void applyAppIcon(int i) => impl.applyAppIcon(i);
+
+/// Colours the browser chrome around the app (iOS status bar, Safari bars)
+/// and the page behind it to match the app's backdrop.
+void applyPageColor(int argb) => impl.applyPageColor(argb);

@@ -39,6 +39,11 @@ class MoneyApp extends StatelessWidget {
             locale: const Locale('uk'),
             supportedLocales: const [Locale('uk'), Locale('en')],
             localizationsDelegates: GlobalMaterialLocalizations.delegates,
+            builder: (context, child) {
+              final dark = Theme.of(context).brightness == Brightness.dark;
+              applyPageColor(dark ? 0xFF111318 : 0xFFF2F3F7);
+              return child!;
+            },
             home: const HomeShell(),
           );
         },
