@@ -21,7 +21,7 @@ import 'widgets.dart';
 
 part 'more_extra.dart';
 
-const appVersion = 'v0.9.17';
+const appVersion = 'v0.9.18';
 
 /// Full names of the supported currencies (Settings → currencies).
 const currencyNames = {
@@ -46,17 +46,19 @@ class MorePage extends StatelessWidget {
     final subs = pr.rates.keys.where((c) => c != pr.baseCurrency).toList()..sort();
     return SafeArea(
       bottom: false,
-      child: ListView(
+      // The logo header stays put; only the menu below it scrolls.
+      child: Column(children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+          child: Row(children: [
+            const PfLogo(size: 40),
+            const Spacer(),
+            Text('PFinance · $appVersion', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant)),
+          ]),
+        ),
+        Expanded(child: ListView(
         padding: const EdgeInsets.only(bottom: 120),
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-            child: Row(children: [
-              const PfLogo(size: 40),
-              const Spacer(),
-              Text('PFinance · $appVersion', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant)),
-            ]),
-          ),
           _Group(children: [
             _Item(Icons.receipt_long_outlined, 'Налаштування записів',
                 subtitle: 'Початок місяця, тижня, перенесення, час, свайп…', onTap: () => push(const _TxnSettingsPage())),
@@ -90,7 +92,8 @@ class MorePage extends StatelessWidget {
           const SizedBox(height: 20),
           Center(child: Text('Дані зберігаються лише на цьому пристрої', style: Theme.of(context).textTheme.bodySmall)),
         ],
-      ),
+      )),
+      ]),
     );
   }
 }
