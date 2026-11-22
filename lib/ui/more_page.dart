@@ -611,7 +611,7 @@ Future<void> editCategory(BuildContext context, {required TxType type, Category?
               if (!isSub) ...[
                 SizedBox(
                   width: 72,
-                  child: TextField(controller: emoji, textAlign: TextAlign.center, style: const TextStyle(fontSize: 22), decoration: const InputDecoration(hintText: '🙂')),
+                  child: TextField(controller: emoji, textAlign: TextAlign.center, style: const TextStyle(fontSize: 22), decoration: const InputDecoration(hintText: '—')),
                 ),
                 const SizedBox(width: 12),
               ],
@@ -636,7 +636,7 @@ Future<void> editCategory(BuildContext context, {required TxType type, Category?
           FilledButton(
             onPressed: () {
               if (name.text.trim().isEmpty) return;
-              final e = emoji.text.trim().isEmpty ? '•' : emoji.text.trim();
+              final e = emoji.text.trim();
               store.saveCategory(existing?.copyWith(name: name.text.trim(), emoji: e, color: color) ??
                   Category(
                     name: name.text.trim(),

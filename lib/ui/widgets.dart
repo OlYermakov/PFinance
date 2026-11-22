@@ -109,6 +109,12 @@ class AnimatedMoney extends StatelessWidget {
   }
 }
 
+/// Whether a category icon was set ('•' was the old placeholder).
+bool hasIcon(String? e) => e != null && e.trim().isNotEmpty && e != '•';
+
+/// Prefix "emoji " for a label, or nothing when the category has no icon.
+String iconPrefix(String? e) => hasIcon(e) ? '$e ' : '';
+
 class EmojiAvatar extends StatelessWidget {
   const EmojiAvatar({super.key, required this.emoji, required this.color, this.size = 40});
   final String emoji;
@@ -129,7 +135,9 @@ class EmojiAvatar extends StatelessWidget {
           borderRadius: BorderRadius.circular(size * 0.34),
           border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
         ),
-        child: Text(emoji, style: TextStyle(fontSize: size * 0.48)),
+        child: hasIcon(emoji)
+            ? Text(emoji, style: TextStyle(fontSize: size * 0.48))
+            : Container(width: size * 0.26, height: size * 0.26, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
       );
 }
 

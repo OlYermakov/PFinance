@@ -718,7 +718,7 @@ class _TxnEditorState extends State<TxnEditor> {
 
   _Cell _categoryCell(AppStore store, Category c, List<Category> subs) => _Cell(
         c.name,
-        emoji: c.emoji,
+        emoji: hasIcon(c.emoji) ? c.emoji : null,
         id: c.id,
         selected: _categoryId == c.id || _expanded == c.id,
         chevron: subs.isEmpty ? null : (_expanded == c.id ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded),

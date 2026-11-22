@@ -2,7 +2,8 @@ import '../data/models.dart';
 
 /// Default categories with sub-categories (Money Manager style two levels),
 /// named so that the PF dashboard groups them sensibly after export.
-List<Category> defaultCategories() {
+/// Sample categories for tests and demo data; the app starts with none.
+List<Category> sampleCategories() {
   var i = 0;
   final out = <Category>[];
   void add(TxType type, String name, String emoji, int color, [List<String> subs = const []]) {

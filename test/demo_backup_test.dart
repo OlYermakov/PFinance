@@ -9,12 +9,16 @@ import 'package:money_app/data/db_factory_memory.dart';
 import 'package:money_app/data/models.dart';
 import 'package:money_app/data/repository.dart';
 import 'package:money_app/state/app_store.dart';
+import 'package:money_app/state/seed.dart';
 
 /// Writes a demo backup (for screenshots) to $OUT.
 void main() {
   test('demo backup', () async {
     final s = AppStore(Repository(await openMemoryDatabase(newId())));
     await s.load();
+    for (final c in sampleCategories()) {
+      await s.saveCategory(c);
+    }
     final rnd = Random(3);
     final acc = s.accounts;
     final exp = s.categoriesOf(TxType.expense);

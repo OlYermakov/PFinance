@@ -8,12 +8,16 @@ import 'package:money_app/data/db_factory_memory.dart';
 import 'package:money_app/data/models.dart';
 import 'package:money_app/data/repository.dart';
 import 'package:money_app/state/app_store.dart';
+import 'package:money_app/state/seed.dart';
 import 'package:money_app/ui/export_pf.dart';
 
 void main() {
   test('write sample PF export', () async {
     final s = AppStore(Repository(await openMemoryDatabase(newId())));
     await s.load();
+    for (final c in sampleCategories()) {
+      await s.saveCategory(c);
+    }
     final acc = s.accounts;
     final cats = s.categoriesOf(TxType.expense);
     for (var d = 1; d <= 20; d++) {

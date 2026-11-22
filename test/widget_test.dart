@@ -4,6 +4,7 @@ import 'package:money_app/data/db_factory_memory.dart';
 import 'package:money_app/data/models.dart';
 import 'package:money_app/data/repository.dart';
 import 'package:money_app/state/app_store.dart';
+import 'package:money_app/state/seed.dart';
 import 'package:money_app/ui/edit_transaction.dart' show evalExpression;
 import 'package:money_app/ui/export_pf.dart';
 import 'package:money_app/ui/format.dart';
@@ -11,6 +12,9 @@ import 'package:money_app/ui/format.dart';
 Future<AppStore> _store() async {
   final store = AppStore(Repository(await openMemoryDatabase(newId())));
   await store.load();
+  for (final c in sampleCategories()) {
+    await store.saveCategory(c);
+  }
   return store;
 }
 
@@ -54,11 +58,13 @@ void main() {
     expect(tags.single.sum, -25000);
   });
 
-  test('seeds default accounts and categories', () async {
-    final s = await _store();
+  test('seeds default accounts but no categories', () async {
+    final s = AppStore(Repository(await openMemoryDatabase(newId())));
+    await s.load();
     expect(s.accounts, hasLength(4));
     expect(s.baseCurrency, 'EUR');
-    expect(s.categoriesOf(TxType.expense), isNotEmpty);
+    expect(s.categoriesOf(TxType.expense), isEmpty);
+    expect(s.categoriesOf(TxType.income), isEmpty);
   });
 
   test('balances and transfers', () async {

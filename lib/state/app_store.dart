@@ -118,10 +118,7 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<void> _seed() async {
-    for (final c in defaultCategories()) {
-      _categories.add(c);
-      await repo.put(c);
-    }
+    // No starter categories: the user creates their own.
     for (final a in defaultAccounts()) {
       _accounts.add(a);
       await repo.put(a);

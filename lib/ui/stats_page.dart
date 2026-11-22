@@ -826,7 +826,7 @@ class CategoryRow extends StatelessWidget {
           child: Text('${(share * 100).round()}%', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
         ),
         title: Row(children: [
-          if (c != null && c.parentId == null) ...[Text(c.emoji), const SizedBox(width: 6)],
+          if (c != null && c.parentId == null && hasIcon(c.emoji)) ...[Text(c.emoji), const SizedBox(width: 6)],
           Expanded(child: Text(c?.name ?? fallbackName, overflow: TextOverflow.ellipsis)),
           Text(money(slice.amount, currency), style: const TextStyle(fontWeight: FontWeight.w700)),
         ]),
@@ -854,7 +854,7 @@ Future<void> editBudget(BuildContext context, {required String currency, Budget?
             decoration: const InputDecoration(labelText: 'Категорія'),
             items: [
               if (!used.contains(null) || existing?.categoryId == null) const DropdownMenuItem(value: null, child: Text('🎯 Усі витрати')),
-              for (final c in cats) DropdownMenuItem(value: c.id, child: Text('${c.emoji} ${c.name}')),
+              for (final c in cats) DropdownMenuItem(value: c.id, child: Text('${iconPrefix(c.emoji)}${c.name}')),
             ],
             onChanged: existing != null ? null : (v) => setState(() => catId = v),
           ),
