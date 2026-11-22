@@ -553,6 +553,7 @@ class _BackupPage extends StatelessWidget {
       body: ListView(children: [
         const _Band('Експорт / імпорт'),
         _Group(children: [
+          _Item(null, 'Поділитися копією', subtitle: 'iCloud Drive («Зберегти у Файли»), пошта, месенджери', onTap: () => _shareBackup(context)),
           _Item(null, 'Зберегти резервну копію на пристрій', onTap: () => _export(context)),
           _Item(null, 'Відновити з резервної копії', onTap: () => _import(context)),
           _Item(null, 'Експорт даних в Excel', onTap: () => exportForPf(context)),

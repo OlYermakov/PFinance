@@ -13,6 +13,7 @@ import 'accounts_page.dart' show EditAccountsPage, editAccount, groupOf;
 import 'app_icon.dart';
 import 'edit_transaction.dart' show openTxnEditor, repeatLabel;
 import 'export_pf.dart';
+import 'share_file.dart';
 import 'format.dart';
 import 'theme.dart';
 import 'transactions_page.dart' show TxnTile;
@@ -732,6 +733,18 @@ Future<void> _export(BuildContext context) async {
     mimeType: MimeType.json,
   );
   if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Резервну копію збережено')));
+}
+
+/// Backup through the share sheet: iCloud Drive ("Зберегти у Файли"), Mail…
+Future<void> _shareBackup(BuildContext context) async {
+  final store = StoreScope.read(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final d = DateTime.now();
+  final name = 'pfinance-backup-${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}.json';
+  final bytes = Uint8List.fromList(utf8.encode(await store.exportJson()));
+  if (await shareFile(bytes, name, 'application/json')) return;
+  await FileSaver.instance.saveFile(name: name.replaceAll('.json', ''), bytes: bytes, fileExtension: 'json', mimeType: MimeType.json);
+  messenger.showSnackBar(const SnackBar(content: Text('Цей браузер не вміє ділитися файлами, тому копію збережено як завантаження')));
 }
 
 Future<void> _import(BuildContext context) async {
