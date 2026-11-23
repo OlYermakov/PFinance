@@ -939,7 +939,7 @@ class _SummaryView extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               foregroundColor: scheme.onSurface,
             ),
-            onPressed: () => exportForPf(context),
+            onPressed: () => exportForPf(context, month: month),
             icon: const Icon(Icons.table_view_rounded, color: Color(0xFF21A366)),
             label: const Text('Експорт даних в Excel'),
           ),

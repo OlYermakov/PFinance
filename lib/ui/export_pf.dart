@@ -68,19 +68,91 @@ Uint8List buildPfWorkbook(AppStore store, {DateTime? from, DateTime? to}) {
   return Uint8List.fromList(excel.encode()!);
 }
 
-Future<void> exportForPf(BuildContext context) async {
+/// MM «Надісл. Ексель»: pick the period first (this month, last month, this
+/// year, last year, everything), then save the .xlsx. [month] is the
+/// accounting month on screen; the choices are counted from it.
+Future<void> exportForPf(BuildContext context, {DateTime? month}) async {
   final store = StoreScope.read(context);
   final messenger = ScaffoldMessenger.of(context);
+  final m = month ?? store.periodOf(DateTime.now());
+  final sd = store.prefs.monthStartDay;
+  final cur = store.periodRange(m);
+  final prev = store.periodRange(DateTime(m.year, m.month - 1));
+  ({DateTime start, DateTime end}) year(int y) => (start: DateTime(y, 1, sd), end: DateTime(y + 1, 1, sd));
+  final df = DateFormat('d.M.yyyy');
+  String span(({DateTime start, DateTime end}) r) {
+    final last = r.end.subtract(const Duration(days: 1));
+    return '${df.format(r.start)} ~ ${last.day}.${last.month}.';
+  }
+
+  final options = <(String, ({DateTime start, DateTime end})?)>[
+    ('Місяць (${span(cur)})', cur),
+    ('Мин. місяць (${span(prev)})', prev),
+    ('Рік (${span(year(m.year))})', year(m.year)),
+    ('Мин. рік (${span(year(m.year - 1))})', year(m.year - 1)),
+    ('Все', null),
+  ];
+  final scheme = Theme.of(context).colorScheme;
+  Widget button(String text, VoidCallback onTap, {bool bold = false, bool center = false}) => InkWell(
+    onTap: onTap,
+    child: Container(
+      height: 54,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      alignment: center ? Alignment.center : Alignment.centerLeft,
+      child: Text(text, style: TextStyle(fontSize: 17, fontWeight: bold ? FontWeight.w600 : FontWeight.w400)),
+    ),
+  );
+  final picked = await showModalBottomSheet<int>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (context) {
+      final panel = Theme.of(context).brightness == Brightness.dark ? const Color(0xFF23262E) : Colors.white;
+      final line = scheme.onSurface.withValues(alpha: 0.1);
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Material(
+                  color: panel,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(20, 18, 20, 14),
+                        child: Text('Експорт в Excel', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                      ),
+                      for (final (i, o) in options.indexed) ...[Divider(height: 1, color: line), button(o.$1, () => Navigator.pop(context, i))],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Material(color: panel, child: button('Скасувати', () => Navigator.pop(context), bold: true, center: true)),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+  if (picked == null) return;
+  final r = options[picked].$2;
   try {
-    final bytes = buildPfWorkbook(store);
-    final d = DateTime.now();
-    await FileSaver.instance.saveFile(
-      name: 'PF-export-${DateFormat('yyyy-MM-dd').format(d)}',
-      bytes: bytes,
-      fileExtension: 'xlsx',
-      mimeType: MimeType.microsoftExcel,
-    );
-    messenger.showSnackBar(SnackBar(content: Text('Excel збережено: ${store.txns.length} записів. Імпортуй його в PF кнопкою імпорту.')));
+    final bytes = buildPfWorkbook(store, from: r?.start, to: r?.end);
+    final n = store.txns.where((t) => r == null || (!t.date.isBefore(r.start) && t.date.isBefore(r.end))).length;
+    final f = DateFormat('yyyy-MM-dd');
+    final name = r == null
+        ? 'PF-export-all-${f.format(DateTime.now())}'
+        : 'PF-export-${f.format(r.start)}_${f.format(r.end.subtract(const Duration(days: 1)))}';
+    await FileSaver.instance.saveFile(name: name, bytes: bytes, fileExtension: 'xlsx', mimeType: MimeType.microsoftExcel);
+    messenger.showSnackBar(SnackBar(content: Text('Excel збережено: $n записів. Імпортуй його в PF кнопкою імпорту.')));
   } catch (e) {
     messenger.showSnackBar(SnackBar(content: Text('Не вдалося створити файл: $e')));
   }
