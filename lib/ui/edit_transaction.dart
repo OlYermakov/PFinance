@@ -58,7 +58,8 @@ class _TxnEditorState extends State<TxnEditor> {
     _type = e?.type ?? TxType.expense;
     final now = DateTime.now();
     _date = e?.date ?? (widget.date != null ? DateTime(widget.date!.year, widget.date!.month, widget.date!.day, now.hour, now.minute) : now);
-    _accountId = e?.accountId ?? store.lastUsedAccountId;
+    // MM: a new record starts with no account chosen.
+    _accountId = e?.accountId;
     _toAccountId = e?.toAccountId;
     final c = store.category(e?.categoryId);
     if (c?.parentId != null) {
@@ -78,8 +79,8 @@ class _TxnEditorState extends State<TxnEditor> {
       if (widget.amount != null) {
         _expr[_Field.amount] = _input(widget.amount!, store.account(_accountId)?.currency ?? store.baseCurrency);
       }
-      // Like Money Manager: a new record starts with the category grid open.
-      _panel = _Field.category;
+      // Like Money Manager: a new record starts with the account grid open.
+      _panel = _Field.account;
     }
     _noteFocus.addListener(() {
       setState(() {
@@ -134,6 +135,34 @@ class _TxnEditorState extends State<TxnEditor> {
         _panel = null;
       }
     });
+  }
+
+  /// "Далі" (MM): go to the next field of the form, in its order.
+  void _next() {
+    final store = StoreScope.read(context);
+    final order = <_Field?>[
+      _Field.account,
+      if (_type == TxType.transfer) _Field.toAccount,
+      if (_type != TxType.transfer) _Field.category,
+      _Field.amount,
+      if (_crossCurrency(store)) _Field.toAmount,
+      if (_type == TxType.transfer && _showFee) _Field.fee,
+      null, // the note
+    ];
+    final current = _noteFocus.hasFocus ? null : _panel;
+    final i = _noteFocus.hasFocus ? order.length - 1 : (current == null ? -1 : order.indexOf(current));
+    if (i == order.length - 1) {
+      FocusScope.of(context).unfocus(); // past the note: just close the keyboard
+      return;
+    }
+    final f = order[i + 1];
+    if (f == null) {
+      setState(() => _panel = null);
+      _noteFocus.requestFocus();
+    } else {
+      FocusScope.of(context).unfocus();
+      setState(() => _panel = f);
+    }
   }
 
   bool _crossCurrency(AppStore store) {
@@ -216,7 +245,7 @@ class _TxnEditorState extends State<TxnEditor> {
       return;
     }
     if (keepOpen) {
-      // "Далі": the next record keeps date, account and type.
+      // Save and start the next record: it keeps date, account and type.
       setState(() {
         _savedInSeries++;
         _expr.updateAll((_, _) => '');
@@ -454,7 +483,11 @@ class _TxnEditorState extends State<TxnEditor> {
             }
             _type = t;
             _error = null;
-            _panel = t == TxType.transfer ? (_toAccountId == null ? _Field.toAccount : _Field.amount) : _Field.category;
+            _panel = _accountId == null
+                ? _Field.account
+                : t == TxType.transfer
+                ? (_toAccountId == null ? _Field.toAccount : _Field.amount)
+                : _Field.category;
           }),
         ),
         const SizedBox(height: 8),
@@ -724,7 +757,7 @@ class _TxnEditorState extends State<TxnEditor> {
                     side: BorderSide(color: scheme.onSurfaceVariant.withValues(alpha: 0.6)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                   ),
-                  onPressed: () => _save(keepOpen: true),
+                  onPressed: _next,
                   child: const Text('Далі', style: TextStyle(fontSize: 16)),
                 ),
               ),
