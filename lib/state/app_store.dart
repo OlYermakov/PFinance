@@ -21,7 +21,7 @@ class Prefs {
   int monthStartDay = 1; // 1..28, e.g. salary day
   bool weekStartsMonday = true;
   StartPage startPage = StartPage.day;
-  bool incomeBlue = false; // false: green/red, true: blue/red
+  String incomeColor = 'green'; // income: 'green', 'blue' or 'accent' (theme accent); expenses are always red
   bool showDecimals = true;
   bool subcategories = true;
   bool accountGroupsInPicker = false; // MM: the account picker shows groups first
@@ -56,7 +56,7 @@ class Prefs {
     'monthStartDay': monthStartDay,
     'weekStartsMonday': weekStartsMonday,
     'startPage': startPage.name,
-    'incomeBlue': incomeBlue,
+    'incomeColor': incomeColor,
     'showDecimals': showDecimals,
     'subcategories': subcategories,
     'accountGroupsInPicker': accountGroupsInPicker,
@@ -89,7 +89,7 @@ class Prefs {
     monthStartDay = (j['monthStartDay'] as num?)?.toInt() ?? monthStartDay;
     weekStartsMonday = j['weekStartsMonday'] as bool? ?? weekStartsMonday;
     startPage = StartPage.values.asNameMap()[j['startPage']] ?? startPage;
-    incomeBlue = j['incomeBlue'] as bool? ?? incomeBlue;
+    incomeColor = j['incomeColor'] as String? ?? (j['incomeBlue'] == true ? 'blue' : incomeColor);
     showDecimals = j['showDecimals'] as bool? ?? showDecimals;
     subcategories = j['subcategories'] as bool? ?? subcategories;
     accountGroupsInPicker = j['accountGroupsInPicker'] as bool? ?? accountGroupsInPicker;

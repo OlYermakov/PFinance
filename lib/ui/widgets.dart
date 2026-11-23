@@ -216,7 +216,11 @@ class TotalsStrip extends StatelessWidget {
 }
 
 /// Income colour follows the "income blue / green" setting.
-Color incomeColor(BuildContext context, AppStore store) => store.prefs.incomeBlue ? Theme.of(context).colorScheme.primary : AppPalette.of(context).income;
+Color incomeColor(BuildContext context, AppStore store) => switch (store.prefs.incomeColor) {
+  'blue' => const Color(0xFF4C9BF5),
+  'accent' => Theme.of(context).colorScheme.primary,
+  _ => AppPalette.of(context).income,
+};
 
 String txnTitle(AppStore store, Txn t) {
   if (t.type == TxType.transfer) return 'Переказ';

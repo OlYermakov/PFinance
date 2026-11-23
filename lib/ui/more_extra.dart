@@ -54,12 +54,12 @@ class _TxnSettingsPage extends StatelessWidget {
               _Item(
                 null,
                 'Колір доходів і витрат',
-                value: pr.incomeBlue ? 'Дохід синій' : 'Дохід зелений',
-                onTap: () => pick<bool>(
+                value: const {'green': 'Дохід зелений', 'blue': 'Дохід синій', 'accent': 'Дохід за акцентом'}[pr.incomeColor] ?? 'Дохід зелений',
+                onTap: () => pick<String>(
                   'Колір доходів',
-                  {false: 'Дохід зелений, витрати червоні', true: 'Дохід синій, витрати червоні'},
-                  pr.incomeBlue,
-                  (p, v) => p.incomeBlue = v,
+                  const {'green': 'Дохід зелений, витрати червоні', 'blue': 'Дохід синій, витрати червоні', 'accent': 'Дохід за акцентом, витрати червоні'},
+                  pr.incomeColor,
+                  (p, v) => p.incomeColor = v,
                 ),
               ),
               _Item(
