@@ -639,6 +639,36 @@ class _PillTabs<T> extends StatelessWidget {
   }
 }
 
+/// Budget rows of a month (top-level categories in their order, then
+/// transfer-expense groups) and the month's total limit and spending. The
+/// Budget tab and the Summary both use this, so their totals always agree.
+({List<Budget> rows, int limitTotal, int spentTotal, int Function(String key) spentFor}) budgetTotals(
+  AppStore store,
+  DateTime month,
+  String currency,
+  TxType type,
+) {
+  final r = store.periodRange(month);
+  final txns = store.txns.where((t) => !t.date.isBefore(r.start) && t.date.isBefore(r.end) && store.flowOf(t) == type).toList();
+  int spentFor(String key) => txns
+      .where((t) => key.startsWith('grp:') ? sliceKey(store, t) == key : (t.categoryId == key || store.topCategory(t.categoryId)?.id == key))
+      .fold(0, (s, t) => s + store.baseAmount(t));
+
+  // Top-level categories in their own order, then transfer-expense groups.
+  final order = {for (final (i, c) in store.categoriesOf(type).indexed) c.id: i};
+  final rows =
+      store.budgets
+          .where((b) => b.currency == currency && b.categoryId != null)
+          .where((b) => b.categoryId!.startsWith('grp:') ? type == TxType.expense : order.containsKey(b.categoryId))
+          .toList()
+        ..sort((a, b) => (order[a.categoryId] ?? 1 << 20).compareTo(order[b.categoryId] ?? 1 << 20));
+  final overall = type == TxType.expense ? store.budgets.where((b) => b.currency == currency && b.categoryId == null).firstOrNull : null;
+  final limitTotal = overall?.amount ?? rows.fold<int>(0, (s, b) => s + b.amount);
+  final spentTotal = overall != null ? txns.fold<int>(0, (s, t) => s + store.baseAmount(t)) : rows.fold<int>(0, (s, b) => s + spentFor(b.categoryId!));
+
+  return (rows: rows, limitTotal: limitTotal, spentTotal: spentTotal, spentFor: spentFor);
+}
+
 /// Money Manager–style budget list: what is left this month on top, the
 /// month's total budget with a "today" marker, then one row per budgeted
 /// top-level category (or transfer-expense group) of the selected type.
@@ -653,22 +683,7 @@ class _BudgetView extends StatelessWidget {
     final store = StoreScope.of(context);
     final scheme = Theme.of(context).colorScheme;
     final r = store.periodRange(month);
-    final txns = store.txns.where((t) => !t.date.isBefore(r.start) && t.date.isBefore(r.end) && store.flowOf(t) == type).toList();
-    int spentFor(String key) => txns
-        .where((t) => key.startsWith('grp:') ? sliceKey(store, t) == key : (t.categoryId == key || store.topCategory(t.categoryId)?.id == key))
-        .fold(0, (s, t) => s + store.baseAmount(t));
-
-    // Top-level categories in their own order, then transfer-expense groups.
-    final order = {for (final (i, c) in store.categoriesOf(type).indexed) c.id: i};
-    final rows =
-        store.budgets
-            .where((b) => b.currency == currency && b.categoryId != null)
-            .where((b) => b.categoryId!.startsWith('grp:') ? type == TxType.expense : order.containsKey(b.categoryId))
-            .toList()
-          ..sort((a, b) => (order[a.categoryId] ?? 1 << 20).compareTo(order[b.categoryId] ?? 1 << 20));
-    final overall = type == TxType.expense ? store.budgets.where((b) => b.currency == currency && b.categoryId == null).firstOrNull : null;
-    final limitTotal = overall?.amount ?? rows.fold<int>(0, (s, b) => s + b.amount);
-    final spentTotal = overall != null ? txns.fold<int>(0, (s, t) => s + store.baseAmount(t)) : rows.fold<int>(0, (s, b) => s + spentFor(b.categoryId!));
+    final (:rows, :limitTotal, :spentTotal, :spentFor) = budgetTotals(store, month, currency, type);
 
     final now = DateTime.now();
     final pace = now.isBefore(r.start)
@@ -718,7 +733,7 @@ class _BudgetView extends StatelessWidget {
             ],
           ),
         ),
-        if (rows.isEmpty && overall == null)
+        if (rows.isEmpty && limitTotal == 0)
           GlassCard(
             padding: const EdgeInsets.all(18),
             child: Text(

@@ -7,7 +7,7 @@ import 'edit_transaction.dart';
 import 'accounts_page.dart' show groupOf;
 import 'export_pf.dart';
 import 'more_page.dart' show RepeatsPage;
-import 'stats_page.dart' show editBudget;
+import 'stats_page.dart' show editBudget, budgetTotals;
 import 'format.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -40,8 +40,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
       list = list.where((t) {
         return t.note.toLowerCase().contains(q) ||
             txnTitle(store, t).toLowerCase().contains(q) ||
-            (store.account(t.accountId)?.name.toLowerCase().contains(q) ??
-                false);
+            (store.account(t.accountId)?.name.toLowerCase().contains(q) ?? false);
       }).toList();
     }
     final tot = store.totalsBase(list);
@@ -61,12 +60,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
           : (d) {
               final v = d.primaryVelocity ?? 0;
               if (v.abs() < 300) return;
-              setState(
-                () => _month = DateTime(
-                  _month.year,
-                  _month.month + (v < 0 ? 1 : -1),
-                ),
-              );
+              setState(() => _month = DateTime(_month.year, _month.month + (v < 0 ? 1 : -1)));
             },
       child: SafeArea(
         bottom: false,
@@ -82,10 +76,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                         padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
                         child: TextField(
                           autofocus: true,
-                          decoration: const InputDecoration(
-                            hintText: 'Нотатка, категорія або рахунок',
-                            prefixIcon: Icon(Icons.search_rounded),
-                          ),
+                          decoration: const InputDecoration(hintText: 'Нотатка, категорія або рахунок', prefixIcon: Icon(Icons.search_rounded)),
                           onChanged: (v) => setState(() => _query = v.trim()),
                         ),
                       )
@@ -101,21 +92,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      MonthSwitcher(
-                        month: _month,
-                        year: yearMode,
-                        onChanged: (m) => setState(() => _month = m),
-                      ),
+                      MonthSwitcher(month: _month, year: yearMode, onChanged: (m) => setState(() => _month = m)),
                       Positioned(
                         right: 0,
                         child: IconButton(
                           tooltip: 'Пошук',
                           visualDensity: VisualDensity.compact,
-                          icon: Icon(
-                            _searching
-                                ? Icons.close_rounded
-                                : Icons.search_rounded,
-                          ),
+                          icon: Icon(_searching ? Icons.close_rounded : Icons.search_rounded),
                           onPressed: () => setState(() {
                             _searching = !_searching;
                             _query = '';
@@ -131,10 +114,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
               padding: EdgeInsets.zero,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: _ViewTabs(
-                  value: _view,
-                  onChanged: (v) => setState(() => _view = v),
-                ),
+                child: _ViewTabs(value: _view, onChanged: (v) => setState(() => _view = v)),
               ),
             ),
             Padding(
@@ -145,9 +125,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                   income: tot.income,
                   expense: tot.expense,
                   currency: cur,
-                  carry: store.prefs.carryOver && _query.isEmpty
-                      ? store.carryBefore(yearMode ? yr.start : store.periodRange(_month).start)
-                      : null,
+                  carry: store.prefs.carryOver && _query.isEmpty ? store.carryBefore(yearMode ? yr.start : store.periodRange(_month).start) : null,
                 ),
               ),
             ),
@@ -157,12 +135,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
                   SliverToBoxAdapter(
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 280),
-                      transitionBuilder: (c, a) =>
-                          FadeTransition(opacity: a, child: c),
-                      child: KeyedSubtree(
-                        key: ValueKey(yearMode ? '$_view${_month.year}' : '$_view$_month'),
-                        child: content,
-                      ),
+                      transitionBuilder: (c, a) => FadeTransition(opacity: a, child: c),
+                      child: KeyedSubtree(key: ValueKey(yearMode ? '$_view${_month.year}' : '$_view$_month'), child: content),
                     ),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 120)),
@@ -182,12 +156,7 @@ class _ViewTabs extends StatelessWidget {
   final RecordsView value;
   final ValueChanged<RecordsView> onChanged;
 
-  static const _labels = {
-    RecordsView.day: 'День',
-    RecordsView.calendar: 'Календар',
-    RecordsView.month: 'Місяць',
-    RecordsView.summary: 'Підсумок',
-  };
+  static const _labels = {RecordsView.day: 'День', RecordsView.calendar: 'Календар', RecordsView.month: 'Місяць', RecordsView.summary: 'Підсумок'};
 
   @override
   Widget build(BuildContext context) {
@@ -214,18 +183,8 @@ class _ViewTabs extends StatelessWidget {
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(999),
-                      gradient: LinearGradient(
-                        colors: [
-                          p.gradient.first.withValues(alpha: 0.85),
-                          p.gradient.last.withValues(alpha: 0.85),
-                        ],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: p.gradient.first.withValues(alpha: 0.35),
-                          blurRadius: 14,
-                        ),
-                      ],
+                      gradient: LinearGradient(colors: [p.gradient.first.withValues(alpha: 0.85), p.gradient.last.withValues(alpha: 0.85)]),
+                      boxShadow: [BoxShadow(color: p.gradient.first.withValues(alpha: 0.35), blurRadius: 14)],
                     ),
                   ),
                 ),
@@ -244,11 +203,7 @@ class _ViewTabs extends StatelessWidget {
                                 fontFamilyFallback: const ['Manrope'],
                                 fontWeight: FontWeight.w600,
                                 fontSize: 13,
-                                color: v == value
-                                    ? Colors.white
-                                    : Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                                color: v == value ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                               child: Text(_labels[v]!),
                             ),
@@ -275,19 +230,11 @@ class _DayView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (txns.isEmpty) {
-      return const EmptyState(
-        icon: Icons.receipt_long_outlined,
-        text: 'Записів за цей період немає.\nНатисни «+», щоб додати.',
-      );
+      return const EmptyState(icon: Icons.receipt_long_outlined, text: 'Записів за цей період немає.\nНатисни «+», щоб додати.');
     }
     final days = <DateTime, List<Txn>>{};
     for (final t in txns) {
-      days
-          .putIfAbsent(
-            DateTime(t.date.year, t.date.month, t.date.day),
-            () => [],
-          )
-          .add(t);
+      days.putIfAbsent(DateTime(t.date.year, t.date.month, t.date.day), () => []).add(t);
     }
     return Column(
       children: [
@@ -345,76 +292,42 @@ class DayCard extends StatelessWidget {
           InkWell(
             onTap: () => openTxnEditor(context, date: day),
             child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  '${day.day}',
-                  style: const TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w700,
-                    height: 1,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color:
-                        (weekend
-                                ? p.expense
-                                : Theme.of(context).colorScheme.primary)
-                            .withValues(alpha: 0.18),
-                  ),
-                  child: Text(
-                    weekdayShort(day),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: weekend ? p.expense : null,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text('${day.day}', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700, height: 1)),
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: (weekend ? p.expense : Theme.of(context).colorScheme.primary).withValues(alpha: 0.18),
+                    ),
+                    child: Text(
+                      weekdayShort(day),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: weekend ? p.expense : null),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  DateFormatCache.monthYear(day),
-                  style: TextStyle(fontSize: 12, color: muted),
-                ),
-                const Spacer(),
-                if (t.income > 0)
-                  Text(
-                    money(t.income, cur),
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: incomeColor(context, store),
+                  const SizedBox(width: 8),
+                  Text(DateFormatCache.monthYear(day), style: TextStyle(fontSize: 12, color: muted)),
+                  const Spacer(),
+                  if (t.income > 0)
+                    Text(
+                      money(t.income, cur),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: incomeColor(context, store)),
                     ),
-                  ),
-                if (t.income > 0 && t.expense > 0) const SizedBox(width: 10),
-                if (t.expense > 0)
-                  Text(
-                    money(t.expense, cur),
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: p.expense,
+                  if (t.income > 0 && t.expense > 0) const SizedBox(width: 10),
+                  if (t.expense > 0)
+                    Text(
+                      money(t.expense, cur),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: p.expense),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
-          ),
-          Divider(
-            height: 1,
-            indent: 18,
-            endIndent: 18,
-            color: Colors.white.withValues(alpha: 0.08),
-          ),
+          Divider(height: 1, indent: 18, endIndent: 18, color: Colors.white.withValues(alpha: 0.08)),
           for (final x in txns) TxnTile(txn: x),
         ],
       ),
@@ -423,8 +336,7 @@ class DayCard extends StatelessWidget {
 }
 
 class DateFormatCache {
-  static String monthYear(DateTime d) =>
-      '${d.month.toString().padLeft(2, '0')}.${d.year}';
+  static String monthYear(DateTime d) => '${d.month.toString().padLeft(2, '0')}.${d.year}';
 }
 
 class TxnTile extends StatelessWidget {
@@ -448,11 +360,7 @@ class TxnTile extends StatelessWidget {
     final showNote = store.prefs.showNote && txn.note.isNotEmpty;
     final rule = store.repeats.where((r) {
       final t = r.template;
-      return t.type == txn.type &&
-          t.accountId == txn.accountId &&
-          t.categoryId == txn.categoryId &&
-          t.note == txn.note &&
-          t.amount == txn.amount;
+      return t.type == txn.type && t.accountId == txn.accountId && t.categoryId == txn.categoryId && t.note == txn.note && t.amount == txn.amount;
     }).firstOrNull;
     final repeat = rule == null ? '' : ' (${repeatLabel(rule.every)})';
     switch (txn.type) {
@@ -460,35 +368,21 @@ class TxnTile extends StatelessWidget {
         final to = store.account(txn.toAccountId);
         left1 = 'Переказ';
         left2 = '';
-        title = showNote
-            ? txn.note
-            : '${acc?.name ?? '?'} → ${to?.name ?? '?'}';
-        under = showNote
-            ? '${acc?.name ?? '?'} → ${to?.name ?? '?'}$repeat'
-            : repeat.trim();
+        title = showNote ? txn.note : '${acc?.name ?? '?'} → ${to?.name ?? '?'}';
+        under = showNote ? '${acc?.name ?? '?'} → ${to?.name ?? '?'}$repeat' : repeat.trim();
         final f = store.flowOf(txn);
         amountColor = f == TxType.expense
             ? p.expense
-            : (f == TxType.income
-                  ? incomeColor(context, store)
-                  : scheme.onSurfaceVariant); // MM: a plain transfer is grey
+            : (f == TxType.income ? incomeColor(context, store) : scheme.onSurfaceVariant); // MM: a plain transfer is grey
       case TxType.income || TxType.expense:
         left1 = top?.name ?? 'Без категорії';
         left2 = cat != null && top != null && cat.id != top.id ? cat.name : '';
         title = showNote ? txn.note : '';
         under = '${acc?.name ?? ''}$repeat';
-        amountColor = txn.type == TxType.income
-            ? incomeColor(context, store)
-            : p.expense;
+        amountColor = txn.type == TxType.income ? incomeColor(context, store) : p.expense;
     }
-    final timeText = store.prefs.timeMode == 2
-        ? TimeOfDay.fromDateTime(txn.date).format(context)
-        : null;
-    final muted = TextStyle(
-      color: scheme.onSurfaceVariant,
-      fontSize: 13,
-      height: 1.25,
-    );
+    final timeText = store.prefs.timeMode == 2 ? TimeOfDay.fromDateTime(txn.date).format(context) : null;
+    final muted = TextStyle(color: scheme.onSurfaceVariant, fontSize: 13, height: 1.25);
     final second = [?timeText, if (under.isNotEmpty) under].join(' · ');
     final tile = InkWell(
       onTap: () => openTxnEditor(context, existing: txn),
@@ -503,19 +397,8 @@ class TxnTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      left1,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: muted,
-                    ),
-                    if (left2.isNotEmpty)
-                      Text(
-                        left2,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: muted,
-                      ),
+                    Text(left1, maxLines: 1, overflow: TextOverflow.ellipsis, style: muted),
+                    if (left2.isNotEmpty) Text(left2, maxLines: 1, overflow: TextOverflow.ellipsis, style: muted),
                   ],
                 ),
               ),
@@ -537,13 +420,7 @@ class TxnTile extends StatelessWidget {
                           color: txn.type == TxType.transfer ? scheme.onSurfaceVariant : null,
                         ),
                       ),
-                    if (second.isNotEmpty)
-                      Text(
-                        second,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: muted,
-                      ),
+                    if (second.isNotEmpty) Text(second, maxLines: 1, overflow: TextOverflow.ellipsis, style: muted),
                   ],
                 ),
               ),
@@ -551,11 +428,7 @@ class TxnTile extends StatelessWidget {
               Text(
                 // MM: shown in the currency it was typed in
                 txn.enteredAmount != null && txn.enteredCur != null ? money(txn.enteredAmount!, txn.enteredCur!) : money(txn.amount, cur),
-                style: TextStyle(
-                  color: amountColor,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 15,
-                ),
+                style: TextStyle(color: amountColor, fontWeight: FontWeight.w500, fontSize: 15),
               ),
             ],
           ),
@@ -579,10 +452,7 @@ class TxnTile extends StatelessWidget {
           ..showSnackBar(
             SnackBar(
               content: const Text('Запис видалено'),
-              action: SnackBarAction(
-                label: 'Повернути',
-                onPressed: () => store.saveTxn(txn.copyWith(deleted: false)),
-              ),
+              action: SnackBarAction(label: 'Повернути', onPressed: () => store.saveTxn(txn.copyWith(deleted: false))),
             ),
           );
       },
@@ -611,11 +481,7 @@ class _CalendarView extends StatelessWidget {
       gridStart = gridStart.subtract(const Duration(days: 1));
     }
     final days = <DateTime>[];
-    for (
-      var d = gridStart;
-      d.isBefore(r.end) || days.length % 7 != 0;
-      d = DateTime(d.year, d.month, d.day + 1)
-    ) {
+    for (var d = gridStart; d.isBefore(r.end) || days.length % 7 != 0; d = DateTime(d.year, d.month, d.day + 1)) {
       days.add(d);
     }
     final byDay = <DateTime, ({int inc, int exp})>{};
@@ -631,9 +497,7 @@ class _CalendarView extends StatelessWidget {
       }
     }
     final today = DateTime.now();
-    final names = monday
-        ? ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд']
-        : ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+    final names = monday ? ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'] : ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
     String compact(int minor) {
       final v = minor / 100;
       if (v >= 1000) {
@@ -659,9 +523,7 @@ class _CalendarView extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: (monday ? i >= 5 : (i == 0 || i == 6))
-                              ? p.expense
-                              : scheme.onSurfaceVariant,
+                          color: (monday ? i >= 5 : (i == 0 || i == 6)) ? p.expense : scheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -682,10 +544,7 @@ class _CalendarView extends StatelessWidget {
                     builder: (context) {
                       final inRange = !d.isBefore(r.start) && d.isBefore(r.end);
                       final v = byDay[d];
-                      final isToday =
-                          d.year == today.year &&
-                          d.month == today.month &&
-                          d.day == today.day;
+                      final isToday = d.year == today.year && d.month == today.month && d.day == today.day;
                       return GestureDetector(
                         onTap: inRange ? () => _openDay(context, d) : null,
                         child: AnimatedContainer(
@@ -693,52 +552,28 @@ class _CalendarView extends StatelessWidget {
                           padding: const EdgeInsets.fromLTRB(4, 4, 4, 2),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
-                            color: isToday
-                                ? scheme.primary.withValues(alpha: 0.22)
-                                : Colors.white.withValues(
-                                    alpha: inRange ? 0.04 : 0,
-                                  ),
-                            border: isToday
-                                ? Border.all(
-                                    color: scheme.primary.withValues(
-                                      alpha: 0.7,
-                                    ),
-                                  )
-                                : null,
+                            color: isToday ? scheme.primary.withValues(alpha: 0.22) : Colors.white.withValues(alpha: inRange ? 0.04 : 0),
+                            border: isToday ? Border.all(color: scheme.primary.withValues(alpha: 0.7)) : null,
                           ),
                           child: Opacity(
                             opacity: inRange ? 1 : 0.3,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  '${d.day}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
+                                Text('${d.day}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                                 const Spacer(),
                                 if (v != null && v.inc > 0)
                                   FittedBox(
                                     child: Text(
                                       compact(v.inc),
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: incomeColor(context, store),
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                      style: TextStyle(fontSize: 10, color: incomeColor(context, store), fontWeight: FontWeight.w600),
                                     ),
                                   ),
                                 if (v != null && v.exp > 0)
                                   FittedBox(
                                     child: Text(
                                       compact(v.exp),
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: p.expense,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                      style: TextStyle(fontSize: 10, color: p.expense, fontWeight: FontWeight.w600),
                                     ),
                                   ),
                               ],
@@ -772,11 +607,7 @@ class _CalendarView extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                dayTitle(d),
-                style: Theme.of(ctx).textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
+              Text(dayTitle(d), style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               if (list.isEmpty)
                 const Padding(
@@ -785,10 +616,7 @@ class _CalendarView extends StatelessWidget {
                 )
               else
                 Flexible(
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: [for (final t in list) TxnTile(txn: t)],
-                  ),
+                  child: ListView(shrinkWrap: true, children: [for (final t in list) TxnTile(txn: t)]),
                 ),
               const SizedBox(height: 8),
               FilledButton.icon(
@@ -844,15 +672,16 @@ class _MonthsViewState extends State<_MonthsView> {
             const SizedBox(width: 18),
             SizedBox(
               width: 104,
-              child: Text(money(t.expense, cur), textAlign: TextAlign.end, style: TextStyle(fontSize: 15, color: p.expense)),
+              child: Text(
+                money(t.expense, cur),
+                textAlign: TextAlign.end,
+                style: TextStyle(fontSize: 15, color: p.expense),
+              ),
             ),
           ],
         ),
         const SizedBox(height: 2),
-        Text(
-          '${totalLabel ?? ''}${money(t.income - t.expense, cur)}',
-          style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
-        ),
+        Text('${totalLabel ?? ''}${money(t.income - t.expense, cur)}', style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
       ],
     );
 
@@ -867,7 +696,9 @@ class _MonthsViewState extends State<_MonthsView> {
           onTap: () => setState(() => _open = open ? null : m),
           child: Container(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: line))),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: line)),
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -958,21 +789,11 @@ class _SummaryView extends StatelessWidget {
       }
     }
 
-    // Total budget: an explicit overall budget, else the sum of the expense
-    // category budgets (as Money Manager does).
-    final overall = store.budgets
-        .where((b) => b.categoryId == null && b.currency == cur)
-        .firstOrNull;
-    final catSum = store.budgets
-        .where(
-          (b) =>
-              b.categoryId != null &&
-              b.currency == cur &&
-              store.category(b.categoryId)?.type == TxType.expense &&
-              store.category(b.categoryId)?.parentId == null,
-        )
-        .fold<int>(0, (s, b) => s + b.amount);
-    final limit = overall?.amount ?? (catSum > 0 ? catSum : null);
+    // Same total as the Budget tab (MM): an explicit overall budget, else the
+    // sum of the top-level expense and transfer-expense budgets.
+    final overall = store.budgets.where((b) => b.categoryId == null && b.currency == cur).firstOrNull;
+    final bt = budgetTotals(store, month, cur, TxType.expense);
+    final limit = overall != null || bt.limitTotal > 0 ? bt.limitTotal : null;
 
     // Repeating records still due in this period (from today on).
     final today = DateTime.now();
@@ -984,20 +805,14 @@ class _SummaryView extends StatelessWidget {
         if (!d.isBefore(range.end) || (r.end != null && d.isAfter(r.end!))) {
           break;
         }
-        if (!d.isBefore(from) &&
-            (r.lastDone == null || d.isAfter(r.lastDone!))) {
+        if (!d.isBefore(from) && (r.lastDone == null || d.isAfter(r.lastDone!))) {
           upcoming.add((d, r));
         }
       }
     }
     upcoming.sort((a, b) => a.$1.compareTo(b.$1));
 
-    Widget section(
-      IconData icon,
-      String title, {
-      Widget? trailing,
-      required Widget child,
-    }) => Container(
+    Widget section(IconData icon, String title, {Widget? trailing, required Widget child}) => Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
       color: scheme.surface.withValues(alpha: 0),
@@ -1011,13 +826,7 @@ class _SummaryView extends StatelessWidget {
               Expanded(
                 child: title.isEmpty
                     ? const SizedBox()
-                    : Text.rich(
-                        _titleSpan(title, p.expense),
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                    : Text.rich(_titleSpan(title, p.expense), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
               ),
               ?trailing,
             ],
@@ -1037,41 +846,33 @@ class _SummaryView extends StatelessWidget {
       child: Column(children: rows),
     );
 
-    Widget line(String label, String value, {Color? color, String? lead}) =>
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 5),
-          child: Row(
-            children: [
-              if (lead != null)
-                SizedBox(
-                  width: 52,
-                  child: Text(lead, style: TextStyle(color: muted)),
-                ),
-              Expanded(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: muted),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                value,
-                style: TextStyle(
-                  color: color ?? muted,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+    Widget line(String label, String value, {Color? color, String? lead}) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          if (lead != null)
+            SizedBox(
+              width: 52,
+              child: Text(lead, style: TextStyle(color: muted)),
+            ),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: muted),
+            ),
           ),
-        );
-
-    final divider = Divider(
-      height: 1,
-      thickness: 1,
-      color: scheme.onSurface.withValues(alpha: 0.08),
+          const SizedBox(width: 10),
+          Text(
+            value,
+            style: TextStyle(color: color ?? muted, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
     );
+
+    final divider = Divider(height: 1, thickness: 1, color: scheme.onSurface.withValues(alpha: 0.08));
     final groupList = groups.toList()..sort();
 
     return Column(
@@ -1081,14 +882,8 @@ class _SummaryView extends StatelessWidget {
           Icons.account_balance_wallet_outlined,
           'Рахунки',
           child: box([
-            line(
-              groupList.isEmpty
-                  ? 'Витрати'
-                  : 'Витрати (${groupList.join(', ')})',
-              money(now.expense, cur),
-            ),
-            if (transferOut > 0)
-              line('Переказ-витрата', money(transferOut, cur)),
+            line(groupList.isEmpty ? 'Витрати' : 'Витрати (${groupList.join(', ')})', money(now.expense, cur)),
+            if (transferOut > 0) line('Переказ-витрата', money(transferOut, cur)),
           ]),
         ),
         divider,
@@ -1105,19 +900,8 @@ class _SummaryView extends StatelessWidget {
                   ),
                 )
               : InkWell(
-                  onTap: overall == null
-                      ? null
-                      : () => editBudget(
-                          context,
-                          currency: cur,
-                          existing: overall,
-                        ),
-                  child: _SummaryBudget(
-                    spent: now.expense,
-                    limit: limit,
-                    currency: cur,
-                    range: range,
-                  ),
+                  onTap: overall == null ? null : () => editBudget(context, currency: cur, existing: overall),
+                  child: _SummaryBudget(spent: bt.spentTotal, limit: limit, currency: cur, range: range),
                 ),
         ),
         divider,
@@ -1127,25 +911,16 @@ class _SummaryView extends StatelessWidget {
           trailing: IconButton(
             tooltip: 'Повторювані записи',
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const RepeatsPage()),
-            ),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const RepeatsPage())),
           ),
           child: upcoming.isEmpty
-              ? Text(
-                  'Немає запланованих записів до кінця періоду',
-                  style: TextStyle(color: muted),
-                )
+              ? Text('Немає запланованих записів до кінця періоду', style: TextStyle(color: muted))
               : box([
                   for (final (d, r) in upcoming)
                     line(
                       '${r.template.note.isNotEmpty ? r.template.note : txnTitle(store, r.template)}, ${repeatLabel(r.every).toLowerCase()}',
-                      money(
-                        r.template.amount,
-                        store.account(r.template.accountId)?.currency ?? cur,
-                      ),
-                      lead:
-                          '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}',
+                      money(r.template.amount, store.account(r.template.accountId)?.currency ?? cur),
+                      lead: '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}',
                       color: r.template.type == TxType.income
                           ? incomeColor(context, store)
                           : r.template.type == TxType.expense
@@ -1161,16 +936,11 @@ class _SummaryView extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(52),
               side: BorderSide(color: scheme.onSurface.withValues(alpha: 0.18)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               foregroundColor: scheme.onSurface,
             ),
             onPressed: () => exportForPf(context),
-            icon: const Icon(
-              Icons.table_view_rounded,
-              color: Color(0xFF21A366),
-            ),
+            icon: const Icon(Icons.table_view_rounded, color: Color(0xFF21A366)),
             label: const Text('Експорт даних в Excel'),
           ),
         ),
@@ -1197,12 +967,7 @@ class _SummaryView extends StatelessWidget {
 /// Total budget row: label and amount on the left, a bar with a "Сьогодні"
 /// marker and percent on the right, spent and remaining underneath.
 class _SummaryBudget extends StatelessWidget {
-  const _SummaryBudget({
-    required this.spent,
-    required this.limit,
-    required this.currency,
-    required this.range,
-  });
+  const _SummaryBudget({required this.spent, required this.limit, required this.currency, required this.range});
   final int spent, limit;
   final String currency;
   final ({DateTime start, DateTime end}) range;
@@ -1229,15 +994,9 @@ class _SummaryBudget extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Загальний бюджет',
-                style: TextStyle(color: muted, fontSize: 13),
-              ),
+              Text('Загальний бюджет', style: TextStyle(color: muted, fontSize: 13)),
               const SizedBox(height: 4),
-              Text(
-                money(limit, currency),
-                style: const TextStyle(fontSize: 16),
-              ),
+              Text(money(limit, currency), style: const TextStyle(fontSize: 16)),
             ],
           ),
         ),
@@ -1261,17 +1020,8 @@ class _SummaryBudget extends StatelessWidget {
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 2),
                             alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: scheme.onSurface.withValues(alpha: 0.35),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Text(
-                              'Сьогодні',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.white,
-                              ),
-                            ),
+                            decoration: BoxDecoration(color: scheme.onSurface.withValues(alpha: 0.35), borderRadius: BorderRadius.circular(10)),
+                            child: const Text('Сьогодні', style: TextStyle(fontSize: 11, color: Colors.white)),
                           ),
                         ),
                       ],
@@ -1282,11 +1032,7 @@ class _SummaryBudget extends StatelessWidget {
                     height: 26,
                     child: Stack(
                       children: [
-                        Positioned.fill(
-                          child: ColoredBox(
-                            color: scheme.onSurface.withValues(alpha: 0.08),
-                          ),
-                        ),
+                        Positioned.fill(child: ColoredBox(color: scheme.onSurface.withValues(alpha: 0.08))),
                         Positioned.fill(
                           child: Align(
                             alignment: Alignment.centerLeft,
@@ -1310,10 +1056,7 @@ class _SummaryBudget extends StatelessWidget {
                           child: Center(
                             child: Text(
                               '${(ratio * 100).round()}%',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                             ),
                           ),
                         ),
@@ -1323,18 +1066,9 @@ class _SummaryBudget extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Text(
-                        money(spent, currency),
-                        style: TextStyle(color: barColor, fontSize: 15),
-                      ),
+                      Text(money(spent, currency), style: TextStyle(color: barColor, fontSize: 15)),
                       const Spacer(),
-                      Text(
-                        money(limit - spent, currency),
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: limit - spent < 0 ? p.expense : null,
-                        ),
-                      ),
+                      Text(money(limit - spent, currency), style: TextStyle(fontSize: 15, color: limit - spent < 0 ? p.expense : null)),
                     ],
                   ),
                 ],
@@ -1349,15 +1083,7 @@ class _SummaryBudget extends StatelessWidget {
 
 /// Budget progress with a "today" pace marker.
 class BudgetBar extends StatelessWidget {
-  const BudgetBar({
-    super.key,
-    required this.title,
-    required this.spent,
-    required this.limit,
-    required this.currency,
-    required this.month,
-    this.leading,
-  });
+  const BudgetBar({super.key, required this.title, required this.spent, required this.limit, required this.currency, required this.month, this.leading});
   final String title;
   final int spent;
   final int limit;
@@ -1379,18 +1105,9 @@ class BudgetBar extends StatelessWidget {
         : now.difference(r.start).inHours / total;
     final ratio = limit == 0 ? 0.0 : spent / limit;
     final over = ratio > 1;
-    final color = over
-        ? p.expense
-        : (ratio > pace + 0.05 ? const Color(0xFFFF9F0A) : p.income);
+    final color = over ? p.expense : (ratio > pace + 0.05 ? const Color(0xFFFF9F0A) : p.income);
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-    final daysLeft = r.end
-        .difference(
-          now.isBefore(r.start)
-              ? r.start
-              : DateTime(now.year, now.month, now.day),
-        )
-        .inDays
-        .clamp(1, 31);
+    final daysLeft = r.end.difference(now.isBefore(r.start) ? r.start : DateTime(now.year, now.month, now.day)).inDays.clamp(1, 31);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1398,15 +1115,9 @@ class BudgetBar extends StatelessWidget {
           children: [
             if (leading != null) ...[leading!, const SizedBox(width: 10)],
             Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
+              child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
             ),
-            Text(
-              '${money(spent, currency)} / ${money(limit, currency)}',
-              style: TextStyle(fontSize: 13, color: muted),
-            ),
+            Text('${money(spent, currency)} / ${money(limit, currency)}', style: TextStyle(fontSize: 13, color: muted)),
           ],
         ),
         const SizedBox(height: 10),
@@ -1421,23 +1132,13 @@ class BudgetBar extends StatelessWidget {
                   curve: Curves.easeOutCubic,
                   builder: (context, v, _) => ClipRRect(
                     borderRadius: BorderRadius.circular(6),
-                    child: LinearProgressIndicator(
-                      value: v,
-                      minHeight: 10,
-                      color: color,
-                      backgroundColor: color.withValues(alpha: 0.15),
-                    ),
+                    child: LinearProgressIndicator(value: v, minHeight: 10, color: color, backgroundColor: color.withValues(alpha: 0.15)),
                   ),
                 ),
                 Positioned(
                   left: (c.maxWidth * pace).clamp(0, c.maxWidth - 2),
                   top: -4,
-                  child: Container(
-                    width: 2,
-                    height: 18,
-                    color: Theme.of(context).colorScheme.onSurface
-                        .withValues(alpha: 0.8),
-                  ),
+                  child: Container(width: 2, height: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8)),
                 ),
               ],
             );
