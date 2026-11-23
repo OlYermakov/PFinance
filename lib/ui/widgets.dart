@@ -11,23 +11,26 @@ export 'glass.dart';
 
 /// "‹ Листопад 2026 ›" switcher with a slide animation between periods.
 class MonthSwitcher extends StatelessWidget {
-  const MonthSwitcher({super.key, required this.month, required this.onChanged, this.compact = false});
+  const MonthSwitcher({super.key, required this.month, required this.onChanged, this.compact = false, this.year = false});
   final DateTime month;
   final ValueChanged<DateTime> onChanged;
   final bool compact;
+  final bool year; // step by years and show just the year (MM "Місяці")
 
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final r = store.periodRange(month);
     final custom = store.prefs.monthStartDay != 1;
-    final label = custom
+    final label = year
+        ? '${month.year}'
+        : custom
         ? '${shortDayMonth(r.start)} – ${shortDayMonth(r.end.subtract(const Duration(days: 1)))}'
         : monthTitle(month);
     Widget arrow(IconData icon, String tip, int delta) => _RoundButton(
           icon: icon,
           tooltip: tip,
-          onTap: () => onChanged(DateTime(month.year, month.month + delta)),
+          onTap: () => onChanged(DateTime(month.year, month.month + delta * (year ? 12 : 1))),
         );
     return Row(
       mainAxisSize: MainAxisSize.min,

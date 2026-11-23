@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:material_ui/material_ui.dart';
 
 import '../data/models.dart';
@@ -30,7 +31,10 @@ class _TransactionsPageState extends State<TransactionsPage> {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    var list = store.txnsInPeriod(_month);
+    // MM "Місяці": the whole year, month by month.
+    final yearMode = _view == RecordsView.month;
+    final yr = (start: store.periodRange(DateTime(_month.year, 1)).start, end: store.periodRange(DateTime(_month.year, 12)).end);
+    var list = yearMode ? store.txns.where((t) => !t.date.isBefore(yr.start) && t.date.isBefore(yr.end)).toList() : store.txnsInPeriod(_month);
     if (_query.isNotEmpty) {
       final q = _query.toLowerCase();
       list = list.where((t) {
@@ -46,7 +50,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     final Widget content = switch (_view) {
       RecordsView.day => _DayView(txns: list),
       RecordsView.calendar => _CalendarView(month: _month, txns: list),
-      RecordsView.month => _WeeksView(month: _month, txns: list),
+      RecordsView.month => _MonthsView(month: _month, txns: list),
       RecordsView.summary => _SummaryView(month: _month, txns: list),
     };
 
@@ -99,6 +103,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     children: [
                       MonthSwitcher(
                         month: _month,
+                        year: yearMode,
                         onChanged: (m) => setState(() => _month = m),
                       ),
                       Positioned(
@@ -141,7 +146,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                   expense: tot.expense,
                   currency: cur,
                   carry: store.prefs.carryOver && _query.isEmpty
-                      ? store.carryBefore(store.periodRange(_month).start)
+                      ? store.carryBefore(yearMode ? yr.start : store.periodRange(_month).start)
                       : null,
                 ),
               ),
@@ -155,7 +160,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                       transitionBuilder: (c, a) =>
                           FadeTransition(opacity: a, child: c),
                       child: KeyedSubtree(
-                        key: ValueKey('$_view$_month'),
+                        key: ValueKey(yearMode ? '$_view${_month.year}' : '$_view$_month'),
                         child: content,
                       ),
                     ),
@@ -798,96 +803,121 @@ class _CalendarView extends StatelessWidget {
   }
 }
 
-// ---- Місяць (тижні) -----------------------------------------------------------
+// ---- Місяці (MM: the year by months; a month opens into its weeks) ------------
 
-class _WeeksView extends StatelessWidget {
-  const _WeeksView({required this.month, required this.txns});
-  final DateTime month;
-  final List<Txn> txns;
+class _MonthsView extends StatefulWidget {
+  const _MonthsView({required this.month, required this.txns});
+  final DateTime month; // the year's selected month opens by default
+  final List<Txn> txns; // the year's records (search applied)
+
+  @override
+  State<_MonthsView> createState() => _MonthsViewState();
+}
+
+class _MonthsViewState extends State<_MonthsView> {
+  late int? _open = widget.month.month;
+
+  static String _d(DateTime d) => '${d.day}.${d.month}.';
 
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final p = AppPalette.of(context);
-    final r = store.periodRange(month);
-    final firstWeekday = store.prefs.weekStartsMonday ? 1 : 7;
-    final weeks = <(DateTime, DateTime)>[];
-    var s = r.start;
-    while (s.isBefore(r.end)) {
-      var e = DateTime(s.year, s.month, s.day + 1);
-      while (e.isBefore(r.end) && e.weekday != firstWeekday) {
-        e = DateTime(e.year, e.month, e.day + 1);
-      }
-      weeks.add((s, e));
-      s = e;
-    }
     final cur = store.baseCurrency;
     final now = DateTime.now();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: GlassCard(
-        radius: 24,
-        child: Column(
+    final y = widget.month.year;
+    final line = Colors.white.withValues(alpha: 0.07);
+    final firstWeekday = store.prefs.weekStartsMonday ? DateTime.monday : DateTime.sunday;
+
+    Widget amounts(({int income, int expense}) t, {String? totalLabel}) => Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            for (final (a, b) in weeks.reversed)
-              Builder(
-                builder: (context) {
-                  final t = store.totalsBase(
-                    txns.where(
-                      (x) => !x.date.isBefore(a) && x.date.isBefore(b),
-                    ),
-                  );
-                  final current = !now.isBefore(a) && now.isBefore(b);
-                  return Container(
-                    color: current
-                        ? Theme.of(context).colorScheme.primary
-                              .withValues(alpha: 0.12)
-                        : null,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '${shortDayMonth(a)} – ${shortDayMonth(b.subtract(const Duration(days: 1)))}',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              money(t.income, cur),
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: incomeColor(context, store),
-                              ),
-                            ),
-                            Text(
-                              money(t.expense, cur),
-                              style: TextStyle(fontSize: 13, color: p.expense),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 16),
-                        SizedBox(
-                          width: 96,
-                          child: Text(
-                            money(t.income - t.expense, cur, sign: true),
-                            textAlign: TextAlign.end,
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+            Text(money(t.income, cur), style: TextStyle(fontSize: 15, color: incomeColor(context, store))),
+            const SizedBox(width: 18),
+            SizedBox(
+              width: 104,
+              child: Text(money(t.expense, cur), textAlign: TextAlign.end, style: TextStyle(fontSize: 15, color: p.expense)),
+            ),
           ],
         ),
-      ),
+        const SizedBox(height: 2),
+        Text(
+          '${totalLabel ?? ''}${money(t.income - t.expense, cur)}',
+          style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+        ),
+      ],
+    );
+
+    final rows = <Widget>[];
+    for (var m = 12; m >= 1; m--) {
+      final r = store.periodRange(DateTime(y, m));
+      if (r.start.isAfter(now)) continue; // MM lists months up to today
+      final t = store.totalsBase(widget.txns.where((x) => !x.date.isBefore(r.start) && x.date.isBefore(r.end)));
+      final open = _open == m;
+      rows.add(
+        InkWell(
+          onTap: () => setState(() => _open = open ? null : m),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: line))),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(DateFormat('LLL', 'uk').format(DateTime(y, m)), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                      Text('${_d(r.start)} ~ ${_d(r.end.subtract(const Duration(days: 1)))}', style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+                    ],
+                  ),
+                ),
+                amounts(t, totalLabel: open ? 'Всього ' : null),
+              ],
+            ),
+          ),
+        ),
+      );
+      if (!open) continue;
+      // Whole weeks touching this month, newest first; each sums its full week.
+      var ws = r.start;
+      while (ws.weekday != firstWeekday) {
+        ws = DateTime(ws.year, ws.month, ws.day - 1);
+      }
+      final weeks = <DateTime>[];
+      for (var s = ws; s.isBefore(r.end); s = DateTime(s.year, s.month, s.day + 7)) {
+        weeks.add(s);
+      }
+      for (final a in weeks.reversed) {
+        final b = DateTime(a.year, a.month, a.day + 7);
+        final wt = store.totalsBase(store.txns.where((x) => !x.date.isBefore(a) && x.date.isBefore(b)));
+        final current = !now.isBefore(a) && now.isBefore(b);
+        rows.add(
+          Container(
+            padding: const EdgeInsets.fromLTRB(52, 8, 16, 8),
+            decoration: BoxDecoration(
+              color: current ? p.expense.withValues(alpha: 0.28) : Colors.black.withValues(alpha: 0.12),
+              border: Border(bottom: BorderSide(color: line)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: Text('${_d(a)} ~ ${_d(DateTime(b.year, b.month, b.day - 1))}', style: const TextStyle(fontSize: 15))),
+                amounts(wt),
+              ],
+            ),
+          ),
+        );
+      }
+    }
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      color: panelColor(context),
+      child: Column(children: rows),
     );
   }
 }
