@@ -19,7 +19,7 @@ Future<void> openTxnEditor(BuildContext context, {Txn? existing, DateTime? date,
   ),
 );
 
-enum _Field { account, toAccount, category, amount, toAmount, fee }
+enum _Field { date, account, toAccount, category, amount, toAmount, fee }
 
 class TxnEditor extends StatefulWidget {
   const TxnEditor({super.key, this.existing, this.date, this.amount});
@@ -298,12 +298,103 @@ class _TxnEditorState extends State<TxnEditor> {
     return cats.where((c) => c.name.toLowerCase().contains('коміс')).firstOrNull ?? cats.where((c) => c.name == 'Інше').firstOrNull ?? cats.lastOrNull;
   }
 
-  Future<void> _pickDate() async {
-    _open(null);
-    final d = await showDatePicker(context: context, initialDate: _date, firstDate: DateTime(2000), lastDate: DateTime(2100));
-    if (d != null) {
-      setState(() => _date = DateTime(d.year, d.month, d.day, _date.hour, _date.minute));
-    }
+  /// MM: the date is picked on a month calendar in the bottom panel.
+  void _pickDate() {
+    _calMonth = DateTime(_date.year, _date.month);
+    _open(_Field.date);
+  }
+
+  DateTime _calMonth = DateTime(DateTime.now().year, DateTime.now().month);
+
+  void _setDay(DateTime d) {
+    setState(() {
+      _date = DateTime(d.year, d.month, d.day, _date.hour, _date.minute);
+      _calMonth = DateTime(d.year, d.month);
+      _panel = _isNew && _accountId == null ? _Field.account : null;
+    });
+  }
+
+  Widget _calendar(AppStore store, ColorScheme scheme) {
+    final monday = store.prefs.weekStartsMonday;
+    final first = _calMonth;
+    final lead = monday ? (first.weekday - 1) % 7 : first.weekday % 7;
+    final start = DateTime(first.year, first.month, 1 - lead);
+    final daysIn = DateTime(first.year, first.month + 1, 0).day;
+    final weeks = ((lead + daysIn) / 7).ceil();
+    final names = monday ? const ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'] : const ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+    const sat = Color(0xFF4F9DF0), sun = Color(0xFFF2675B);
+    Color? dayColor(DateTime d) => d.weekday == DateTime.saturday ? sat : (d.weekday == DateTime.sunday ? sun : null);
+    final line = Colors.white.withValues(alpha: 0.07);
+    return Column(
+      children: [
+        SizedBox(
+          height: 44,
+          child: Row(
+            children: [
+              IconButton(icon: const Icon(Icons.chevron_left_rounded), onPressed: () => setState(() => _calMonth = DateTime(first.year, first.month - 1))),
+              Expanded(
+                child: Text(monthTitle(first), textAlign: TextAlign.center, style: const TextStyle(fontSize: 17)),
+              ),
+              IconButton(icon: const Icon(Icons.chevron_right_rounded), onPressed: () => setState(() => _calMonth = DateTime(first.year, first.month + 1))),
+            ],
+          ),
+        ),
+        Container(
+          height: 24,
+          color: Colors.black.withValues(alpha: 0.18),
+          child: Row(
+            children: [
+              for (final n in names)
+                Expanded(
+                  child: Center(
+                    child: Text(n, style: TextStyle(fontSize: 12, color: n == 'Сб' ? sat : (n == 'Нд' ? sun : scheme.onSurfaceVariant))),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        for (var w = 0; w < weeks; w++)
+          Row(
+            children: [
+              for (var i = 0; i < 7; i++)
+                Builder(
+                  builder: (context) {
+                    final d = DateTime(start.year, start.month, start.day + w * 7 + i);
+                    final inMonth = d.month == first.month;
+                    final sel = d.year == _date.year && d.month == _date.month && d.day == _date.day;
+                    return Expanded(
+                      child: InkWell(
+                        onTap: () => _setDay(d),
+                        child: Container(
+                          height: 48,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: sel ? Colors.white : (inMonth ? null : Colors.black.withValues(alpha: 0.18)),
+                            border: Border(
+                              right: BorderSide(color: line),
+                              bottom: BorderSide(color: line),
+                            ),
+                          ),
+                          child: Text(
+                            '${d.day}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: sel
+                                  ? Colors.black
+                                  : !inMonth
+                                  ? scheme.onSurfaceVariant.withValues(alpha: 0.6)
+                                  : dayColor(d),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+      ],
+    );
   }
 
   Future<void> _pickTime() async {
@@ -525,6 +616,7 @@ class _TxnEditorState extends State<TxnEditor> {
         _FormRow(
           label: 'Дата',
           accent: accent,
+          active: _panel == _Field.date,
           trailing: _isNew ? _repeatButton(scheme) : null,
           child: Row(
             children: [
@@ -884,6 +976,7 @@ class _TxnEditorState extends State<TxnEditor> {
     final f = _panel!;
     final scheme = Theme.of(context).colorScheme;
     final (String title, VoidCallback? edit, Widget body) = switch (f) {
+      _Field.date => ('Дата', null, _calendar(store, scheme)),
       _Field.account || _Field.toAccount => ('Рахунок', () => _pushPage(accountsSettingsPage()), _accountGrid(store, accent, f)),
       _Field.category => ('Категорія', () => _pushPage(CategoriesPage(type: _type)), _categoryGrid(store, accent)),
       _ => (
@@ -935,13 +1028,19 @@ class _TxnEditorState extends State<TxnEditor> {
                       store.updatePrefs((p) => p.accountGroupsInPicker = !p.accountGroupsInPicker);
                     },
                   ),
+                if (f == _Field.date)
+                  TextButton(
+                    onPressed: () => _setDay(DateTime.now()),
+                    style: TextButton.styleFrom(foregroundColor: scheme.onSurfaceVariant),
+                    child: const Text('Сьогодні', style: TextStyle(fontSize: 16)),
+                  ),
                 if (edit != null) IconButton(tooltip: 'Редагувати', icon: const Icon(Icons.edit_outlined), onPressed: edit),
                 IconButton(tooltip: 'Закрити', icon: const Icon(Icons.close_rounded), onPressed: () => _open(null)),
               ],
             ),
           ),
           ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.42),
+            constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * (f == _Field.date ? 0.5 : 0.42)),
             child: SingleChildScrollView(child: body),
           ),
         ],
