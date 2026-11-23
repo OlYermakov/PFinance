@@ -48,6 +48,7 @@ class _TxnEditorState extends State<TxnEditor> {
   final _note = TextEditingController();
   final _memo = TextEditingController();
   final _noteFocus = FocusNode();
+  final _memoFocus = FocusNode();
   _Field? _panel;
   String? _error;
   int _savedInSeries = 0;
@@ -103,11 +104,14 @@ class _TxnEditorState extends State<TxnEditor> {
       // (or the amount, when the amount comes first).
       _panel = store.prefs.amountFirst ? _Field.amount : _Field.account;
     }
-    _noteFocus.addListener(() {
-      setState(() {
-        if (_noteFocus.hasFocus) _panel = null;
+    // Typing a note or description: only the keyboard, no picker panel.
+    for (final f in [_noteFocus, _memoFocus]) {
+      f.addListener(() {
+        setState(() {
+          if (f.hasFocus) _panel = null;
+        });
       });
-    });
+    }
     // The note autocomplete layer is always mounted; it draws nothing
     // unless there are matches.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -130,6 +134,7 @@ class _TxnEditorState extends State<TxnEditor> {
     _note.dispose();
     _memo.dispose();
     _noteFocus.dispose();
+    _memoFocus.dispose();
     super.dispose();
   }
 
@@ -846,9 +851,10 @@ class _TxnEditorState extends State<TxnEditor> {
         _FormRow(
           label: 'Опис',
           accent: accent,
-          active: false,
+          active: _memoFocus.hasFocus,
           child: TextField(
             controller: _memo,
+            focusNode: _memoFocus,
             style: _valueStyle,
             minLines: 1,
             maxLines: 4,
