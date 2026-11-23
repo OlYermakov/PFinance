@@ -131,7 +131,8 @@ class _CurvedNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final inset = MediaQuery.paddingOf(context).bottom;
+    // Alex: the bar sits ~20% lower, partly over the home-indicator zone.
+    final inset = math.max(0.0, MediaQuery.paddingOf(context).bottom - 18);
     const barH = 58.0, btn = 60.0, rise = 24.0;
     Widget item(int i) {
       final sel = i == tab;
@@ -226,11 +227,12 @@ class _CurvedNavBar extends StatelessWidget {
 class _NotchClipper extends CustomClipper<Path> {
   const _NotchClipper({required this.radius, required this.top, required this.bottom});
   final double radius, top, bottom;
-  static const centerY = 6.0, fillet = 14.0; // notch centre below the top edge; shoulder radius
+  static const centerY = 6.0, fillet = 34.0; // notch centre below the top edge; shoulder radius
 
   @override
   Path getClip(Size size) {
     final w = size.width, h = size.height, cx = w / 2, r = radius, f = fillet;
+    final bottom = math.min(this.bottom, h - top); // side arcs must not overlap
     // A fillet circle of radius f touches the top edge and the notch circle.
     final dx = math.sqrt((r + f) * (r + f) - (f - centerY) * (f - centerY));
     Offset touch(double sign) => Offset(cx + sign * dx * r / (r + f), centerY + (f - centerY) * r / (r + f));
