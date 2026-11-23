@@ -1195,11 +1195,11 @@ class CategoryRow extends StatelessWidget {
         visualDensity: const VisualDensity(vertical: -2),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
         leading: Container(
-          width: 46,
+          width: 54,
           padding: const EdgeInsets.symmetric(vertical: 4),
           decoration: BoxDecoration(color: col.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(8)),
           child: Text(
-            '${(share * 100).round()}%',
+            '${(share * 100).toStringAsFixed(1).replaceAll('.', ',')}%',
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
           ),

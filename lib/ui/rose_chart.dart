@@ -64,7 +64,9 @@ class _RoseChartState extends State<RoseChart> {
         ? (_part == null ? total : widget.parts.fold<int>(0, (s, p) => s + p[_part!]))
         : (_part == null ? widget.parts[sel].fold<int>(0, (a, b) => a + b) : widget.parts[sel][_part!]);
     final centerTop = sel == null ? (_part == null ? widget.centerLabel : widget.partLabels[_part!]) : widget.names[sel];
-    final centerSub = sel == null ? null : '${(total == 0 ? 0 : widget.parts[sel].fold<int>(0, (a, b) => a + b) * 100 / total).round()}%';
+    final centerSub = sel == null
+        ? null
+        : '${(total == 0 ? 0 : widget.parts[sel].fold<int>(0, (a, b) => a + b) * 100 / total).toStringAsFixed(1).replaceAll('.', ',')}%';
 
     return Column(
       children: [
