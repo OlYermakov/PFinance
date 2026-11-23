@@ -11,10 +11,10 @@ import 'widgets.dart';
 
 /// Opens the full-screen record editor (Money Manager layout: labelled rows on
 /// top, a picker panel at the bottom).
-Future<void> openTxnEditor(BuildContext context, {Txn? existing, DateTime? date, int? amount}) => Navigator.of(context).push(
+Future<void> openTxnEditor(BuildContext context, {Txn? existing, DateTime? date, int? amount, RepeatRule? repeat}) => Navigator.of(context).push(
   MaterialPageRoute<void>(
     builder: (_) => AuroraBackground(
-      child: TxnEditor(existing: existing, date: date, amount: amount),
+      child: TxnEditor(existing: existing, date: date, amount: amount, repeat: repeat),
     ),
   ),
 );
@@ -22,8 +22,12 @@ Future<void> openTxnEditor(BuildContext context, {Txn? existing, DateTime? date,
 enum _Field { date, account, toAccount, category, amount, toAmount, fee }
 
 class TxnEditor extends StatefulWidget {
-  const TxnEditor({super.key, this.existing, this.date, this.amount});
+  const TxnEditor({super.key, this.existing, this.date, this.amount, this.repeat});
   final Txn? existing;
+
+  /// Edit a repeating record (MM: tap a row in «Повторювані записи»): the
+  /// form shows its template on the next date; saving updates the rule.
+  final RepeatRule? repeat;
   final DateTime? date;
   final int? amount; // minor units of the account currency
 
@@ -50,16 +54,21 @@ class _TxnEditorState extends State<TxnEditor> {
   String? _amountCur; // MM: the amount may be typed in another currency
   String? _origExpr; // amount as the edited record opened
 
-  bool get _isNew => widget.existing == null;
+  bool get _isRule => widget.repeat != null;
+  bool get _isNew => widget.existing == null && !_isRule;
 
   @override
   void initState() {
     super.initState();
     final store = StoreScope.read(context);
-    final e = widget.existing;
+    final rule = widget.repeat;
+    final e = widget.existing ?? rule?.template;
     _type = e?.type ?? TxType.expense;
     final now = DateTime.now();
-    _date = e?.date ?? (widget.date != null ? DateTime(widget.date!.year, widget.date!.month, widget.date!.day, now.hour, now.minute) : now);
+    _repeat = rule?.every;
+    _date = rule != null
+        ? _ruleDate(rule)
+        : e?.date ?? (widget.date != null ? DateTime(widget.date!.year, widget.date!.month, widget.date!.day, now.hour, now.minute) : now);
     // MM: a new record starts with no account chosen.
     _accountId = e?.accountId;
     _toAccountId = e?.toAccountId;
@@ -101,6 +110,16 @@ class _TxnEditorState extends State<TxnEditor> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _noteOverlay.show();
     });
+  }
+
+  /// The date a repeat shows: its next occurrence (or its start).
+  static DateTime _ruleDate(RepeatRule r) {
+    final last = r.lastDone;
+    if (last == null) return r.start;
+    for (final d in r.occurrences) {
+      if (d.isAfter(last)) return d;
+    }
+    return r.start;
   }
 
   @override
@@ -256,6 +275,25 @@ class _TxnEditorState extends State<TxnEditor> {
       enteredCur: _amountCur != null && _amountCur != acc.currency ? _amountCur : null,
     );
     final messenger = ScaffoldMessenger.of(context);
+    final rule = widget.repeat;
+    if (rule != null && !copy) {
+      if (_repeat == null) {
+        await store.deleteRepeat(rule);
+      } else {
+        final moved = _date != _ruleDate(rule);
+        await store.saveRepeat(
+          rule.copyWith(
+            template: txn,
+            every: _repeat,
+            // A new date (or period) restarts the series from that date.
+            start: moved || _repeat != rule.every ? _date : null,
+            lastDone: moved || _repeat != rule.every ? _date.subtract(const Duration(minutes: 1)) : null,
+          ),
+        );
+      }
+      if (mounted) Navigator.pop(context);
+      return;
+    }
     await store.saveTxn(txn);
     if (fee != null && fee > 0) {
       // A transfer fee is an expense on the sending account.
@@ -617,7 +655,7 @@ class _TxnEditorState extends State<TxnEditor> {
           label: 'Дата',
           accent: accent,
           active: _panel == _Field.date,
-          trailing: _isNew ? _repeatButton(scheme) : null,
+          trailing: _isNew || _isRule ? _repeatButton(scheme) : null,
           child: Row(
             children: [
               InkWell(
@@ -845,12 +883,16 @@ class _TxnEditorState extends State<TxnEditor> {
                 tooltip: 'Видалити',
                 icon: const Icon(Icons.delete_outline_rounded),
                 onPressed: () async {
-                  await store.deleteTxn(widget.existing!);
+                  if (_isRule) {
+                    await store.deleteRepeat(widget.repeat!);
+                  } else {
+                    await store.deleteTxn(widget.existing!);
+                  }
                   if (context.mounted) Navigator.pop(context);
                 },
               ),
               const SizedBox(width: 8),
-              if (store.prefs.copyPaste) ...[
+              if (store.prefs.copyPaste && !_isRule) ...[
                 IconButton.outlined(tooltip: 'Копіювати', icon: const Icon(Icons.copy_rounded), onPressed: () => _save(copy: true)),
                 const SizedBox(width: 8),
               ],

@@ -409,7 +409,7 @@ class _RepeatsPageState extends State<RepeatsPage> {
     final cur = store.shownCurrency(t);
     final muted = TextStyle(color: scheme.onSurfaceVariant, fontSize: 13);
     return InkWell(
-      onTap: () => _editRepeat(context, r),
+      onTap: () => openTxnEditor(context, repeat: r),
       child: Container(
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: line)),
@@ -451,75 +451,6 @@ class _RepeatsPageState extends State<RepeatsPage> {
         ),
       ),
     );
-  }
-
-  Future<void> _editRepeat(BuildContext context, RepeatRule r) async {
-    final store = StoreScope.read(context);
-    var every = r.every;
-    var end = r.end;
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(r.template.note.isNotEmpty ? r.template.note : txnTitle(store, r.template), style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 4),
-              Text('${money(store.shownAmount(r.template), store.shownCurrency(r.template))} · з ${shortDate(r.start)}'),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final e in RepeatEvery.values)
-                    ChoiceChip(label: Text(repeatLabel(e)), selected: every == e, onSelected: (_) => setState(() => every = e)),
-                ],
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.event_busy_rounded),
-                label: Text(end == null ? 'Без дати завершення' : 'До ${shortDate(end!)}'),
-                onPressed: () async {
-                  final d = await showDatePicker(
-                    context: context,
-                    initialDate: end ?? DateTime.now().add(const Duration(days: 365)),
-                    firstDate: r.start,
-                    lastDate: DateTime(2100),
-                  );
-                  setState(() => end = d == null ? null : DateTime(d.year, d.month, d.day, 23, 59));
-                },
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  IconButton.outlined(
-                    tooltip: 'Зупинити повтор',
-                    icon: Icon(Icons.delete_outline_rounded, color: Theme.of(context).colorScheme.error),
-                    onPressed: () => Navigator.pop(context, 'delete'),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: FilledButton(onPressed: () => Navigator.pop(context, 'save'), child: const Text('Зберегти')),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (action == 'save') {
-      await store.saveRepeat(r.copyWith(every: every, end: end, clearEnd: end == null));
-    } else if (action == 'delete' && context.mounted) {
-      if (await _confirm(context, 'Зупинити повтор?', 'Нові записи більше не створюватимуться. Уже створені залишаться.')) {
-        await store.deleteRepeat(r);
-      }
-    }
   }
 }
 
