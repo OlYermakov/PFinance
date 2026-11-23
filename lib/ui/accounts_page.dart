@@ -102,7 +102,13 @@ class AccountsPage extends StatelessWidget {
                 const SizedBox(height: 4),
                 GradientCard(
                   padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                  child: Row(children: [stat('Активи', nw.assets, scheme.primary), stat('Пасиви', -nw.liabilities, p.expense), stat('Разом', nw.total, null)]),
+                  child: Row(
+                    children: [
+                      stat('Активи', nw.assets, incomeColor(context, store)),
+                      stat('Пасиви', -nw.liabilities, p.expense),
+                      stat('Разом', nw.total, null),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -140,7 +146,7 @@ class AccountsPage extends StatelessWidget {
                             if (anyInc)
                               Text(
                                 money(inc, base),
-                                style: TextStyle(color: inc < 0 ? p.expense : scheme.primary, fontWeight: FontWeight.w700),
+                                style: TextStyle(color: inc < 0 ? p.expense : incomeColor(context, store), fontWeight: FontWeight.w700),
                               ),
                           ],
                         ),
@@ -200,7 +206,7 @@ class _AccountRow extends StatelessWidget {
         ? scheme.onSurfaceVariant
         : balance < 0
         ? AppPalette.of(context).expense
-        : scheme.primary;
+        : incomeColor(context, store);
     return InkWell(
       onTap: () => _push(context, AccountPage(account: account)),
       onLongPress: () => editAccount(context, existing: account),
@@ -445,7 +451,7 @@ class _AccountPageState extends State<AccountPage> {
                   padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 6),
                   child: Row(
                     children: [
-                      cell('Надходження', plain(total.dep), scheme.primary),
+                      cell('Надходження', plain(total.dep), incomeColor(context, store)),
                       cell('Списання', plain(total.wd), p.expense),
                       cell('Разом', plain(total.dep - total.wd), null),
                       if (_view != _AccView.year) cell('Баланс', plain(balanceAt(range.end)), null),
@@ -559,7 +565,7 @@ class _AccountPageState extends State<AccountPage> {
                             children: [
                               Text(
                                 money(accountDelta(t, a.id).abs(), cur),
-                                style: TextStyle(fontWeight: FontWeight.w700, color: accountDelta(t, a.id) >= 0 ? scheme.primary : p.expense),
+                                style: TextStyle(fontWeight: FontWeight.w700, color: accountDelta(t, a.id) >= 0 ? incomeColor(context, store) : p.expense),
                               ),
                               Text('Баланс ${money(after[t.id] ?? 0, cur)}', style: TextStyle(color: muted, fontSize: 12)),
                             ],
