@@ -538,7 +538,8 @@ class TxnTile extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                money(txn.amount, cur),
+                // MM: shown in the currency it was typed in
+                txn.enteredAmount != null && txn.enteredCur != null ? money(txn.enteredAmount!, txn.enteredCur!) : money(txn.amount, cur),
                 style: TextStyle(
                   color: amountColor,
                   fontWeight: FontWeight.w500,

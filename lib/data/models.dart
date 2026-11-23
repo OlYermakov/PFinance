@@ -224,6 +224,12 @@ class Txn implements Entity {
   /// names that base). Null until the rate is known; then current rates apply.
   final int? atBase;
   final String? atBaseCur;
+
+  /// What was typed when the amount was entered in another currency than
+  /// the account's (MM shows the record in that currency). [amount] is
+  /// always in the account currency.
+  final int? enteredAmount;
+  final String? enteredCur;
   @override
   final DateTime updatedAt;
   @override
@@ -241,6 +247,8 @@ class Txn implements Entity {
     this.note = '',
     this.atBase,
     this.atBaseCur,
+    this.enteredAmount,
+    this.enteredCur,
     DateTime? updatedAt,
     this.deleted = false,
   })  : id = id ?? newId(),
@@ -258,6 +266,8 @@ class Txn implements Entity {
         note: note,
         atBase: value,
         atBaseCur: currency,
+        enteredAmount: enteredAmount,
+        enteredCur: enteredCur,
         deleted: deleted,
       );
 
@@ -273,6 +283,8 @@ class Txn implements Entity {
         note: note,
         atBase: atBase,
         atBaseCur: atBaseCur,
+        enteredAmount: enteredAmount,
+        enteredCur: enteredCur,
         deleted: deleted ?? this.deleted,
       );
 
@@ -289,6 +301,8 @@ class Txn implements Entity {
         'note': note,
         if (atBase != null) 'atBase': atBase,
         if (atBaseCur != null) 'atBaseCur': atBaseCur,
+        if (enteredAmount != null) 'enteredAmount': enteredAmount,
+        if (enteredCur != null) 'enteredCur': enteredCur,
         'updatedAt': updatedAt.millisecondsSinceEpoch,
         'deleted': deleted,
       };
@@ -305,6 +319,8 @@ class Txn implements Entity {
         note: j['note'] as String? ?? '',
         atBase: (j['atBase'] as num?)?.toInt(),
         atBaseCur: j['atBaseCur'] as String?,
+        enteredAmount: (j['enteredAmount'] as num?)?.toInt(),
+        enteredCur: j['enteredCur'] as String?,
         updatedAt: _date(j['updatedAt']),
         deleted: j['deleted'] as bool? ?? false,
       );

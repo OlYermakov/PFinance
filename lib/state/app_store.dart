@@ -556,6 +556,8 @@ class AppStore extends ChangeNotifier {
             categoryId: t.categoryId,
             date: d,
             note: t.note,
+            enteredAmount: t.enteredAmount,
+            enteredCur: t.enteredCur,
           ),
         );
         made++;

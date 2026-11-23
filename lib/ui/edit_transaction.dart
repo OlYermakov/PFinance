@@ -48,6 +48,7 @@ class _TxnEditorState extends State<TxnEditor> {
   int _savedInSeries = 0;
   RepeatEvery? _repeat; // new records only
   String? _amountCur; // MM: the amount may be typed in another currency
+  String? _origExpr; // amount as the edited record opened
 
   bool get _isNew => widget.existing == null;
 
@@ -72,7 +73,14 @@ class _TxnEditorState extends State<TxnEditor> {
     _note.text = e?.note ?? '';
     if (e != null) {
       final cur = store.account(e.accountId)?.currency ?? store.baseCurrency;
-      _expr[_Field.amount] = _input(e.amount, cur);
+      if (e.enteredAmount != null && e.enteredCur != null && e.enteredCur != cur) {
+        // reopen in the currency it was typed in
+        _amountCur = e.enteredCur;
+        _expr[_Field.amount] = _input(e.enteredAmount!, e.enteredCur!);
+      } else {
+        _expr[_Field.amount] = _input(e.amount, cur);
+      }
+      _origExpr = _expr[_Field.amount];
       if (e.toAmount != null) {
         _expr[_Field.toAmount] = _input(e.toAmount!, store.account(e.toAccountId)?.currency ?? cur);
       }
@@ -171,6 +179,9 @@ class _TxnEditorState extends State<TxnEditor> {
   int? _amountIn(AppStore store, String accCur) {
     final from = _amountCur;
     if (from == null || from == accCur) return _minor(_Field.amount, accCur);
+    // an edited record whose typed amount did not change keeps its value
+    final e = widget.existing;
+    if (e != null && e.enteredCur == from && _expr[_Field.amount] == _origExpr && store.account(e.accountId)?.currency == accCur) return e.amount;
     final v = evalExpression(_expr[_Field.amount]!);
     if (v == null || v < 0) return null;
     double rate(String c) => c == store.baseCurrency ? 1 : (store.prefs.rates[c] ?? 0);
@@ -241,6 +252,8 @@ class _TxnEditorState extends State<TxnEditor> {
       categoryId: _type == TxType.transfer ? null : (_subId ?? _categoryId),
       date: copy && store.prefs.copyToToday ? DateTime.now() : _date,
       note: _note.text.trim(),
+      enteredAmount: _amountCur != null && _amountCur != acc.currency ? _minor(_Field.amount, _amountCur!) : null,
+      enteredCur: _amountCur != null && _amountCur != acc.currency ? _amountCur : null,
     );
     final messenger = ScaffoldMessenger.of(context);
     await store.saveTxn(txn);
