@@ -692,9 +692,13 @@ class _BudgetPage extends StatefulWidget {
   State<_BudgetPage> createState() => _BudgetPageState();
 }
 
+/// Budget key → the budget in the base currency, if any.
+Budget? _budgetOf(AppStore store, String? key) => store.budgets.where((b) => b.categoryId == key && b.currency == store.baseCurrency).firstOrNull;
+
 class _BudgetPageState extends State<_BudgetPage> {
   late TxType _type = widget.type;
-  final _closed = <String>{};
+  final _open = <String>{};
+  late DateTime _month = StoreScope.read(context).currentPeriod;
 
   @override
   Widget build(BuildContext context) {
@@ -704,7 +708,7 @@ class _BudgetPageState extends State<_BudgetPage> {
     final cur = store.baseCurrency;
     final cats = store.categoriesOf(_type);
     final muted = scheme.onSurfaceVariant;
-    Budget? budgetOf(String? id) => store.budgets.where((b) => b.categoryId == id && b.currency == cur).firstOrNull;
+    int at(String? key) => _budgetOf(store, key)?.amountAt(_month) ?? 0;
     // MM: transfer-expense accounts count as expense under their group; the
     // group row opens to «<group> (Все)» and one row per account.
     final groups = <String, List<Account>>{};
@@ -732,7 +736,7 @@ class _BudgetPageState extends State<_BudgetPage> {
       ),
     );
 
-    Widget row(String title, int? amount, {String? subtitle, double indent = 16, Color? bg, VoidCallback? onTap}) => Material(
+    Widget row(String title, int amount, {String? subtitle, double indent = 16, Color? bg, VoidCallback? onTap}) => Material(
       color: bg ?? panelColor(context),
       child: InkWell(
         onTap: onTap,
@@ -760,18 +764,43 @@ class _BudgetPageState extends State<_BudgetPage> {
                   ],
                 ),
               ),
-              if (amount != null && amount != 0) Text(money(amount, cur), style: const TextStyle(fontSize: 16)),
+              if (amount != 0) Text(money(amount, cur), style: const TextStyle(fontSize: 16)),
             ],
           ),
         ),
       ),
     );
 
+    void open(String key, String name) => Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => AuroraBackground(
+          child: _BudgetCategoryPage(budgetKey: key, name: name),
+        ),
+      ),
+    );
+    void toggle(String k) => setState(() => _open.contains(k) ? _open.remove(k) : _open.add(k));
     final sub = Color.lerp(panelColor(context), Colors.black, 0.18);
     return Scaffold(
       appBar: AppBar(title: const Text('Налашт. бюджету'), centerTitle: true),
       body: Column(
         children: [
+          SizedBox(
+            height: 44,
+            child: Row(
+              children: [
+                IconButton(icon: const Icon(Icons.chevron_left_rounded), onPressed: () => setState(() => _month = DateTime(_month.year, _month.month - 1))),
+                Expanded(
+                  child: Text(
+                    monthTitle(_month),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                IconButton(icon: const Icon(Icons.chevron_right_rounded), onPressed: () => setState(() => _month = DateTime(_month.year, _month.month + 1))),
+              ],
+            ),
+          ),
           Row(children: [tab(TxType.income, 'Дохід'), tab(TxType.expense, 'Витр.')]),
           Expanded(
             child: cats.isEmpty && groups.isEmpty
@@ -779,36 +808,34 @@ class _BudgetPageState extends State<_BudgetPage> {
                 : ListView(
                     padding: const EdgeInsets.only(bottom: 40),
                     children: [
-                      for (final c in cats)
-                        row(
-                          c.name,
-                          budgetOf(c.id)?.amount,
-                          subtitle: store.subcategoriesOf(c.id).map((s) => s.name).join('  '),
-                          onTap: () => _edit(store, c, budgetOf(c.id)),
-                        ),
+                      for (final c in cats) ...[
+                        () {
+                          final subs = store.subcategoriesOf(c.id);
+                          // MM: a main category with no budget shows the sum of its subcategories'.
+                          final own = at(c.id);
+                          final total = own != 0 ? own : subs.fold<int>(0, (s, x) => s + at(x.id));
+                          return row(
+                            c.name,
+                            total,
+                            subtitle: subs.map((s) => s.name).join('  '),
+                            onTap: subs.isEmpty ? () => open(c.id, c.name) : () => toggle(c.id),
+                          );
+                        }(),
+                        if (_open.contains(c.id)) ...[
+                          row('${c.name} (Все)', at(c.id), indent: 28, bg: sub, onTap: () => open(c.id, c.name)),
+                          for (final x in store.subcategoriesOf(c.id)) row(x.name, at(x.id), indent: 28, bg: sub, onTap: () => open(x.id, x.name)),
+                        ],
+                      ],
                       for (final e in groups.entries) ...[
                         row(
                           e.key,
-                          (budgetOf('grp:${e.key}')?.amount ?? 0) + e.value.fold<int>(0, (s, a) => s + (budgetOf('acc:${a.id}')?.amount ?? 0)),
+                          at('grp:${e.key}') + e.value.fold<int>(0, (s, a) => s + at('acc:${a.id}')),
                           subtitle: e.value.map((a) => a.name).join('  '),
-                          onTap: () => setState(() => _closed.contains(e.key) ? _closed.remove(e.key) : _closed.add(e.key)),
+                          onTap: () => toggle('grp:${e.key}'),
                         ),
-                        if (!_closed.contains(e.key)) ...[
-                          row(
-                            '${e.key} (Все)',
-                            budgetOf('grp:${e.key}')?.amount,
-                            indent: 28,
-                            bg: sub,
-                            onTap: () => _edit(store, Category(id: 'grp:${e.key}', name: '${e.key} (Все)', type: TxType.expense), budgetOf('grp:${e.key}')),
-                          ),
-                          for (final a in e.value)
-                            row(
-                              a.name,
-                              budgetOf('acc:${a.id}')?.amount,
-                              indent: 28,
-                              bg: sub,
-                              onTap: () => _edit(store, Category(id: 'acc:${a.id}', name: a.name, type: TxType.expense), budgetOf('acc:${a.id}')),
-                            ),
+                        if (_open.contains('grp:${e.key}')) ...[
+                          row('${e.key} (Все)', at('grp:${e.key}'), indent: 28, bg: sub, onTap: () => open('grp:${e.key}', '${e.key} (Все)')),
+                          for (final a in e.value) row(a.name, at('acc:${a.id}'), indent: 28, bg: sub, onTap: () => open('acc:${a.id}', a.name)),
                         ],
                       ],
                     ],
@@ -818,19 +845,35 @@ class _BudgetPageState extends State<_BudgetPage> {
       ),
     );
   }
+}
 
-  Future<void> _edit(AppStore store, Category c, Budget? b) async {
-    final cur = store.baseCurrency;
-    final ctrl = TextEditingController(text: b == null ? '' : minorToInput(b.amount, cur));
+/// MM: one category's budget — the default and each month of a year.
+class _BudgetCategoryPage extends StatefulWidget {
+  const _BudgetCategoryPage({required this.budgetKey, required this.name});
+  final String budgetKey;
+  final String name;
+
+  @override
+  State<_BudgetCategoryPage> createState() => _BudgetCategoryPageState();
+}
+
+class _BudgetCategoryPageState extends State<_BudgetCategoryPage> {
+  late int _year = StoreScope.read(context).currentPeriod.year;
+
+  Future<int?> _ask(String title, int initial) async {
+    final cur = StoreScope.read(context).baseCurrency;
+    final ctrl = TextEditingController(text: initial == 0 ? '' : minorToInput(initial, cur));
+    ctrl.selection = TextSelection(baseOffset: 0, extentOffset: ctrl.text.length);
     final v = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Бюджет «${c.name}»'),
+        title: Text(title),
         content: TextField(
           controller: ctrl,
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(suffixText: '$cur / місяць', hintText: '0 — без бюджету'),
+          decoration: InputDecoration(suffixText: cur, hintText: '0'),
+          onSubmitted: (v) => Navigator.pop(context, v),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Скасувати')),
@@ -838,15 +881,118 @@ class _BudgetPageState extends State<_BudgetPage> {
         ],
       ),
     );
-    if (v == null) return;
-    final amount = parseMoney(v, cur) ?? 0;
-    if (amount == 0) {
-      if (b != null) await store.saveBudget(b.copyWith(deleted: true));
-    } else if (b != null) {
-      await store.saveBudget(b.copyWith(amount: amount));
-    } else {
-      await store.saveBudget(Budget(categoryId: c.id, amount: amount, currency: cur));
-    }
+    return v == null ? null : parseMoney(v, cur) ?? 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final red = AppPalette.of(context).expense;
+    final cur = store.baseCurrency;
+    final now = store.currentPeriod;
+    final b = _budgetOf(store, widget.budgetKey);
+    final line = scheme.onSurface.withValues(alpha: 0.08);
+    Budget base() => b ?? Budget(categoryId: widget.budgetKey, amount: 0, currency: cur);
+    final monthName = DateFormat('LLL', 'uk');
+
+    Widget row(Widget lead, int amount, VoidCallback onTap) => Material(
+      color: panelColor(context),
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          height: 50,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: line)),
+          ),
+          child: Row(
+            children: [
+              Expanded(child: lead),
+              Text(money(amount, cur), style: const TextStyle(fontSize: 16)),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.name),
+        centerTitle: true,
+        actions: [
+          if (b != null)
+            IconButton(
+              tooltip: 'Видалити бюджет',
+              icon: const Icon(Icons.delete_outline_rounded),
+              onPressed: () async {
+                if (await _confirm(context, 'Видалити бюджет «${widget.name}»?', 'Бюджет цієї категорії буде прибрано з усіх місяців.')) {
+                  await store.saveBudget(b.copyWith(deleted: true));
+                  if (context.mounted) Navigator.pop(context);
+                }
+              },
+            ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.only(bottom: 40),
+        children: [
+          SizedBox(
+            height: 44,
+            child: Row(
+              children: [
+                IconButton(icon: const Icon(Icons.chevron_left_rounded), onPressed: () => setState(() => _year--)),
+                Expanded(
+                  child: Text(
+                    '$_year',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                IconButton(icon: const Icon(Icons.chevron_right_rounded), onPressed: () => setState(() => _year++)),
+              ],
+            ),
+          ),
+          const _InfoHeader(
+            Icons.edit_note_rounded,
+            'Бюджет можна налаштувати на кожен місяць. Зміна бюджету за замовчуванням діє з поточного місяця далі. '
+            'Якщо бюджет основної категорії нульовий, показується сума бюджетів підкатегорій.',
+          ),
+          row(const Text('Бюджет за замовчуванням', style: TextStyle(fontSize: 16)), b?.amountAt(now) ?? 0, () async {
+            final v = await _ask('Бюджет за замовчуванням', b?.amountAt(now) ?? 0);
+            if (v != null) await store.saveBudget(base().withDefault(v, now));
+          }),
+          for (var m = 12; m >= 1; m--)
+            () {
+              final month = DateTime(_year, m);
+              final isNow = month == now;
+              return row(
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    width: 58,
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: isNow ? red : scheme.onSurfaceVariant.withValues(alpha: 0.5)),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Text(
+                      monthName.format(month),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14, color: isNow ? red : scheme.onSurfaceVariant),
+                    ),
+                  ),
+                ),
+                b?.amountAt(month) ?? 0,
+                () async {
+                  final v = await _ask(monthTitle(month), b?.amountAt(month) ?? 0);
+                  if (v != null) await store.saveBudget(base().withMonth(month, v));
+                },
+              );
+            }(),
+        ],
+      ),
+    );
   }
 }
 

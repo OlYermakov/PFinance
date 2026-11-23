@@ -251,7 +251,6 @@ MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings
       if (!_active(a['ZISDEL']) || a['ZAMOUNT'] is! num) continue;
       (amounts[_s(a['ZBUDGETUID'])] ??= {})[(a['ZBUDGETPERIOD'] as num?)?.toInt() ?? 0] = a['ZAMOUNT'] as num;
     }
-    final month = now.year * 100 + now.month;
     for (final b in db.rows('ZBUDGET')) {
       final target = _s(b['ZTARGETUID']);
       final uid = _s(b['ZUID']);
@@ -272,10 +271,15 @@ MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings
       if (budgets.any((x) => x.categoryId == categoryId)) continue;
       final m = amounts[uid];
       if (m == null) continue;
-      final periods = m.keys.where((p) => p > 0 && p <= month).toList()..sort();
-      final amount = periods.isNotEmpty ? m[periods.last]! : m[0];
-      if (amount == null || amount <= 0) continue;
-      budgets.add(Budget(id: 'mm-$uid', categoryId: categoryId, amount: _minor(amount, base), currency: base));
+      // Period 0 is MM's starting amount; yyyymm keys are changes from that month on.
+      final changes = {
+        for (final e in m.entries)
+          if (e.key > 0) e.key: _minor(e.value, base),
+      };
+      final first = m[0] ?? (changes.isEmpty ? null : m[(m.keys.where((k) => k > 0).toList()..sort()).first]);
+      final bg = Budget(id: 'mm-$uid', categoryId: categoryId, amount: first == null ? 0 : _minor(first, base), currency: base, months: changes);
+      if (bg.amount <= 0 && changes.values.every((v) => v <= 0)) continue;
+      budgets.add(bg);
     }
   }
 

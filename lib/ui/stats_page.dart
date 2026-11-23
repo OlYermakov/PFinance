@@ -663,7 +663,19 @@ class _PillTabs<T> extends StatelessWidget {
   // MM budgets a transfer-expense account (`acc:<id>`) or its whole group
   // (`grp:<group>`); the Budget tab shows one row per group with their sum.
   final order = {for (final (i, c) in store.categoriesOf(type).indexed) c.id: i};
-  final mine = store.budgets.where((b) => b.currency == currency && b.categoryId != null).toList();
+  // Amounts as they stand in this month (MM: budgets can differ by month); a
+  // category with no budget of its own shows the sum of its subcategories'.
+  final all = [for (final b in store.budgets.where((b) => b.currency == currency)) b.atMonth(month)];
+  final mine = <Budget>[
+    for (final b in all)
+      if (b.categoryId != null && b.amount > 0 && store.category(b.categoryId)?.parentId == null) b,
+  ];
+  for (final c in store.categoriesOf(type)) {
+    if (mine.any((b) => b.categoryId == c.id)) continue;
+    final subs = {for (final x in store.subcategoriesOf(c.id)) x.id};
+    final sum = all.where((b) => subs.contains(b.categoryId)).fold<int>(0, (a, b) => a + b.amount);
+    if (sum > 0) mine.add(Budget(id: 'sub:${c.id}', categoryId: c.id, amount: sum, currency: currency));
+  }
   final groupSums = <String, int>{};
   if (type == TxType.expense) {
     for (final b in mine) {
@@ -675,7 +687,7 @@ class _PillTabs<T> extends StatelessWidget {
     ...mine.where((b) => order.containsKey(b.categoryId)).toList()..sort((a, b) => order[a.categoryId]!.compareTo(order[b.categoryId]!)),
     for (final e in groupSums.entries) Budget(id: e.key, categoryId: e.key, amount: e.value, currency: currency),
   ];
-  final overall = type == TxType.expense ? store.budgets.where((b) => b.currency == currency && b.categoryId == null).firstOrNull : null;
+  final overall = type == TxType.expense ? all.where((b) => b.categoryId == null && b.amount > 0).firstOrNull : null;
   final limitTotal = overall?.amount ?? rows.fold<int>(0, (s, b) => s + b.amount);
   final spentTotal = overall != null ? txns.fold<int>(0, (s, t) => s + store.baseAmount(t)) : rows.fold<int>(0, (s, b) => s + spentFor(b.categoryId!));
 
@@ -1167,7 +1179,7 @@ class CategoryRow extends StatelessWidget {
 Future<void> editBudget(BuildContext context, {required String currency, Budget? existing}) async {
   final store = StoreScope.read(context);
   String? catId = existing?.categoryId;
-  final ctrl = TextEditingController(text: existing == null ? '' : minorToInput(existing.amount, currency));
+  final ctrl = TextEditingController(text: existing == null ? '' : minorToInput(existing.amountAt(store.currentPeriod), currency));
   final used = store.budgets.where((b) => b.currency == currency && b.id != existing?.id).map((b) => b.categoryId).toSet();
   final cats = store.categoriesOf(TxType.expense).where((c) => !used.contains(c.id)).toList();
 
@@ -1211,7 +1223,7 @@ Future<void> editBudget(BuildContext context, {required String currency, Budget?
             onPressed: () {
               final v = parseMoney(ctrl.text, currency);
               if (v == null || v == 0) return;
-              store.saveBudget(existing?.copyWith(amount: v) ?? Budget(categoryId: catId, amount: v, currency: currency));
+              store.saveBudget(existing?.withDefault(v, store.currentPeriod) ?? Budget(categoryId: catId, amount: v, currency: currency));
               Navigator.pop(context);
             },
             child: const Text('Зберегти'),

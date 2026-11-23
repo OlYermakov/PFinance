@@ -49,7 +49,9 @@ void main() {
     expect(reps.first.every, RepeatEvery.fourWeeks);
     expect(reps[1].template.type, TxType.transfer);
     final budget = Budget.fromJson((b['budgets'] as List).single as Map<String, Object?>);
-    expect(budget.amount, 30000);
+    expect(budget.amount, 10000); // MM's starting amount (period 0)
+    expect(budget.amountAt(DateTime(2026, 6)), 30000); // in force in June 2026
+    expect(budget.amountAt(DateTime(2027, 1)), 99900); // a later change
   });
 
   test('rejects other files', () {

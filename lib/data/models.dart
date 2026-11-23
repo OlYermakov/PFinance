@@ -326,23 +326,70 @@ class Txn implements Entity {
 }
 
 /// Monthly spending limit for a category (or overall when categoryId is null).
+/// Like MM it can differ by month: [months] holds changes by month (yyyymm →
+/// amount), each in force from that month until the next change; before the
+/// first change [amount] applies.
 class Budget implements Entity {
   @override
   final String id;
   final String? categoryId;
   final int amount; // minor units per month
   final String currency;
+  final Map<int, int> months;
   @override
   final DateTime updatedAt;
   @override
   final bool deleted;
 
-  Budget({String? id, this.categoryId, required this.amount, required this.currency, DateTime? updatedAt, this.deleted = false})
+  Budget({String? id, this.categoryId, required this.amount, required this.currency, this.months = const {}, DateTime? updatedAt, this.deleted = false})
     : id = id ?? newId(),
       updatedAt = updatedAt ?? DateTime.now();
 
-  Budget copyWith({int? amount, bool? deleted}) =>
-      Budget(id: id, categoryId: categoryId, amount: amount ?? this.amount, currency: currency, deleted: deleted ?? this.deleted);
+  static int keyOf(DateTime month) => month.year * 100 + month.month;
+
+  /// The budget of the accounting month [month].
+  int amountAt(DateTime month) {
+    final k = keyOf(month);
+    int? best;
+    for (final m in months.keys) {
+      if (m <= k && (best == null || m > best)) best = m;
+    }
+    return best == null ? amount : months[best]!;
+  }
+
+  /// This budget as it stands in [month] (for totals and charts).
+  Budget atMonth(DateTime month) => Budget(id: id, categoryId: categoryId, amount: amountAt(month), currency: currency, deleted: deleted);
+
+  /// MM «Бюджет за замовчуванням»: [v] from [from] on; earlier months keep theirs.
+  Budget withDefault(int v, DateTime from) {
+    final k = keyOf(from);
+    final m = {
+      for (final e in months.entries)
+        if (e.key < k) e.key: e.value,
+    };
+    if (m.isEmpty) return copyWith(amount: v, months: const {});
+    m[k] = v;
+    return copyWith(months: m);
+  }
+
+  /// One month only: the months after it keep what they had.
+  Budget withMonth(DateTime month, int v) {
+    final k = keyOf(month);
+    final next = DateTime(month.year, month.month + 1);
+    final m = {...months};
+    if (!m.containsKey(keyOf(next))) m[keyOf(next)] = amountAt(next);
+    m[k] = v;
+    return copyWith(months: m);
+  }
+
+  Budget copyWith({int? amount, Map<int, int>? months, bool? deleted}) => Budget(
+    id: id,
+    categoryId: categoryId,
+    amount: amount ?? this.amount,
+    currency: currency,
+    months: months ?? this.months,
+    deleted: deleted ?? this.deleted,
+  );
 
   @override
   Map<String, Object?> toJson() => {
@@ -350,6 +397,7 @@ class Budget implements Entity {
     'categoryId': categoryId,
     'amount': amount,
     'currency': currency,
+    if (months.isNotEmpty) 'months': {for (final e in months.entries) '${e.key}': e.value},
     'updatedAt': updatedAt.millisecondsSinceEpoch,
     'deleted': deleted,
   };
@@ -359,12 +407,15 @@ class Budget implements Entity {
     categoryId: j['categoryId'] as String?,
     amount: (j['amount'] as num?)?.toInt() ?? 0,
     currency: j['currency'] as String? ?? 'USD',
+    months: {
+      if (j['months'] is Map)
+        for (final e in (j['months'] as Map).entries) int.parse('${e.key}'): (e.value as num).toInt(),
+    },
     updatedAt: _date(j['updatedAt']),
     deleted: j['deleted'] as bool? ?? false,
   );
 }
 
-/// Repeat periods, in MM's order.
 enum RepeatEvery { day, weekdays, weekends, week, twoWeeks, fourWeeks, month, monthEnd, twoMonths, quarter, fourMonths, halfYear, year }
 
 /// A repeating record (Money Manager's "Repeat Setting"). Stored in the
