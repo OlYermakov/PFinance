@@ -434,29 +434,10 @@ class _AccountPageState extends State<AccountPage> {
                       const SizedBox(width: 48),
                   ],
                 ),
-                Row(
-                  children: [
-                    for (final (v, label) in [(_AccView.day, 'По днях'), (_AccView.month, 'По місяцях'), (_AccView.year, 'По роках')])
-                      Expanded(
-                        child: InkWell(
-                          onTap: () => setState(() => _view = v),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(color: _view == v ? scheme.primary : Colors.white.withValues(alpha: 0.10), width: _view == v ? 3 : 1),
-                              ),
-                            ),
-                            child: Text(
-                              label,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontWeight: _view == v ? FontWeight.w700 : FontWeight.w500, color: _view == v ? null : muted),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
+                PillTabs<_AccView>(
+                  value: _view,
+                  items: const {_AccView.day: 'По днях', _AccView.month: 'По місяцях', _AccView.year: 'По роках'},
+                  onChanged: (v) => setState(() => _view = v),
                 ),
                 const SizedBox(height: 8),
                 GlassCard(
@@ -721,15 +702,9 @@ class _AccountChartPageState extends State<_AccountChartPage> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(value: false, label: Text('М')),
-                ButtonSegment(value: true, label: Text('Р')),
-              ],
-              selected: {_years},
-              showSelectedIcon: false,
-              style: const ButtonStyle(visualDensity: VisualDensity.compact),
-              onSelectionChanged: (s) => setState(() => _years = s.first),
+            child: SizedBox(
+              width: 96,
+              child: PillTabs<bool>(value: _years, items: const {false: 'М', true: 'Р'}, onChanged: (v) => setState(() => _years = v)),
             ),
           ),
         ],
@@ -758,7 +733,7 @@ class _AccountChartPageState extends State<_AccountChartPage> {
           ),
           GlassCard(
             padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
-            child: _BalanceLine(
+            child: TrendLine(
               labels: [for (final pt in points) pt.label],
               values: values,
               selected: 4,
@@ -808,8 +783,19 @@ class _AccountChartPageState extends State<_AccountChartPage> {
   }
 }
 
-class _BalanceLine extends StatelessWidget {
-  const _BalanceLine({required this.labels, required this.values, required this.selected, required this.currency, required this.color, required this.onTap});
+/// The app's line chart (account balance, category totals): value labels
+/// over the points, gradient area, the selected period highlighted; tap a
+/// point to open it. Every line chart in the app uses this.
+class TrendLine extends StatelessWidget {
+  const TrendLine({
+    super.key,
+    required this.labels,
+    required this.values,
+    required this.selected,
+    required this.currency,
+    required this.color,
+    required this.onTap,
+  });
   final List<String> labels;
   final List<int> values;
   final int selected;

@@ -758,7 +758,7 @@ class _BudgetView extends StatelessWidget {
         else ...[
           GlassCard(
             padding: EdgeInsets.zero,
-            child: _BudgetRow(
+            child: BudgetRow(
               title: 'Бюджет ($kind)',
               limit: limitTotal,
               spent: spentTotal,
@@ -779,7 +779,7 @@ class _BudgetView extends StatelessWidget {
                     if (i > 0) Divider(height: 1, color: Colors.white.withValues(alpha: 0.07)),
                     InkWell(
                       onTap: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => budgetSettingsPage(type))),
-                      child: _BudgetRow(
+                      child: BudgetRow(
                         title: nameOf(b.categoryId!),
                         limit: b.amount,
                         spent: spentFor(b.categoryId!),
@@ -800,8 +800,12 @@ class _BudgetView extends StatelessWidget {
   }
 }
 
-class _BudgetRow extends StatelessWidget {
-  const _BudgetRow({
+/// One budget line (MM): name and limit on the left; a bar with the
+/// percentage, an optional «Сьогодні» marker, spent and left underneath.
+/// Used by the Budget tab and the Summary so they look the same.
+class BudgetRow extends StatelessWidget {
+  const BudgetRow({
+    super.key,
     required this.title,
     required this.limit,
     required this.spent,

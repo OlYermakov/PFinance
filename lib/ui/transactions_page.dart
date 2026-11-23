@@ -7,7 +7,7 @@ import 'edit_transaction.dart';
 import 'accounts_page.dart' show groupOf;
 import 'export_pf.dart';
 import 'more_page.dart' show RepeatsPage;
-import 'stats_page.dart' show editBudget, budgetTotals;
+import 'stats_page.dart' show editBudget, budgetTotals, BudgetRow;
 import 'format.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -700,6 +700,13 @@ class _MonthsViewState extends State<_MonthsView> {
 
 // ---- Підсумок -------------------------------------------------------------------
 
+double _pace(({DateTime start, DateTime end}) r) {
+  final now = DateTime.now();
+  if (now.isBefore(r.start)) return 0;
+  if (now.isAfter(r.end)) return 1;
+  return now.difference(r.start).inMinutes / r.end.difference(r.start).inMinutes;
+}
+
 class _SummaryView extends StatelessWidget {
   const _SummaryView({required this.month, required this.txns});
   final DateTime month;
@@ -842,7 +849,18 @@ class _SummaryView extends StatelessWidget {
                 )
               : InkWell(
                   onTap: overall == null ? null : () => editBudget(context, currency: cur, existing: overall),
-                  child: _SummaryBudget(spent: bt.spentTotal, limit: limit, currency: cur, range: range),
+                  child: GlassCard(
+                    padding: EdgeInsets.zero,
+                    child: BudgetRow(
+                      title: 'Бюджет (Місяць)',
+                      limit: limit,
+                      spent: bt.spentTotal,
+                      pace: _pace(range),
+                      currency: cur,
+                      showToday: true,
+                      index: 0,
+                    ),
+                  ),
                 ),
         ),
         divider,
@@ -899,198 +917,6 @@ class _SummaryView extends StatelessWidget {
         TextSpan(
           text: '(${m.group(2)})',
           style: TextStyle(color: accent, fontWeight: FontWeight.w400),
-        ),
-      ],
-    );
-  }
-}
-
-/// Total budget row: label and amount on the left, a bar with a "Сьогодні"
-/// marker and percent on the right, spent and remaining underneath.
-class _SummaryBudget extends StatelessWidget {
-  const _SummaryBudget({required this.spent, required this.limit, required this.currency, required this.range});
-  final int spent, limit;
-  final String currency;
-  final ({DateTime start, DateTime end}) range;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final p = AppPalette.of(context);
-    final muted = scheme.onSurfaceVariant;
-    final now = DateTime.now();
-    final total = range.end.difference(range.start).inMinutes;
-    final pace = now.isBefore(range.start)
-        ? 0.0
-        : now.isAfter(range.end)
-        ? 1.0
-        : now.difference(range.start).inMinutes / total;
-    final ratio = limit == 0 ? 0.0 : spent / limit;
-    final barColor = ratio > 1 ? p.expense : scheme.primary;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        SizedBox(
-          width: 120,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Загальний бюджет', style: TextStyle(color: muted, fontSize: 13)),
-              const SizedBox(height: 4),
-              Text(money(limit, currency), style: const TextStyle(fontSize: 16)),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, c) {
-              final w = c.maxWidth;
-              final x = (w * pace).clamp(0.0, w);
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(
-                    height: 26,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Positioned(
-                          left: (x - 32).clamp(0.0, w - 64),
-                          width: 64,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(color: scheme.onSurface.withValues(alpha: 0.35), borderRadius: BorderRadius.circular(10)),
-                            child: const Text('Сьогодні', style: TextStyle(fontSize: 11, color: Colors.white)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  SizedBox(
-                    height: 26,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(child: ColoredBox(color: scheme.onSurface.withValues(alpha: 0.08))),
-                        Positioned.fill(
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: FractionallySizedBox(
-                              widthFactor: ratio.clamp(0.0, 1.0),
-                              heightFactor: 1,
-                              child: ColoredBox(color: barColor),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          left: x - 1,
-                          top: 0,
-                          bottom: 0,
-                          child: Container(width: 1.5, color: scheme.surface),
-                        ),
-                        Positioned(
-                          right: 6,
-                          top: 0,
-                          bottom: 0,
-                          child: Center(
-                            child: Text(
-                              '${(ratio * 100).round()}%',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Text(money(spent, currency), style: TextStyle(color: barColor, fontSize: 15)),
-                      const Spacer(),
-                      Text(money(limit - spent, currency), style: TextStyle(fontSize: 15, color: limit - spent < 0 ? p.expense : null)),
-                    ],
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Budget progress with a "today" pace marker.
-class BudgetBar extends StatelessWidget {
-  const BudgetBar({super.key, required this.title, required this.spent, required this.limit, required this.currency, required this.month, this.leading});
-  final String title;
-  final int spent;
-  final int limit;
-  final String currency;
-  final DateTime month;
-  final Widget? leading;
-
-  @override
-  Widget build(BuildContext context) {
-    final store = StoreScope.of(context);
-    final p = AppPalette.of(context);
-    final r = store.periodRange(month);
-    final now = DateTime.now();
-    final total = r.end.difference(r.start).inHours;
-    final pace = now.isBefore(r.start)
-        ? 0.0
-        : now.isAfter(r.end)
-        ? 1.0
-        : now.difference(r.start).inHours / total;
-    final ratio = limit == 0 ? 0.0 : spent / limit;
-    final over = ratio > 1;
-    final color = over ? p.expense : (ratio > pace + 0.05 ? const Color(0xFFFF9F0A) : p.income);
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-    final daysLeft = r.end.difference(now.isBefore(r.start) ? r.start : DateTime(now.year, now.month, now.day)).inDays.clamp(1, 31);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            if (leading != null) ...[leading!, const SizedBox(width: 10)],
-            Expanded(
-              child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-            ),
-            Text('${money(spent, currency)} / ${money(limit, currency)}', style: TextStyle(fontSize: 13, color: muted)),
-          ],
-        ),
-        const SizedBox(height: 10),
-        LayoutBuilder(
-          builder: (context, c) {
-            return Stack(
-              clipBehavior: Clip.none,
-              children: [
-                TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: ratio.clamp(0, 1)),
-                  duration: const Duration(milliseconds: 800),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, v, _) => ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: LinearProgressIndicator(value: v, minHeight: 10, color: color, backgroundColor: color.withValues(alpha: 0.15)),
-                  ),
-                ),
-                Positioned(
-                  left: (c.maxWidth * pace).clamp(0, c.maxWidth - 2),
-                  top: -4,
-                  child: Container(width: 2, height: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8)),
-                ),
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: 6),
-        Text(
-          over
-              ? 'Перевищено на ${money(spent - limit, currency)}'
-              : 'Залишилось ${money(limit - spent, currency)} · ${money(((limit - spent) / daysLeft).round(), currency)} на день',
-          style: TextStyle(fontSize: 12, color: over ? p.expense : muted),
         ),
       ],
     );
