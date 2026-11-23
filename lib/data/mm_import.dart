@@ -152,9 +152,8 @@ MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings
     var note = parts.join(' ');
     final txCur = isoOf(r['ZCURRENCYUID']);
     final sub = r['ZAMOUNTSUB'];
-    if (txCur != acc.currency && sub is num && code != '3' && code != '4') {
-      note = [note, '(${formatPlain(sub, txCur)})'].where((s) => s.isNotEmpty).join(' ');
-    }
+    // Paid in another currency (e.g. UAH from a EUR card): keep the amount as entered.
+    final foreign = txCur != acc.currency && sub is num && code != '3' && code != '4';
     final cat = _s(r['ZCATEGORYUID']);
     // MM keeps the value in the main currency at the rate of the record's day.
     final mainAmt = r['ZAMOUNT'];
@@ -172,6 +171,8 @@ MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings
             note: note,
             atBase: atBase,
             atBaseCur: atBase == null ? null : base,
+            enteredAmount: foreign ? _minor(sub, txCur) : null,
+            enteredCur: foreign ? txCur : null,
           ),
         );
       case '3':

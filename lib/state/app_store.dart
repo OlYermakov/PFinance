@@ -155,10 +155,35 @@ class AppStore extends ChangeNotifier {
 
   // ---- Loading -----------------------------------------------------------
 
+  /// Older MM imports wrote a foreign amount into the note ("Магазин (12.95
+  /// UAH)"). Move it to the record's entered amount so notes stay clean.
+  Future<void> _moveMmCurrencyNotes() async {
+    final re = RegExp(r'^(.*?)\s*\((\d+(?:\.\d+)?) ([A-Z]{3})\)$');
+    for (var i = 0; i < _txns.length; i++) {
+      final t = _txns[i];
+      final m = re.firstMatch(t.note);
+      if (m == null || t.enteredCur != null) continue;
+      final cur = m[3]!;
+      if (cur == account(t.accountId)?.currency) continue;
+      final v = double.parse(m[2]!);
+      var k = 1;
+      for (var d = 0; d < fmt.decimalsOf(cur); d++) {
+        k *= 10;
+      }
+      final j = t.toJson()
+        ..['note'] = m[1]!.trim()
+        ..['enteredAmount'] = (v * k).round()
+        ..['enteredCur'] = cur;
+      _txns[i] = Txn.fromJson(j);
+      await repo.put(_txns[i]);
+    }
+  }
+
   Future<void> load() async {
     _accounts = await repo.loadAccounts();
     _categories = await repo.loadCategories();
     _txns = await repo.loadTxns();
+    await _moveMmCurrencyNotes();
     _budgets = await repo.loadBudgets();
     final p = await repo.getSetting('prefs');
     if (p is Map) prefs.apply(Map<String, Object?>.from(p));
