@@ -20,12 +20,21 @@ class _TxnSettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final pr = store.prefs;
-    Future<void> pick<T>(String title, Map<T, String> options, T current, void Function(Prefs p, T v) set) async {
-      final v = await _choose<T>(context, title, options, current);
+    Future<void> pick<T>(String title, Map<T, String> options, T current, void Function(Prefs p, T v) set, {String? note, Map<T, Color>? colors}) async {
+      final v = await _choose<T>(context, title, options, current, note: note, colors: colors);
       if (v != null) store.updatePrefs((p) => set(p, v));
     }
 
-    const timeLabels = {0: 'Не вводити', 1: 'Лише введення', 2: 'Введення й показ'};
+    const timeLabels = {
+      0: 'Немає, спад.',
+      1: 'Немає, зрост.',
+      4: 'Показ у списку, спад.',
+      5: 'Показ у списку, зрост.',
+      2: 'Лише введення, спад.',
+      3: 'Лише введення, зрост.',
+    };
+    const weekdays = {1: 'Понеділок', 2: 'Вівторок', 3: 'Середа', 4: 'Четвер', 5: 'Пʼятниця', 6: 'Субота', 7: 'Неділя'};
+    const shiftLabels = {0: '', 1: ' · пт', 2: ' · пн'};
     const swipeLabels = {'tabs': 'Зміна вкладки', 'period': 'Зміна періоду', 'delete': 'Видалення запису', 'off': 'Вимкнено'};
     return Scaffold(
       appBar: AppBar(title: const Text('Налаштування записів')),
@@ -36,20 +45,40 @@ class _TxnSettingsPage extends StatelessWidget {
               _Item(
                 null,
                 'Початок місяця',
-                value: '${pr.monthStartDay}',
-                onTap: () => pick<int>('Місяць починається', {for (var d = 1; d <= 28; d++) d: '$d-го числа'}, pr.monthStartDay, (p, v) => p.monthStartDay = v),
+                value: '${pr.monthStartDay}${shiftLabels[pr.monthStartShift]}',
+                onTap: () => showModalBottomSheet<void>(
+                  context: context,
+                  showDragHandle: true,
+                  isScrollControlled: true,
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  builder: (_) => const _MonthStartSheet(),
+                ),
               ),
               _Item(
                 null,
                 'Початок тижня',
-                value: pr.weekStartsMonday ? 'Понеділок' : 'Неділя',
-                onTap: () => pick<bool>('Тиждень починається', {true: 'Понеділок', false: 'Неділя'}, pr.weekStartsMonday, (p, v) => p.weekStartsMonday = v),
+                value: weekdays[pr.weekStart],
+                onTap: () => pick<int>(
+                  'Початок тижня',
+                  {
+                    for (final d in [7, 1, 2, 3, 4, 5, 6]) d: weekdays[d]!,
+                  },
+                  pr.weekStart,
+                  (p, v) => p.weekStart = v,
+                  colors: {7: AppPalette.of(context).expense, 6: const Color(0xFF4F9DF0)},
+                ),
               ),
               _Item(
                 null,
                 'Перенесення залишку',
                 value: _onOff(pr.carryOver),
-                onTap: () => pick<bool>('Перенесення залишку з минулих періодів', {true: 'Увімк.', false: 'Вимк.'}, pr.carryOver, (p, v) => p.carryOver = v),
+                onTap: () => pick<bool>(
+                  'Перенесення залишку',
+                  {false: 'Вимк.', true: 'Увімк.'},
+                  pr.carryOver,
+                  (p, v) => p.carryOver = v,
+                  note: 'Перенесення додає залишок попередніх місяців до підсумку «Разом» поточного.',
+                ),
               ),
               _Item(
                 null,
@@ -66,10 +95,29 @@ class _TxnSettingsPage extends StatelessWidget {
                 null,
                 'Автозаповнення',
                 value: _onOff(pr.noteSuggestions),
-                onTap: () =>
-                    pick<bool>('Підказки нотаток під час введення', {true: 'Увімк.', false: 'Вимк.'}, pr.noteSuggestions, (p, v) => p.noteSuggestions = v),
+                onTap: () => pick<bool>(
+                  'Автозаповнення',
+                  {false: 'Вимк.', true: 'Увімк.'},
+                  pr.noteSuggestions,
+                  (p, v) => p.noteSuggestions = v,
+                  note: 'Під час введення нотатки показує схожі нотатки з попередніх записів. Вибір підказки заповнює категорію, рахунок і суму.',
+                ),
               ),
-              _Item(null, 'Час', value: timeLabels[pr.timeMode], onTap: () => pick<int>('Час запису', timeLabels, pr.timeMode, (p, v) => p.timeMode = v)),
+              _Item(
+                null,
+                'Введення часу',
+                value: timeLabels[_timeKey(pr)],
+                onTap: () => pick<int>(
+                  'Введення часу',
+                  timeLabels,
+                  _timeKey(pr),
+                  (p, v) {
+                    p.timeMode = v ~/ 2;
+                    p.timeAsc = v.isOdd;
+                  },
+                  note: '«Немає» — без часу; «Показ у списку» — час видно в записах; «Лише введення» — час лише в редакторі. Спад./зрост. — порядок записів у дні.',
+                ),
+              ),
               _Item(
                 null,
                 'Стартовий екран',
@@ -86,22 +134,119 @@ class _TxnSettingsPage extends StatelessWidget {
                 null,
                 'Показувати нотатку',
                 value: _onOff(pr.showNote),
-                onTap: () => pick<bool>('Нотатка в списку записів', {true: 'Увімк.', false: 'Вимк.'}, pr.showNote, (p, v) => p.showNote = v),
+                onTap: () => pick<bool>(
+                  'Показувати нотатку',
+                  {false: 'Вимк.', true: 'Увімк.'},
+                  pr.showNote,
+                  (p, v) => p.showNote = v,
+                  note: 'Нотатка запису показується в списку записів поруч із категорією.',
+                ),
               ),
               _Item(
                 null,
                 'Порядок введення',
                 value: pr.categoryFirst ? 'Спершу категорія' : 'Спершу рахунок',
-                onTap: () =>
-                    pick<bool>('Порядок введення', {false: 'Спершу рахунок', true: 'Спершу категорія'}, pr.categoryFirst, (p, v) => p.categoryFirst = v),
+                onTap: () => pick<bool>(
+                  'Порядок введення',
+                  {false: 'Спершу рахунок', true: 'Спершу категорія'},
+                  pr.categoryFirst,
+                  (p, v) => p.categoryFirst = v,
+                  note: 'Яке поле редактор відкриває першим після вибору дати.',
+                ),
               ),
               _Item(
                 null,
                 'Кнопка нотаток',
                 value: _onOff(pr.noteButton),
-                onTap: () => pick<bool>('Кнопка попередніх нотаток', {true: 'Увімк.', false: 'Вимк.'}, pr.noteButton, (p, v) => p.noteButton = v),
+                onTap: () => pick<bool>(
+                  'Кнопка нотаток',
+                  {false: 'Вимк.', true: 'Увімк.'},
+                  pr.noteButton,
+                  (p, v) => p.noteButton = v,
+                  note: 'Показує в редакторі кнопку зі списком попередніх нотаток.',
+                ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// MM «Введ. часу» as one key: none 0/1, input only 2/3, shown in lists 4/5; odd = ascending.
+int _timeKey(Prefs p) => (p.timeMode == 0 ? 0 : (p.timeMode == 1 ? 2 : 4)) + (p.timeAsc ? 1 : 0);
+
+/// MM «Дата поч. місяця»: a grid of days 1–31 and what to do when that day is a weekend.
+class _MonthStartSheet extends StatelessWidget {
+  const _MonthStartSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final pr = store.prefs;
+    final scheme = Theme.of(context).colorScheme;
+    final muted = scheme.onSurfaceVariant;
+    final r = store.periodRange(store.currentPeriod);
+    final last = r.end.subtract(const Duration(days: 1));
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+            child: Text('Початок місяця', style: Theme.of(context).textTheme.titleMedium),
+          ),
+          GridView.count(
+            crossAxisCount: 7,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 4,
+            crossAxisSpacing: 4,
+            childAspectRatio: 1.25,
+            children: [
+              for (var d = 1; d <= 31; d++)
+                Material(
+                  color: d == pr.monthStartDay ? scheme.primary : panelColor(context),
+                  borderRadius: BorderRadius.circular(10),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => store.updatePrefs((p) => p.monthStartDay = d),
+                    child: Center(
+                      child: Text(
+                        '$d',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: d == pr.monthStartDay ? FontWeight.w700 : FontWeight.w500,
+                          color: d == pr.monthStartDay ? scheme.onPrimary : scheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 16, 4, 4),
+            child: Text('Якщо цей день — вихідний:', style: TextStyle(fontSize: 13, color: muted)),
+          ),
+          for (final (v, l) in const [(0, 'Без змін'), (1, 'Попередня пʼятниця'), (2, 'Наступний понеділок')])
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+              dense: true,
+              title: Text(l, style: const TextStyle(fontSize: 15)),
+              trailing: pr.monthStartShift == v ? Icon(Icons.check_rounded, color: scheme.primary) : null,
+              onTap: () => store.updatePrefs((p) => p.monthStartShift = v),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+            child: Text(
+              'Поточний місяць: ${DateFormat('d.M.yyyy').format(r.start)} – ${DateFormat('d.M.yyyy').format(last)}. '
+              'Якщо в місяці немає обраного дня, він починається в останній день.',
+              style: TextStyle(fontSize: 12, color: muted),
+            ),
           ),
         ],
       ),

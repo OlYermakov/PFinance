@@ -278,7 +278,7 @@ class DayCard extends StatelessWidget {
             ),
           ),
           Divider(height: 1, indent: 18, endIndent: 18, color: Colors.white.withValues(alpha: 0.08)),
-          for (final x in txns) TxnTile(txn: x),
+          for (final x in store.prefs.timeAsc ? txns.reversed : txns) TxnTile(txn: x),
         ],
       ),
     );
@@ -424,8 +424,7 @@ class _CalendarView extends StatelessWidget {
     final p = AppPalette.of(context);
     final scheme = Theme.of(context).colorScheme;
     final r = store.periodRange(month);
-    final monday = store.prefs.weekStartsMonday;
-    final firstWeekday = monday ? 1 : 7;
+    final firstWeekday = store.prefs.weekStart;
     var gridStart = r.start;
     while (gridStart.weekday != firstWeekday) {
       gridStart = gridStart.subtract(const Duration(days: 1));
@@ -447,7 +446,7 @@ class _CalendarView extends StatelessWidget {
       }
     }
     final today = DateTime.now();
-    final names = monday ? ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'] : ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+    final names = weekdayNames(firstWeekday);
     String compact(int minor) {
       final v = minor / 100;
       if (v >= 1000) {
@@ -473,7 +472,7 @@ class _CalendarView extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: (monday ? i >= 5 : (i == 0 || i == 6)) ? p.expense : scheme.onSurfaceVariant,
+                          color: (firstWeekday - 1 + i) % 7 >= 5 ? p.expense : scheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -610,7 +609,7 @@ class _MonthsViewState extends State<_MonthsView> {
     final now = DateTime.now();
     final y = widget.month.year;
     final line = Colors.white.withValues(alpha: 0.07);
-    final firstWeekday = store.prefs.weekStartsMonday ? DateTime.monday : DateTime.sunday;
+    final firstWeekday = store.prefs.weekStart;
 
     Widget amounts(({int income, int expense}) t, {String? totalLabel}) => Column(
       crossAxisAlignment: CrossAxisAlignment.end,

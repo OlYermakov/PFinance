@@ -315,13 +315,13 @@ class _TxnEditorState extends State<TxnEditor> {
   }
 
   Widget _calendar(AppStore store, ColorScheme scheme) {
-    final monday = store.prefs.weekStartsMonday;
+    final ws = store.prefs.weekStart;
     final first = _calMonth;
-    final lead = monday ? (first.weekday - 1) % 7 : first.weekday % 7;
+    final lead = (first.weekday - ws) % 7;
     final start = DateTime(first.year, first.month, 1 - lead);
     final daysIn = DateTime(first.year, first.month + 1, 0).day;
     final weeks = ((lead + daysIn) / 7).ceil();
-    final names = monday ? const ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'] : const ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+    final names = weekdayNames(ws);
     const sat = Color(0xFF4F9DF0), sun = Color(0xFFF2675B);
     Color? dayColor(DateTime d) => d.weekday == DateTime.saturday ? sat : (d.weekday == DateTime.sunday ? sun : null);
     final line = Colors.white.withValues(alpha: 0.07);

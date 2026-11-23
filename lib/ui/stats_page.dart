@@ -120,12 +120,11 @@ class _StatsPageState extends State<StatsPage> {
     final a = _anchor;
     switch (_mode) {
       case StatsMode.week:
-        final shift = store.prefs.weekStartsMonday ? (a.weekday - 1) : (a.weekday % 7);
+        final shift = (a.weekday - store.prefs.weekStart) % 7;
         final start = DateTime(a.year, a.month, a.day - shift);
         return (start: start, end: DateTime(start.year, start.month, start.day + 7));
       case StatsMode.year:
-        final s = store.prefs.monthStartDay;
-        return (start: DateTime(a.year, 1, s), end: DateTime(a.year + 1, 1, s));
+        return store.yearRange(a.year);
       case StatsMode.custom:
         final r = _custom ?? DateTimeRange(start: DateTime(a.year, a.month, 1), end: DateTime(a.year, a.month + 1, 0));
         return (start: r.start, end: DateTime(r.end.year, r.end.month, r.end.day + 1));

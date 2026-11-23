@@ -38,8 +38,7 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
   }
 
   List<Txn> _inMonth(AppStore store, DateTime m) {
-    final s = store.prefs.monthStartDay;
-    final r = widget.year ? (start: DateTime(m.year, 1, s), end: DateTime(m.year + 1, 1, s)) : store.periodRange(m);
+    final r = widget.year ? store.yearRange(m.year) : store.periodRange(m);
     return store.txns.where((t) => !t.date.isBefore(r.start) && t.date.isBefore(r.end) && _matches(store, t)).toList();
   }
 

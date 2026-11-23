@@ -492,3 +492,8 @@ class PillTabs<T> extends StatelessWidget {
     );
   }
 }
+
+/// Short weekday names in display order, starting from [first] (DateTime.monday..sunday).
+List<String> weekdayNames(int first) => [
+  for (var i = 0; i < 7; i++) const ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'][(first - 1 + i) % 7],
+];

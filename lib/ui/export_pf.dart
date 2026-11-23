@@ -75,10 +75,9 @@ Future<void> exportForPf(BuildContext context, {DateTime? month}) async {
   final store = StoreScope.read(context);
   final messenger = ScaffoldMessenger.of(context);
   final m = month ?? store.periodOf(DateTime.now());
-  final sd = store.prefs.monthStartDay;
   final cur = store.periodRange(m);
   final prev = store.periodRange(DateTime(m.year, m.month - 1));
-  ({DateTime start, DateTime end}) year(int y) => (start: DateTime(y, 1, sd), end: DateTime(y + 1, 1, sd));
+  ({DateTime start, DateTime end}) year(int y) => store.yearRange(y);
   final df = DateFormat('d.M.yyyy');
   String span(({DateTime start, DateTime end}) r) {
     final last = r.end.subtract(const Duration(days: 1));

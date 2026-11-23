@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -18,8 +19,10 @@ class Prefs {
   String themeId = 'aurora';
   ThemeMode themeMode = ThemeMode.dark;
   String baseCurrency = 'EUR';
-  int monthStartDay = 1; // 1..28, e.g. salary day
-  bool weekStartsMonday = true;
+  int monthStartDay = 1; // 1..31, e.g. salary day; clamped to short months
+  int monthStartShift = 0; // start on a weekend: 0 no change, 1 previous Friday, 2 next Monday
+  int weekStart = DateTime.monday; // DateTime.monday..DateTime.sunday
+  bool get weekStartsMonday => weekStart == DateTime.monday;
   StartPage startPage = StartPage.day;
   String incomeColor = 'green'; // income: 'green', 'blue' or 'accent' (theme accent); expenses are always red
   bool showDecimals = true;
@@ -32,6 +35,7 @@ class Prefs {
   String? pin; // 4 digits; local convenience lock, not encryption
   // MM "Transaction Settings"
   int timeMode = 1; // 0: no time, 1: input only, 2: input and show in lists
+  bool timeAsc = false; // records of a day: oldest first (MM «Зрост.») instead of newest first
   String swipe = 'tabs'; // 'tabs' (switch view tabs), 'period' (change period), 'delete', 'off'
   bool showNote = true; // show the note in record lists
   bool categoryFirst = false; // input order: category before account
@@ -54,7 +58,8 @@ class Prefs {
     'themeMode': themeMode.name,
     'baseCurrency': baseCurrency,
     'monthStartDay': monthStartDay,
-    'weekStartsMonday': weekStartsMonday,
+    'monthStartShift': monthStartShift,
+    'weekStart': weekStart,
     'startPage': startPage.name,
     'incomeColor': incomeColor,
     'showDecimals': showDecimals,
@@ -69,6 +74,7 @@ class Prefs {
     'pin': pin,
     'rates': rates,
     'timeMode': timeMode,
+    'timeAsc': timeAsc,
     'swipe': swipe,
     'showNote': showNote,
     'categoryFirst': categoryFirst,
@@ -87,7 +93,8 @@ class Prefs {
     themeMode = ThemeMode.values.asNameMap()[j['themeMode']] ?? themeMode;
     baseCurrency = j['baseCurrency'] as String? ?? baseCurrency;
     monthStartDay = (j['monthStartDay'] as num?)?.toInt() ?? monthStartDay;
-    weekStartsMonday = j['weekStartsMonday'] as bool? ?? weekStartsMonday;
+    monthStartShift = (j['monthStartShift'] as num?)?.toInt() ?? monthStartShift;
+    weekStart = (j['weekStart'] as num?)?.toInt() ?? (j['weekStartsMonday'] == false ? DateTime.sunday : weekStart);
     startPage = StartPage.values.asNameMap()[j['startPage']] ?? startPage;
     incomeColor = j['incomeColor'] as String? ?? (j['incomeBlue'] == true ? 'blue' : incomeColor);
     showDecimals = j['showDecimals'] as bool? ?? showDecimals;
@@ -99,6 +106,7 @@ class Prefs {
     copyToToday = j['copyToToday'] as bool? ?? copyToToday;
     pin = j['pin'] as String?;
     timeMode = (j['timeMode'] as num?)?.toInt() ?? timeMode;
+    timeAsc = j['timeAsc'] as bool? ?? timeAsc;
     swipe = j['swipe'] as String? ?? swipe;
     showNote = j['showNote'] as bool? ?? showNote;
     categoryFirst = j['categoryFirst'] as bool? ?? categoryFirst;
@@ -199,18 +207,34 @@ class AppStore extends ChangeNotifier {
 
   // ---- Periods -----------------------------------------------------------
 
+  /// First day of the accounting month [year]/[month]: "month starts on day N"
+  /// (clamped to the month's length), moved off a weekend if so chosen.
+  DateTime periodStart(int year, int month) {
+    final last = DateTime(year, month + 1, 0).day;
+    final d = DateTime(year, month, math.min(prefs.monthStartDay, last));
+    return switch ((prefs.monthStartShift, d.weekday)) {
+      (1, DateTime.saturday) => DateTime(d.year, d.month, d.day - 1),
+      (1, DateTime.sunday) => DateTime(d.year, d.month, d.day - 2),
+      (2, DateTime.saturday) => DateTime(d.year, d.month, d.day + 2),
+      (2, DateTime.sunday) => DateTime(d.year, d.month, d.day + 1),
+      _ => d,
+    };
+  }
+
   /// The accounting month that contains [d] (respects "month starts on day N").
   DateTime periodOf(DateTime d) {
-    final s = prefs.monthStartDay;
-    return d.day >= s ? DateTime(d.year, d.month) : DateTime(d.year, d.month - 1);
+    var m = DateTime(d.year, d.month);
+    if (d.isBefore(periodStart(m.year, m.month))) m = DateTime(m.year, m.month - 1);
+    if (!d.isBefore(periodStart(m.year, m.month + 1))) m = DateTime(m.year, m.month + 1);
+    return m;
   }
 
   DateTime get currentPeriod => periodOf(DateTime.now());
 
-  ({DateTime start, DateTime end}) periodRange(DateTime month) {
-    final s = prefs.monthStartDay;
-    return (start: DateTime(month.year, month.month, s), end: DateTime(month.year, month.month + 1, s));
-  }
+  ({DateTime start, DateTime end}) periodRange(DateTime month) => (start: periodStart(month.year, month.month), end: periodStart(month.year, month.month + 1));
+
+  /// The accounting year: from the start of its January to the next one's.
+  ({DateTime start, DateTime end}) yearRange(int year) => (start: periodStart(year, 1), end: periodStart(year + 1, 1));
 
   // ---- Views -------------------------------------------------------------
 
