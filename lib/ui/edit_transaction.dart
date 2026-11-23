@@ -610,7 +610,7 @@ class _TxnEditorState extends State<TxnEditor> {
                   ),
                 )
               : null,
-          child: amountText(_Field.amount, _amountCur ?? cur),
+          child: amountText(_Field.amount, _amountCur ?? (acc == null ? '' : cur)),
         ),
         if (cross)
           _FormRow(
@@ -897,6 +897,8 @@ class _TxnEditorState extends State<TxnEditor> {
                 onTap: () {
                   setState(() {
                     if (f == _Field.account) {
+                      // the amount is typed in the new account's currency again
+                      if (_accountId != a.id) _amountCur = null;
                       _accountId = a.id;
                       if (_toAccountId == a.id) _toAccountId = null;
                     } else {
