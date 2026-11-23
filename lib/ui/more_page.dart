@@ -21,7 +21,7 @@ import 'widgets.dart';
 
 part 'more_extra.dart';
 
-const appVersion = 'v0.9.56';
+const appVersion = 'v0.9.57';
 
 /// Full names of the supported currencies (Settings → currencies).
 const currencyNames = {

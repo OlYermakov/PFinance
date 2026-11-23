@@ -38,7 +38,7 @@ class Prefs {
   bool timeAsc = false; // records of a day: oldest first (MM «Зрост.») instead of newest first
   String swipe = 'tabs'; // 'tabs' (switch view tabs), 'period' (change period), 'delete', 'off'
   bool showNote = true; // show the note in record lists
-  bool categoryFirst = false; // input order: category before account
+  bool amountFirst = false; // MM «Порядок введення»: start from the amount
   bool noteButton = false; // note-history button in the editor; off by default
   bool copyPaste = true; // copy button for records
   // MM "Main currency": symbol in front ("€ 1,00") or behind ("1,00 €")
@@ -77,7 +77,7 @@ class Prefs {
     'timeAsc': timeAsc,
     'swipe': swipe,
     'showNote': showNote,
-    'categoryFirst': categoryFirst,
+    'amountFirst': amountFirst,
     'noteButton': noteButton,
     'copyPaste': copyPaste,
     'currencyFront': currencyFront,
@@ -109,7 +109,7 @@ class Prefs {
     timeAsc = j['timeAsc'] as bool? ?? timeAsc;
     swipe = j['swipe'] as String? ?? swipe;
     showNote = j['showNote'] as bool? ?? showNote;
-    categoryFirst = j['categoryFirst'] as bool? ?? categoryFirst;
+    amountFirst = j['amountFirst'] as bool? ?? amountFirst;
     noteButton = j['noteButton'] as bool? ?? noteButton;
     // The note button used to be on by default (Alex: remove it); switch it
     // off once for older settings.

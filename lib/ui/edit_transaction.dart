@@ -97,8 +97,9 @@ class _TxnEditorState extends State<TxnEditor> {
       if (widget.amount != null) {
         _expr[_Field.amount] = _input(widget.amount!, store.account(_accountId)?.currency ?? store.baseCurrency);
       }
-      // Like Money Manager: a new record starts with the account grid open.
-      _panel = _Field.account;
+      // Like Money Manager: a new record starts with the account grid open
+      // (or the amount, when the amount comes first).
+      _panel = store.prefs.amountFirst ? _Field.amount : _Field.account;
     }
     _noteFocus.addListener(() {
       setState(() {
@@ -151,7 +152,9 @@ class _TxnEditorState extends State<TxnEditor> {
     final store = StoreScope.read(context);
     setState(() {
       _error = null;
-      if (from == _Field.account && _type == TxType.transfer && _toAccountId == null) {
+      if (from == _Field.amount && store.prefs.amountFirst && _accountId == null) {
+        _panel = _Field.account;
+      } else if (from == _Field.account && _type == TxType.transfer && _toAccountId == null) {
         _panel = _Field.toAccount;
       } else if (from == _Field.account && _type != TxType.transfer && _categoryId == null) {
         _panel = _Field.category;
@@ -168,11 +171,13 @@ class _TxnEditorState extends State<TxnEditor> {
   /// "Далі" (MM): go to the next field of the form, in its order.
   void _next() {
     final store = StoreScope.read(context);
+    final first = store.prefs.amountFirst;
     final order = <_Field?>[
+      if (first) _Field.amount,
       _Field.account,
       if (_type == TxType.transfer) _Field.toAccount,
       if (_type != TxType.transfer) _Field.category,
-      _Field.amount,
+      if (!first) _Field.amount,
       if (_crossCurrency(store)) _Field.toAmount,
       if (_type == TxType.transfer && _showFee) _Field.fee,
       null, // the note
@@ -726,31 +731,32 @@ class _TxnEditorState extends State<TxnEditor> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 );
-          return store.prefs.categoryFirst && _type != TxType.transfer ? [catRow, accRow] : [accRow, catRow];
-        })(),
-        _FormRow(
-          label: 'Сума',
-          accent: accent,
-          active: _panel == _Field.amount,
-          onTap: () => _open(_Field.amount),
-          trailing: _type == TxType.transfer
-              ? Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      backgroundColor: _showFee ? scheme.primary.withValues(alpha: 0.15) : null,
+          final Widget amountRow = _FormRow(
+            label: 'Сума',
+            accent: accent,
+            active: _panel == _Field.amount,
+            onTap: () => _open(_Field.amount),
+            trailing: _type == TxType.transfer
+                ? Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        backgroundColor: _showFee ? scheme.primary.withValues(alpha: 0.15) : null,
+                      ),
+                      onPressed: () => setState(() {
+                        _showFee = !_showFee;
+                        _panel = _showFee ? _Field.fee : null;
+                      }),
+                      child: const Text('Комісія'),
                     ),
-                    onPressed: () => setState(() {
-                      _showFee = !_showFee;
-                      _panel = _showFee ? _Field.fee : null;
-                    }),
-                    child: const Text('Комісія'),
-                  ),
-                )
-              : null,
-          child: amountText(_Field.amount, _amountCur ?? (acc == null ? '' : cur)),
-        ),
+                  )
+                : null,
+            child: amountText(_Field.amount, _amountCur ?? (acc == null ? '' : cur)),
+          );
+          // MM «Порядок введення»: «Від суми» puts the amount first.
+          return store.prefs.amountFirst ? [amountRow, accRow, catRow] : [accRow, catRow, amountRow];
+        })(),
         if (cross)
           _FormRow(
             label: 'Зараховано',

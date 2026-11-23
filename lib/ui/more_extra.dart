@@ -145,13 +145,13 @@ class _TxnSettingsPage extends StatelessWidget {
               _Item(
                 null,
                 'Порядок введення',
-                value: pr.categoryFirst ? 'Спершу категорія' : 'Спершу рахунок',
+                value: pr.amountFirst ? 'Спершу сума' : 'Спершу рахунок',
                 onTap: () => pick<bool>(
                   'Порядок введення',
-                  {false: 'Спершу рахунок', true: 'Спершу категорія'},
-                  pr.categoryFirst,
-                  (p, v) => p.categoryFirst = v,
-                  note: 'Яке поле редактор відкриває першим після вибору дати.',
+                  {false: 'Спершу рахунок', true: 'Спершу сума'},
+                  pr.amountFirst,
+                  (p, v) => p.amountFirst = v,
+                  note: 'З чого починається новий запис: з вибору рахунку чи з введення суми.',
                 ),
               ),
               _Item(
