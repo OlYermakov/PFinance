@@ -21,7 +21,7 @@ import 'widgets.dart';
 
 part 'more_extra.dart';
 
-const appVersion = 'v0.9.64';
+const appVersion = 'v0.9.65';
 
 /// Full names of the supported currencies (Settings → currencies).
 const currencyNames = {
@@ -198,7 +198,7 @@ class _Item extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(icon == null ? 20 : 16, 11, 16, 11),
         child: Row(
           children: [
-            if (icon != null) ...[Icon(icon, color: scheme.onSurfaceVariant, size: 24), const SizedBox(width: 16)],
+            if (icon != null) ...[Icon(icon, color: danger ? scheme.error : scheme.primary, size: 24), const SizedBox(width: 16)],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
