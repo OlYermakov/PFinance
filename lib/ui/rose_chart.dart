@@ -90,9 +90,9 @@ class _RoseChartState extends State<RoseChart> {
                     progress: t,
                     petal: sel,
                     part: _part,
-                    grid: scheme.onSurface.withValues(alpha: 0.08),
+                    grid: scheme.onSurface.withValues(alpha: 0.28),
                     label: TextStyle(fontSize: 10, color: muted),
-                    gridLabel: TextStyle(fontSize: 9, color: muted.withValues(alpha: 0.7)),
+                    gridLabel: TextStyle(fontSize: 10, color: muted),
                     currency: widget.currency,
                   ),
                   child: SizedBox.fromSize(
@@ -199,26 +199,6 @@ class _RosePainter extends CustomPainter {
     final maxR = math.min(size.width, size.height) / 2 - 18;
     double r(num v) => hole + math.sqrt(v / mx) * (maxR - hole) * progress;
 
-    // Scale circles at round amounts.
-    final step = _nice(mx / 4);
-    for (final v in [step, step * 2, step * 4]) {
-      if (v > mx * 1.05) continue;
-      final rr = r(v);
-      canvas.drawCircle(
-        c,
-        rr,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..color = grid,
-      );
-      final tp = TextPainter(
-        text: TextSpan(text: '${(v / 100).round()}', style: gridLabel),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      final p = c + Offset(-rr * 0.71 - tp.width - 2, rr * 0.71);
-      tp.paint(canvas, p);
-    }
-
     final slot = 2 * math.pi / n;
     final gap = math.min(0.05, slot * 0.12);
     for (var i = 0; i < n; i++) {
@@ -251,6 +231,26 @@ class _RosePainter extends CustomPainter {
         )..layout();
         tp.paint(canvas, c + Offset(lr * math.cos(am), lr * math.sin(am)) - Offset(tp.width / 2, tp.height / 2));
       }
+    }
+    // Scale circles at round amounts, over the petals so they stay visible.
+    final step = _nice(mx / 4);
+    for (final v in [step, step * 2, step * 4]) {
+      if (v > mx * 1.05) continue;
+      final rr = r(v);
+      canvas.drawCircle(
+        c,
+        rr,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = grid,
+      );
+      final tp = TextPainter(
+        text: TextSpan(text: '${(v / 100).round()}', style: gridLabel),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final p = c + Offset(-rr * 0.71 - tp.width - 2, rr * 0.71);
+      tp.paint(canvas, p);
     }
   }
 
