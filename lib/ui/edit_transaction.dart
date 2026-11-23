@@ -5,7 +5,7 @@ import '../data/models.dart';
 import '../state/app_store.dart';
 import 'accounts_page.dart' show editAccount;
 import 'format.dart';
-import 'more_page.dart' show CategoriesPage, editCategory;
+import 'more_page.dart' show CategoriesPage, currencySymbol, editCategory;
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -47,6 +47,7 @@ class _TxnEditorState extends State<TxnEditor> {
   String? _error;
   int _savedInSeries = 0;
   RepeatEvery? _repeat; // new records only
+  String? _amountCur; // MM: the amount may be typed in another currency
 
   bool get _isNew => widget.existing == null;
 
@@ -165,6 +166,23 @@ class _TxnEditorState extends State<TxnEditor> {
     }
   }
 
+  /// The amount in [accCur] minor units; typed in another currency it is
+  /// converted with the rates from the settings.
+  int? _amountIn(AppStore store, String accCur) {
+    final from = _amountCur;
+    if (from == null || from == accCur) return _minor(_Field.amount, accCur);
+    final v = evalExpression(_expr[_Field.amount]!);
+    if (v == null || v < 0) return null;
+    double rate(String c) => c == store.baseCurrency ? 1 : (store.prefs.rates[c] ?? 0);
+    if (rate(from) == 0 || rate(accCur) == 0) return null;
+    final inAcc = v * rate(from) / rate(accCur);
+    var m = 1;
+    for (var i = 0; i < decimalsOf(accCur); i++) {
+      m *= 10;
+    }
+    return (inAcc * m).round();
+  }
+
   bool _crossCurrency(AppStore store) {
     final a = store.account(_accountId), b = store.account(_toAccountId);
     return _type == TxType.transfer && a != null && b != null && a.currency != b.currency;
@@ -194,7 +212,7 @@ class _TxnEditorState extends State<TxnEditor> {
     if (_type != TxType.transfer && _categoryId == null) {
       return setState(() => _error = 'Обери категорію');
     }
-    final amount = _minor(_Field.amount, acc.currency);
+    final amount = _amountIn(store, acc.currency);
     if (amount == null || amount == 0) {
       return setState(() => _error = 'Введи суму');
     }
@@ -383,7 +401,7 @@ class _TxnEditorState extends State<TxnEditor> {
                     await store.saveTemplate(
                       Txn(
                         type: _type,
-                        amount: acc == null ? 0 : (_minor(_Field.amount, acc.currency) ?? 0),
+                        amount: acc == null ? 0 : (_amountIn(store, acc.currency) ?? 0),
                         accountId: _accountId ?? '',
                         toAccountId: _type == TxType.transfer ? _toAccountId : null,
                         categoryId: _type == TxType.transfer ? null : (_subId ?? _categoryId),
@@ -579,7 +597,7 @@ class _TxnEditorState extends State<TxnEditor> {
                   ),
                 )
               : null,
-          child: amountText(_Field.amount, cur),
+          child: amountText(_Field.amount, _amountCur ?? cur),
         ),
         if (cross)
           _FormRow(
@@ -887,14 +905,19 @@ class _TxnEditorState extends State<TxnEditor> {
           _ => 'Сума',
         },
         null,
-        _CalcPad(
-          accent: _type == TxType.transfer ? scheme.primary : accent,
-          onKey: (k) => setState(() => _expr[f] = _CalcPad.apply(_expr[f]!, k)),
-          onDone: () {
-            final v = evalExpression(_expr[f]!);
-            setState(() => _expr[f] = v == null ? '' : _CalcPad.fmt(v));
-            _advance(f);
-          },
+        Column(
+          children: [
+            if (f == _Field.amount) _currencyRow(store, scheme),
+            _CalcPad(
+              accent: _type == TxType.transfer ? scheme.primary : accent,
+              onKey: (k) => setState(() => _expr[f] = _CalcPad.apply(_expr[f]!, k)),
+              onDone: () {
+                final v = evalExpression(_expr[f]!);
+                setState(() => _expr[f] = v == null ? '' : _CalcPad.fmt(v));
+                _advance(f);
+              },
+            ),
+          ],
         ),
       ),
     };
@@ -924,6 +947,32 @@ class _TxnEditorState extends State<TxnEditor> {
             constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.42),
             child: SingleChildScrollView(child: body),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// MM: the currencies in use above the keypad; the chosen one is lit.
+  Widget _currencyRow(AppStore store, ColorScheme scheme) {
+    final accCur = store.account(_accountId)?.currency ?? store.baseCurrency;
+    final list = <String>{accCur, store.baseCurrency, ...store.prefs.rates.keys}.toList();
+    if (list.length < 2) return const SizedBox.shrink();
+    final sel = _amountCur ?? accCur;
+    return Container(
+      height: 44,
+      color: const Color(0xFF2E3557),
+      child: Row(
+        children: [
+          for (final c in list)
+            InkWell(
+              onTap: () => setState(() => _amountCur = c == accCur ? null : c),
+              child: Container(
+                width: 60,
+                alignment: Alignment.center,
+                color: c == sel ? Colors.white.withValues(alpha: 0.16) : null,
+                child: Text(currencySymbol(c), style: const TextStyle(fontSize: 17, color: Colors.white)),
+              ),
+            ),
         ],
       ),
     );
@@ -1188,7 +1237,15 @@ class _CalcPad extends StatelessWidget {
       if (_ops.contains(last)) return e.substring(0, e.length - 1) + k;
       return e + k;
     }
+    if (k == '00' || k == '000') {
+      var r = e;
+      for (var i = 0; i < k.length; i++) {
+        r = apply(r, '0');
+      }
+      return r;
+    }
     final current = RegExp(r'[0-9,]*$').firstMatch(e)!.group(0)!; // number being typed
+    if (current == '0' && k != ',') return e.substring(0, e.length - 1) + k; // no leading zeros
     if (k == ',') {
       if (current.contains(',')) return e;
       return current.isEmpty ? '${e}0,' : '$e,';
@@ -1207,12 +1264,11 @@ class _CalcPad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final line = Colors.white.withValues(alpha: 0.07);
     Widget key(String k, {int flex = 1, Color? bg, Color? fg, VoidCallback? onTap}) => Expanded(
       flex: flex,
       child: Container(
-        height: 50,
+        height: 56,
         decoration: BoxDecoration(
           color: bg,
           border: Border(
@@ -1224,51 +1280,34 @@ class _CalcPad extends StatelessWidget {
           onTap: onTap ?? () => onKey(k),
           child: Center(
             child: k == '⌫'
-                ? const Icon(Icons.backspace_outlined)
+                ? const Icon(Icons.backspace_outlined, size: 22)
                 : Text(
                     k,
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: fg),
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w400, color: fg),
                   ),
           ),
         ),
       ),
     );
-    final opBg = Colors.white.withValues(alpha: 0.05);
+    final opBg = Colors.black.withValues(alpha: 0.22);
+    // MM layout: operators on top; "=", "," and ⌫ in the right column;
+    // 00 / 0 / 000 and OK at the bottom.
     return Column(
       children: [
         Row(
           children: [
-            for (final k in ['+', '−', '×', '÷']) key(k, bg: opBg, fg: scheme.primary),
+            for (final k in ['+', '−', '×', '÷']) key(k, bg: opBg),
           ],
         ),
+        Row(children: [key('7'), key('8'), key('9'), key('=')]),
+        Row(children: [key('4'), key('5'), key('6'), key(',')]),
+        Row(children: [key('1'), key('2'), key('3'), key('⌫')]),
         Row(
           children: [
-            key('7'),
-            key('8'),
-            key('9'),
-            key('⌫', bg: opBg),
-          ],
-        ),
-        Row(
-          children: [
-            key('4'),
-            key('5'),
-            key('6'),
-            key('=', bg: opBg, fg: scheme.primary),
-          ],
-        ),
-        Row(
-          children: [
-            key('1'),
-            key('2'),
-            key('3'),
-            key(',', bg: opBg),
-          ],
-        ),
-        Row(
-          children: [
-            key('0', flex: 2),
-            key('Готово', flex: 2, bg: accent.withValues(alpha: 0.85), fg: Colors.white, onTap: onDone),
+            key('00'),
+            key('0'),
+            key('000'),
+            key('OK', bg: accent, fg: Colors.white, onTap: onDone),
           ],
         ),
       ],
