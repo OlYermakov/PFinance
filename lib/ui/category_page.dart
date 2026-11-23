@@ -15,13 +15,16 @@ import 'stats_page.dart' show CategoryRow, Slice, rankColor, sliceKey, slicesFor
 import 'transactions_page.dart' show DayCard;
 
 class CategoryStatsPage extends StatefulWidget {
-  const CategoryStatsPage({super.key, required this.category, required this.type, required this.month, this.backLabel, this.color});
+  const CategoryStatsPage({super.key, required this.category, required this.type, required this.month, this.backLabel, this.color, this.year = false});
 
   final Category category;
   final TxType type;
   final DateTime month; // accounting month (first day)
   final String? backLabel;
   final Color? color; // the slice colour it was opened from
+
+  /// MM «Р» mode: periods are years, the chart shows years.
+  final bool year;
 
   @override
   State<CategoryStatsPage> createState() => _CategoryStatsPageState();
@@ -38,12 +41,13 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
   }
 
   List<Txn> _inMonth(AppStore store, DateTime m) {
-    final r = store.periodRange(m);
+    final s = store.prefs.monthStartDay;
+    final r = widget.year ? (start: DateTime(m.year, 1, s), end: DateTime(m.year + 1, 1, s)) : store.periodRange(m);
     return store.txns.where((t) => !t.date.isBefore(r.start) && t.date.isBefore(r.end) && _matches(store, t)).toList();
   }
 
   void _go(int d) => setState(() {
-    _month = DateTime(_month.year, _month.month + d);
+    _month = widget.year ? DateTime(_month.year + d, _month.month) : DateTime(_month.year, _month.month + d);
     _shift = 0;
   });
 
@@ -57,7 +61,9 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
     final txns = _inMonth(store, _month);
 
     // Chart: 4 months before the selected one and 2 after (like MM).
-    final months = [for (var i = -4; i <= 2; i++) DateTime(_month.year, _month.month + i + _shift)];
+    final months = [
+      for (var i = -4; i <= 2; i++) widget.year ? DateTime(_month.year + i + _shift, _month.month) : DateTime(_month.year, _month.month + i + _shift),
+    ];
     final values = [for (final m in months) _inMonth(store, m).fold<int>(0, (s, t) => s + store.baseAmount(t))];
 
     // A transfer-expense group (MM): its accounts instead of sub-categories.
@@ -106,7 +112,7 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
                 IconButton(icon: const Icon(Icons.chevron_left_rounded), onPressed: () => _go(-1)),
                 Expanded(
                   child: Text(
-                    monthTitle(_month),
+                    widget.year ? '${_month.year}' : monthTitle(_month),
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                   ),
@@ -125,6 +131,7 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
                   months: months,
                   values: values,
                   selected: months.indexWhere((m) => m.year == _month.year && m.month == _month.month),
+                  years: widget.year,
                   color: color,
                   onTap: (i) => setState(() {
                     _month = months[i];
@@ -169,7 +176,14 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
                                 : () => Navigator.push(
                                     context,
                                     MaterialPageRoute<void>(
-                                      builder: (_) => CategoryStatsPage(category: s.category!, type: widget.type, month: _month, backLabel: c.name, color: rankColor(i)),
+                                      builder: (_) => CategoryStatsPage(
+                                        category: s.category!,
+                                        type: widget.type,
+                                        month: _month,
+                                        backLabel: c.name,
+                                        color: rankColor(i),
+                                        year: widget.year,
+                                      ),
                                     ),
                                   ),
                           ),
@@ -180,12 +194,13 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
                   Padding(
                     padding: const EdgeInsets.all(32),
                     child: Text(
-                      'Записів за цей місяць немає',
+                      widget.year ? 'Записів за цей рік немає' : 'Записів за цей місяць немає',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: scheme.onSurfaceVariant),
                     ),
                   ),
-                if (!isGroup)
+                // MM: a year with sub-categories shows just them, no records.
+                if (!isGroup && !(widget.year && subs.isNotEmpty))
                   for (final e in days.entries)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -223,8 +238,9 @@ class _RoundBtn extends StatelessWidget {
 /// MM-style monthly line: value labels above the points, selected month
 /// highlighted, tap a month to open it.
 class _LineChart extends StatelessWidget {
-  const _LineChart({required this.months, required this.values, required this.selected, required this.color, required this.onTap});
+  const _LineChart({required this.months, required this.values, required this.selected, required this.color, required this.onTap, this.years = false});
   final List<DateTime> months;
+  final bool years;
   final List<int> values;
   final int selected;
   final Color color;
@@ -272,10 +288,10 @@ class _LineChart extends StatelessWidget {
                         child: Column(
                           children: [
                             Text(
-                              monthTitle(m).substring(0, 3),
+                              years ? '${m.year}' : monthTitle(m).substring(0, 3),
                               style: TextStyle(fontSize: 14, color: i == selected ? const Color(0xFFFF6B5E) : scheme.onSurfaceVariant),
                             ),
-                            if (m.year != now.year && (i == 0 || m.month == 1))
+                            if (!years && m.year != now.year && (i == 0 || m.month == 1))
                               Text('${m.year}', style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
                           ],
                         ),

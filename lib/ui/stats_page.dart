@@ -629,7 +629,7 @@ class _StatsPageState extends State<StatsPage> {
     Navigator.push(
       context,
       MaterialPageRoute<void>(
-        builder: (_) => CategoryStatsPage(category: c, type: _type, month: store.periodOf(_anchor), color: color),
+        builder: (_) => CategoryStatsPage(category: c, type: _type, month: store.periodOf(_anchor), color: color, year: _mode == StatsMode.year),
       ),
     );
   }
