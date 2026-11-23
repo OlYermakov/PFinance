@@ -313,6 +313,17 @@ class AppStore extends ChangeNotifier {
   /// (US\$ 2,99 stays US\$ 2,99 whatever the card's currency).
   int repeatBase(Txn t) => t.enteredAmount != null && t.enteredCur != null ? toBase(t.enteredAmount!, t.enteredCur!) : baseAmount(t);
 
+  /// The repeat a record came from (MM shows its period on the record): same
+  /// type, account, category and note (MM may add "(2,99 \$)" to the note).
+  RepeatRule? repeatOf(Txn t) {
+    for (final r in _repeats) {
+      final x = r.template;
+      if (x.type != t.type || x.accountId != t.accountId || x.categoryId != t.categoryId) continue;
+      if (x.note.isEmpty ? t.note.isEmpty && x.amount == t.amount : t.note == x.note || t.note.startsWith('${x.note} (')) return r;
+    }
+    return null;
+  }
+
   int baseAmount(Txn t) {
     final cur = currencyOf(t);
     if (cur == baseCurrency) return t.amount;

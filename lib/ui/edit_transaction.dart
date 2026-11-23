@@ -655,7 +655,16 @@ class _TxnEditorState extends State<TxnEditor> {
           label: 'Дата',
           accent: accent,
           active: _panel == _Field.date,
-          trailing: _isNew || _isRule ? _repeatButton(scheme) : null,
+          trailing: _isNew || _isRule
+              ? _repeatButton(scheme)
+              : switch (widget.existing == null ? null : store.repeatOf(widget.existing!)) {
+                  final r? => TextButton(
+                    style: TextButton.styleFrom(foregroundColor: accent, padding: const EdgeInsets.symmetric(horizontal: 6)),
+                    onPressed: () => openTxnEditor(context, repeat: r),
+                    child: Text(repeatLabel(r.every), style: const TextStyle(fontSize: 14)),
+                  ),
+                  null => null,
+                },
           child: Row(
             children: [
               InkWell(

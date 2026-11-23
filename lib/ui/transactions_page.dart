@@ -308,10 +308,7 @@ class TxnTile extends StatelessWidget {
     final String left1, left2, title, under;
     final Color amountColor;
     final showNote = store.prefs.showNote && txn.note.isNotEmpty;
-    final rule = store.repeats.where((r) {
-      final t = r.template;
-      return t.type == txn.type && t.accountId == txn.accountId && t.categoryId == txn.categoryId && t.note == txn.note && t.amount == txn.amount;
-    }).firstOrNull;
+    final rule = store.repeatOf(txn);
     final repeat = rule == null ? '' : ' (${repeatLabel(rule.every)})';
     switch (txn.type) {
       case TxType.transfer:
