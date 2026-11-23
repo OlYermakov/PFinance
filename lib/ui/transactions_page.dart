@@ -159,66 +159,7 @@ class _ViewTabs extends StatelessWidget {
   static const _labels = {RecordsView.day: 'День', RecordsView.calendar: 'Календар', RecordsView.month: 'Місяць', RecordsView.summary: 'Підсумок'};
 
   @override
-  Widget build(BuildContext context) {
-    final p = AppPalette.of(context);
-    final idx = RecordsView.values.indexOf(value);
-    return GlassCard(
-      radius: 999,
-      blur: 16,
-      padding: const EdgeInsets.all(3),
-      child: LayoutBuilder(
-        builder: (context, c) {
-          final w = c.maxWidth / 4;
-          return SizedBox(
-            height: 30,
-            child: Stack(
-              children: [
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 320),
-                  curve: Curves.easeOutBack,
-                  left: idx * w,
-                  top: 0,
-                  bottom: 0,
-                  width: w,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      gradient: LinearGradient(colors: [p.gradient.first.withValues(alpha: 0.85), p.gradient.last.withValues(alpha: 0.85)]),
-                      boxShadow: [BoxShadow(color: p.gradient.first.withValues(alpha: 0.35), blurRadius: 14)],
-                    ),
-                  ),
-                ),
-                Row(
-                  children: [
-                    for (final v in RecordsView.values)
-                      Expanded(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => onChanged(v),
-                          child: Center(
-                            child: AnimatedDefaultTextStyle(
-                              duration: const Duration(milliseconds: 200),
-                              style: TextStyle(
-                                fontFamily: 'Outfit',
-                                fontFamilyFallback: const ['Manrope'],
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                                color: v == value ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                              child: Text(_labels[v]!),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+  Widget build(BuildContext context) => PillTabs<RecordsView>(value: value, items: _labels, onChanged: onChanged);
 }
 
 // ---- День -------------------------------------------------------------------

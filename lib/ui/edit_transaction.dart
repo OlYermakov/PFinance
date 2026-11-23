@@ -596,7 +596,7 @@ class _TxnEditorState extends State<TxnEditor> {
       children: [
         _TypeTabs(
           value: _type,
-          colors: {TxType.income: incomeColor(context, store), TxType.expense: p.expense, TxType.transfer: scheme.onSurface},
+          colors: {TxType.income: incomeColor(context, store), TxType.expense: p.expense, TxType.transfer: const Color(0xFF8E8E93)},
           onChanged: (t) => setState(() {
             if (_type != t) {
               _categoryId = null;
@@ -1198,37 +1198,12 @@ class _TypeTabs extends StatelessWidget {
   final ValueChanged<TxType> onChanged;
 
   @override
-  Widget build(BuildContext context) {
-    const labels = {TxType.income: 'Дохід', TxType.expense: 'Витрата', TxType.transfer: 'Переказ'};
-    return Row(
-      children: [
-        for (final t in [TxType.income, TxType.expense, TxType.transfer])
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3.5),
-              child: GestureDetector(
-                onTap: () => onChanged(t),
-                // MM: flat rectangles, the chosen one outlined in its colour
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  height: 31,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(5),
-                    color: Colors.black.withValues(alpha: 0.22),
-                    border: Border.all(color: t == value ? colors[t]! : Colors.black.withValues(alpha: 0.35), width: 1),
-                  ),
-                  child: Text(
-                    labels[t]!,
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: t == value ? colors[t] : Theme.of(context).colorScheme.onSurfaceVariant),
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => PillTabs<TxType>(
+    value: value,
+    items: const {TxType.income: 'Дохід', TxType.expense: 'Витрата', TxType.transfer: 'Переказ'},
+    pillColors: colors,
+    onChanged: onChanged,
+  );
 }
 
 /// One labelled line of the form: grey label on the left, value on an

@@ -642,63 +642,7 @@ class _PillTabs<T> extends StatelessWidget {
   final ValueChanged<T> onChanged;
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final keys = items.keys.toList();
-    final idx = keys.indexOf(value);
-    return Container(
-      height: 36,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-      ),
-      child: LayoutBuilder(
-        builder: (context, c) {
-          final w = c.maxWidth / keys.length;
-          return Stack(
-            children: [
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 260),
-                curve: Curves.easeOutCubic,
-                left: w * idx,
-                top: 0,
-                bottom: 0,
-                width: w,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(11),
-                    gradient: LinearGradient(colors: [scheme.primary, Color.lerp(scheme.primary, scheme.tertiary, 0.6)!]),
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  for (final k in keys)
-                    Expanded(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => onChanged(k),
-                        child: Center(
-                          child: Text(
-                            items[k]!,
-                            style: TextStyle(
-                              fontWeight: k == value ? FontWeight.w700 : FontWeight.w500,
-                              color: k == value ? Colors.white : scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
+  Widget build(BuildContext context) => PillTabs<T>(value: value, items: items, onChanged: onChanged);
 }
 
 /// Budget rows of a month (top-level categories in their order, then

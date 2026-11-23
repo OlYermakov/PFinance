@@ -27,11 +27,8 @@ class MonthSwitcher extends StatelessWidget {
         : custom
         ? '${shortDayMonth(r.start)} – ${shortDayMonth(r.end.subtract(const Duration(days: 1)))}'
         : monthTitle(month);
-    Widget arrow(IconData icon, String tip, int delta) => _RoundButton(
-          icon: icon,
-          tooltip: tip,
-          onTap: () => onChanged(DateTime(month.year, month.month + delta * (year ? 12 : 1))),
-        );
+    Widget arrow(IconData icon, String tip, int delta) =>
+        _RoundButton(icon: icon, tooltip: tip, onTap: () => onChanged(DateTime(month.year, month.month + delta * (year ? 12 : 1))));
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -69,14 +66,14 @@ class _RoundButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Tooltip(
-        message: tooltip ?? '',
-        child: GlassCard(
-          radius: 14,
-          blur: 14,
-          onTap: onTap,
-          child: SizedBox(width: 34, height: 34, child: Icon(icon, size: 22)),
-        ),
-      );
+    message: tooltip ?? '',
+    child: GlassCard(
+      radius: 14,
+      blur: 14,
+      onTap: onTap,
+      child: SizedBox(width: 34, height: 34, child: Icon(icon, size: 22)),
+    ),
+  );
 }
 
 /// Hero card: glass tinted with the theme's aurora.
@@ -87,10 +84,7 @@ class GradientCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      padding: padding ?? const EdgeInsets.all(20),
-      child: child,
-    );
+    return GlassCard(padding: padding ?? const EdgeInsets.all(20), child: child);
   }
 }
 
@@ -127,22 +121,22 @@ class EmojiAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: size,
-        height: size,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [color.withValues(alpha: 0.34), color.withValues(alpha: 0.12)],
+    width: size,
+    height: size,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [color.withValues(alpha: 0.34), color.withValues(alpha: 0.12)]),
+      borderRadius: BorderRadius.circular(size * 0.34),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+    ),
+    child: hasIcon(emoji)
+        ? Text(emoji, style: TextStyle(fontSize: size * 0.48))
+        : Container(
+            width: size * 0.26,
+            height: size * 0.26,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-          borderRadius: BorderRadius.circular(size * 0.34),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-        ),
-        child: hasIcon(emoji)
-            ? Text(emoji, style: TextStyle(fontSize: size * 0.48))
-            : Container(width: size * 0.26, height: size * 0.26, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-      );
+  );
 }
 
 class EmptyState extends StatelessWidget {
@@ -155,11 +149,17 @@ class EmptyState extends StatelessWidget {
     final c = Theme.of(context).colorScheme.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-      child: Column(children: [
-        Icon(icon, size: 48, color: c.withValues(alpha: 0.5)),
-        const SizedBox(height: 12),
-        Text(text, textAlign: TextAlign.center, style: TextStyle(color: c)),
-      ]),
+      child: Column(
+        children: [
+          Icon(icon, size: 48, color: c.withValues(alpha: 0.5)),
+          const SizedBox(height: 12),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: c),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -178,38 +178,45 @@ class TotalsStrip extends StatelessWidget {
     final store = StoreScope.of(context);
     final incColor = incomeColor(context, store);
     Widget cell(String label, int v, Color? color, {bool sign = false}) => Expanded(
-          child: Column(children: [
-            Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-            const SizedBox(height: 1),
-            FittedBox(
-              child: AnimatedMoney(v, currency,
-                  sign: sign, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: color)),
+      child: Column(
+        children: [
+          Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 1),
+          FittedBox(
+            child: AnimatedMoney(
+              v,
+              currency,
+              sign: sign,
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: color),
             ),
-          ]),
-        );
+          ),
+        ],
+      ),
+    );
     return GlassCard(
       radius: 22,
       padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 8),
-      child: Column(children: [
-        Row(children: [
-          cell('Дохід', income, incColor),
-          cell('Витрати', expense, p.expense),
-          cell('Разом', income - expense + (carry ?? 0), null, sign: true),
-        ]),
-        if (carry != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text('з них перенесено з минулих періодів: ${money(carry!, currency, sign: true)}',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+      child: Column(
+        children: [
+          Row(
+            children: [cell('Дохід', income, incColor), cell('Витрати', expense, p.expense), cell('Разом', income - expense + (carry ?? 0), null, sign: true)],
           ),
-      ]),
+          if (carry != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                'з них перенесено з минулих періодів: ${money(carry!, currency, sign: true)}',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
 
 /// Income colour follows the "income blue / green" setting.
-Color incomeColor(BuildContext context, AppStore store) =>
-    store.prefs.incomeBlue ? Theme.of(context).colorScheme.primary : AppPalette.of(context).income;
+Color incomeColor(BuildContext context, AppStore store) => store.prefs.incomeBlue ? Theme.of(context).colorScheme.primary : AppPalette.of(context).income;
 
 String txnTitle(AppStore store, Txn t) {
   if (t.type == TxType.transfer) return 'Переказ';
@@ -231,28 +238,25 @@ class ColorPickerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        children: [
-          for (final c in colorChoices)
-            GestureDetector(
-              onTap: () => onChanged(c),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: Color(c),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: c == value ? Theme.of(context).colorScheme.onSurface : Colors.white24,
-                    width: c == value ? 3 : 1,
-                  ),
-                ),
-              ),
+    spacing: 10,
+    runSpacing: 10,
+    children: [
+      for (final c in colorChoices)
+        GestureDetector(
+          onTap: () => onChanged(c),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: Color(c),
+              shape: BoxShape.circle,
+              border: Border.all(color: c == value ? Theme.of(context).colorScheme.onSurface : Colors.white24, width: c == value ? 3 : 1),
             ),
-        ],
-      );
+          ),
+        ),
+    ],
+  );
 }
 
 /// Section title used across pages.
@@ -263,12 +267,16 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
-        child: Row(children: [
-          Expanded(child: Text(text, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700))),
-          ?trailing,
-        ]),
-      );
+    padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(text, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        ),
+        ?trailing,
+      ],
+    ),
+  );
 }
 
 /// Full-screen 4-digit PIN keypad (MM "Passcode"): message, four circles and
@@ -319,14 +327,16 @@ class _PinPadState extends State<PinPad> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     Widget key(String label, {VoidCallback? onTap, IconData? icon}) => Expanded(
-          child: InkWell(
-            onTap: onTap ?? () => _tap(label),
-            child: SizedBox(
-              height: 76,
-              child: Center(child: icon != null ? Icon(icon, size: 30) : Text(label, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w300))),
-            ),
+      child: InkWell(
+        onTap: onTap ?? () => _tap(label),
+        child: SizedBox(
+          height: 76,
+          child: Center(
+            child: icon != null ? Icon(icon, size: 30) : Text(label, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w300)),
           ),
-        );
+        ),
+      ),
+    );
     return Scaffold(
       backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF111318) : const Color(0xFFF2F3F7),
       appBar: AppBar(
@@ -336,46 +346,144 @@ class _PinPadState extends State<PinPad> {
         centerTitle: true,
       ),
       body: SafeArea(
-        child: Column(children: [
-          const Spacer(flex: 2),
-          Icon(Icons.lock_rounded, size: 40, color: scheme.onSurface),
-          const SizedBox(height: 20),
-          Text(widget.message, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 24),
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            for (var i = 0; i < 4; i++)
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 10),
-                width: 18,
-                height: 18,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: i < _code.length ? scheme.onSurface : Colors.transparent,
-                  border: Border.all(color: scheme.onSurface, width: 1.4),
-                ),
+        child: Column(
+          children: [
+            const Spacer(flex: 2),
+            Icon(Icons.lock_rounded, size: 40, color: scheme.onSurface),
+            const SizedBox(height: 20),
+            Text(widget.message, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var i = 0; i < 4; i++)
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 10),
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: i < _code.length ? scheme.onSurface : Colors.transparent,
+                      border: Border.all(color: scheme.onSurface, width: 1.4),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 20,
+              child: _wrong && widget.errorText != null ? Text(widget.errorText!, style: TextStyle(color: scheme.error)) : null,
+            ),
+            const Spacer(flex: 3),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                children: [
+                  for (final row in const [
+                    ['1', '2', '3'],
+                    ['4', '5', '6'],
+                    ['7', '8', '9'],
+                  ])
+                    Row(children: [for (final d in row) key(d)]),
+                  Row(
+                    children: [
+                      const Expanded(child: SizedBox()),
+                      key('0'),
+                      key(
+                        '',
+                        icon: Icons.backspace_outlined,
+                        onTap: () {
+                          if (_code.isNotEmpty) setState(() => _code = _code.substring(0, _code.length - 1));
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
-          ]),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 20,
-            child: _wrong && widget.errorText != null ? Text(widget.errorText!, style: TextStyle(color: scheme.error)) : null,
-          ),
-          const Spacer(flex: 3),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(children: [
-              for (final row in const [['1', '2', '3'], ['4', '5', '6'], ['7', '8', '9']]) Row(children: [for (final d in row) key(d)]),
-              Row(children: [
-                const Expanded(child: SizedBox()),
-                key('0'),
-                key('', icon: Icons.backspace_outlined, onTap: () {
-                  if (_code.isNotEmpty) setState(() => _code = _code.substring(0, _code.length - 1));
-                }),
-              ]),
-            ]),
-          ),
-          const SizedBox(height: 16),
-        ]),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The app's segmented switch (as «День · Календар · Місяць · Підсумок»): a
+/// rounded track and a sliding gradient pill under the chosen item. Every
+/// switch in the app uses this shape. [pillColors] tints the pill per item
+/// (e.g. the record type colour); otherwise it is the app gradient.
+class PillTabs<T> extends StatelessWidget {
+  const PillTabs({super.key, required this.value, required this.items, required this.onChanged, this.pillColors, this.height = 30});
+  final T value;
+  final Map<T, String> items;
+  final ValueChanged<T> onChanged;
+  final Map<T, Color>? pillColors;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = AppPalette.of(context);
+    final keys = items.keys.toList();
+    final idx = keys.indexOf(value);
+    final tint = pillColors?[value];
+    final colors = tint == null
+        ? [p.gradient.first.withValues(alpha: 0.85), p.gradient.last.withValues(alpha: 0.85)]
+        : [tint.withValues(alpha: 0.85), Color.lerp(tint, Colors.white, 0.18)!.withValues(alpha: 0.85)];
+    return GlassCard(
+      radius: 999,
+      padding: const EdgeInsets.all(3),
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final w = c.maxWidth / keys.length;
+          return SizedBox(
+            height: height,
+            child: Stack(
+              children: [
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 320),
+                  curve: Curves.easeOutBack,
+                  left: idx * w,
+                  top: 0,
+                  bottom: 0,
+                  width: w,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      gradient: LinearGradient(colors: colors),
+                      boxShadow: [BoxShadow(color: colors.first.withValues(alpha: 0.35), blurRadius: 14)],
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    for (final k in keys)
+                      Expanded(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => onChanged(k),
+                          child: Center(
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 200),
+                              style: TextStyle(
+                                fontFamily: 'Outfit',
+                                fontFamilyFallback: const ['Manrope'],
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: k == value ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              child: Text(items[k]!, maxLines: 1, overflow: TextOverflow.ellipsis),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
