@@ -462,7 +462,7 @@ class TxnTile extends StatelessWidget {
             ? p.expense
             : (f == TxType.income
                   ? incomeColor(context, store)
-                  : scheme.onSurface);
+                  : scheme.onSurfaceVariant); // MM: a plain transfer is grey
       case TxType.income || TxType.expense:
         left1 = top?.name ?? 'Без категорії';
         left2 = cat != null && top != null && cat.id != top.id ? cat.name : '';
@@ -520,10 +520,12 @@ class TxnTile extends StatelessWidget {
                         title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        // MM: a transfer's "A → B" line is grey, not white
+                        style: TextStyle(
                           fontWeight: FontWeight.w500,
                           fontSize: 15,
                           height: 1.25,
+                          color: txn.type == TxType.transfer ? scheme.onSurfaceVariant : null,
                         ),
                       ),
                     if (second.isNotEmpty)
