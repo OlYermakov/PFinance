@@ -34,7 +34,7 @@ class Prefs {
   String swipe = 'delete'; // 'period' (change period), 'delete', 'off'
   bool showNote = true; // show the note in record lists
   bool categoryFirst = false; // input order: category before account
-  bool noteButton = true; // note-history button in the editor
+  bool noteButton = false; // note-history button in the editor; off by default
   bool copyPaste = true; // copy button for records
   // MM "Main currency": symbol in front ("€ 1,00") or behind ("1,00 €")
   bool currencyFront = false;
@@ -59,6 +59,7 @@ class Prefs {
     'showDecimals': showDecimals,
     'subcategories': subcategories,
     'noteSuggestions': noteSuggestions,
+    'notesOffV1': true,
     'continueAfterSave': continueAfterSave,
     'carryOver': carryOver,
     'copyToToday': copyToToday,
@@ -98,6 +99,9 @@ class Prefs {
     showNote = j['showNote'] as bool? ?? showNote;
     categoryFirst = j['categoryFirst'] as bool? ?? categoryFirst;
     noteButton = j['noteButton'] as bool? ?? noteButton;
+    // The note button used to be on by default (Alex: remove it); switch it
+    // off once for older settings.
+    if (j['notesOffV1'] != true) noteButton = false;
     copyPaste = j['copyPaste'] as bool? ?? copyPaste;
     currencyFront = j['currencyFront'] as bool? ?? currencyFront;
     repeatInAdvance = j['repeatInAdvance'] as bool? ?? repeatInAdvance;
