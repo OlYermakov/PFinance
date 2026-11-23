@@ -39,6 +39,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
       final q = _query.toLowerCase();
       list = list.where((t) {
         return t.note.toLowerCase().contains(q) ||
+            t.memo.toLowerCase().contains(q) ||
             txnTitle(store, t).toLowerCase().contains(q) ||
             (store.account(t.accountId)?.name.toLowerCase().contains(q) ?? false);
       }).toList();
@@ -307,7 +308,9 @@ class TxnTile extends StatelessWidget {
     // account (and repeat frequency) under it, amount on the right.
     final String left1, left2, title, under;
     final Color amountColor;
-    final showNote = store.prefs.showNote && txn.note.isNotEmpty;
+    // MM «Показати деталі»: the description follows the note in grey.
+    final details = store.prefs.showNote && txn.memo.isNotEmpty ? txn.memo : '';
+    final showNote = txn.note.isNotEmpty || details.isNotEmpty;
     final rule = store.repeatOf(txn);
     final repeat = rule == null ? '' : ' (${repeatLabel(rule.every)})';
     switch (txn.type) {
@@ -354,9 +357,18 @@ class TxnTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (title.isNotEmpty)
-                      Text(
-                        title,
+                    if (title.isNotEmpty || details.isNotEmpty)
+                      Text.rich(
+                        TextSpan(
+                          text: title,
+                          children: [
+                            if (details.isNotEmpty)
+                              TextSpan(
+                                text: title.isEmpty ? details : ' $details',
+                                style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w400),
+                              ),
+                          ],
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         // MM: a transfer's "A → B" line is grey, not white

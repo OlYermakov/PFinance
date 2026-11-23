@@ -37,7 +37,7 @@ class Prefs {
   int timeMode = 1; // 0: no time, 1: input only, 2: input and show in lists
   bool timeAsc = false; // records of a day: oldest first (MM «Зрост.») instead of newest first
   String swipe = 'tabs'; // 'tabs' (switch view tabs), 'period' (change period), 'delete', 'off'
-  bool showNote = true; // show the note in record lists
+  bool showNote = true; // MM «Показати деталі»: show the description after the note
   bool amountFirst = false; // MM «Порядок введення»: start from the amount
   bool noteButton = false; // note-history button in the editor; off by default
   bool copyPaste = true; // copy button for records
@@ -641,6 +641,7 @@ class AppStore extends ChangeNotifier {
             categoryId: t.categoryId,
             date: d,
             note: t.note,
+            memo: t.memo,
             enteredAmount: t.enteredAmount,
             enteredCur: t.enteredCur,
           ),
@@ -721,7 +722,7 @@ class AppStore extends ChangeNotifier {
     final m = <String, ({int count, int sum})>{};
     final re = RegExp(r'#([\p{L}\p{N}_-]+)', unicode: true);
     for (final t in txns) {
-      for (final x in re.allMatches(t.note)) {
+      for (final x in re.allMatches('${t.note} ${t.memo}')) {
         final k = x.group(1)!.toLowerCase();
         final o = m[k] ?? (count: 0, sum: 0);
         final signed = t.type == TxType.income ? baseAmount(t) : (t.type == TxType.expense ? -baseAmount(t) : 0);

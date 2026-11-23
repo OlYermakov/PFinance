@@ -149,15 +149,15 @@ class _TxnSettingsPage extends StatelessWidget {
               ),
               _Item(
                 null,
-                'Показувати нотатку',
+                'Показати деталі',
                 value: _onOff(pr.showNote),
                 onTap: () => pick<bool>(
-                  'Показувати нотатку',
+                  'Показати деталі',
                   {false: 'Вимк.', true: 'Увімк.'},
                   pr.showNote,
                   (p, v) => p.showNote = v,
                   spot: _Spot.note,
-                  note: 'Нотатка запису показується в списку записів поруч із категорією.',
+                  note: 'Опис запису (поле «Опис» у редакторі) показується в списку сірим одразу після нотатки.',
                 ),
               ),
               _Item(
@@ -299,7 +299,13 @@ class _SettingPreview extends StatelessWidget {
                     children: [
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: mark(_Spot.note, Text('Обід', style: st(13, scheme.onSurface))),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('Обід ', style: st(13, scheme.onSurface)),
+                            mark(_Spot.note, Text('бізнес-ланч', style: st(13, muted, FontWeight.w400))),
+                          ],
+                        ),
                       ),
                       Text('Готівка', style: st(11, muted)),
                     ],
@@ -1196,7 +1202,7 @@ class _TagsPage extends StatelessWidget {
 
   void _showTag(BuildContext context, String tag) {
     final store = StoreScope.read(context);
-    final list = store.txns.where((t) => t.note.toLowerCase().contains('#$tag')).toList();
+    final list = store.txns.where((t) => '${t.note} ${t.memo}'.toLowerCase().contains('#$tag')).toList();
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,

@@ -46,6 +46,7 @@ class _TxnEditorState extends State<TxnEditor> {
   final _expr = <_Field, String>{_Field.amount: '', _Field.toAmount: '', _Field.fee: ''};
   bool _showFee = false;
   final _note = TextEditingController();
+  final _memo = TextEditingController();
   final _noteFocus = FocusNode();
   _Field? _panel;
   String? _error;
@@ -80,6 +81,7 @@ class _TxnEditorState extends State<TxnEditor> {
       _categoryId = c?.id;
     }
     _note.text = e?.note ?? '';
+    _memo.text = e?.memo ?? '';
     if (e != null) {
       final cur = store.account(e.accountId)?.currency ?? store.baseCurrency;
       if (e.enteredAmount != null && e.enteredCur != null && e.enteredCur != cur) {
@@ -126,6 +128,7 @@ class _TxnEditorState extends State<TxnEditor> {
   @override
   void dispose() {
     _note.dispose();
+    _memo.dispose();
     _noteFocus.dispose();
     super.dispose();
   }
@@ -276,6 +279,7 @@ class _TxnEditorState extends State<TxnEditor> {
       categoryId: _type == TxType.transfer ? null : (_subId ?? _categoryId),
       date: copy && store.prefs.copyToToday ? DateTime.now() : _date,
       note: _note.text.trim(),
+      memo: _memo.text.trim(),
       enteredAmount: _amountCur != null && _amountCur != acc.currency ? _minor(_Field.amount, _amountCur!) : null,
       enteredCur: _amountCur != null && _amountCur != acc.currency ? _amountCur : null,
     );
@@ -325,6 +329,7 @@ class _TxnEditorState extends State<TxnEditor> {
         _expr.updateAll((_, _) => '');
         _showFee = false;
         _note.clear();
+        _memo.clear();
         _subId = null;
         _categoryId = null;
         _expanded = null;
@@ -554,6 +559,7 @@ class _TxnEditorState extends State<TxnEditor> {
                         categoryId: _type == TxType.transfer ? null : (_subId ?? _categoryId),
                         date: _date,
                         note: _note.text.trim(),
+                        memo: _memo.text.trim(),
                       ),
                     );
                     setSheet(() {});
@@ -852,6 +858,28 @@ class _TxnEditorState extends State<TxnEditor> {
                   );
                 },
               ),
+            ),
+          ),
+        ),
+        // MM «Опис»: longer details, shown after the note when «Показати деталі» is on.
+        _FormRow(
+          label: 'Опис',
+          accent: accent,
+          active: false,
+          child: TextField(
+            controller: _memo,
+            style: _valueStyle,
+            minLines: 1,
+            maxLines: 4,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(
+              isDense: true,
+              filled: false,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(vertical: 6),
+              hintText: 'подробиці',
             ),
           ),
         ),

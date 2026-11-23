@@ -219,6 +219,9 @@ class Txn implements Entity {
   final DateTime date;
   final String note;
 
+  /// MM «Опис»: longer details under the short [note].
+  final String memo;
+
   /// Value in the base currency at the rate of the record's day ([atBaseCur]
   /// names that base). Null until the rate is known; then current rates apply.
   final int? atBase;
@@ -244,6 +247,7 @@ class Txn implements Entity {
     this.categoryId,
     required this.date,
     this.note = '',
+    this.memo = '',
     this.atBase,
     this.atBaseCur,
     this.enteredAmount,
@@ -263,6 +267,7 @@ class Txn implements Entity {
     categoryId: categoryId,
     date: date,
     note: note,
+    memo: memo,
     atBase: value,
     atBaseCur: currency,
     enteredAmount: enteredAmount,
@@ -280,6 +285,7 @@ class Txn implements Entity {
     categoryId: categoryId,
     date: date,
     note: note,
+    memo: memo,
     atBase: atBase,
     atBaseCur: atBaseCur,
     enteredAmount: enteredAmount,
@@ -298,6 +304,7 @@ class Txn implements Entity {
     'categoryId': categoryId,
     'date': date.millisecondsSinceEpoch,
     'note': note,
+    if (memo.isNotEmpty) 'memo': memo,
     if (atBase != null) 'atBase': atBase,
     if (atBaseCur != null) 'atBaseCur': atBaseCur,
     if (enteredAmount != null) 'enteredAmount': enteredAmount,
@@ -316,6 +323,7 @@ class Txn implements Entity {
     categoryId: j['categoryId'] as String?,
     date: _date(j['date']),
     note: j['note'] as String? ?? '',
+    memo: j['memo'] as String? ?? '',
     atBase: (j['atBase'] as num?)?.toInt(),
     atBaseCur: j['atBaseCur'] as String?,
     enteredAmount: (j['enteredAmount'] as num?)?.toInt(),

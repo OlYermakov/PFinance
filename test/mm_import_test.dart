@@ -27,7 +27,8 @@ void main() {
     expect(txns['T1']!.type, TxType.income);
     expect(txns['T1']!.amount, 200000);
     expect(txns['T2']!.categoryId, 'C2');
-    expect(txns['T2']!.note, startsWith('Bread #trip'));
+    expect(txns['T2']!.note, 'Bread');
+    expect(txns['T2']!.memo, startsWith('#trip'));
     expect(txns['T4']!.type, TxType.transfer);
     expect(txns['T4']!.toAccountId, 'A2');
     expect(txns['T4']!.toAmount, 11000);

@@ -148,8 +148,8 @@ MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings
     final acc = accById[_s(r['ZASSETUID'])]!;
     final amountAcc = (r['ZAMOUNTACCOUNT'] ?? r['ZAMOUNTSUB'] ?? r['ZAMOUNT']) as num? ?? 0;
     final date = r['ZDATE'] is num ? _appleDate(r['ZDATE'] as num) : DateTime.tryParse(_s(r['ZTXDATESTR'])) ?? now;
-    final parts = [_s(r['ZCONTENT']).trim(), _s(r['ZMEMO']).trim()].where((s) => s.isNotEmpty);
-    var note = parts.join(' ');
+    var note = _s(r['ZCONTENT']).trim();
+    final memo = _s(r['ZMEMO']).trim();
     final txCur = isoOf(r['ZCURRENCYUID']);
     final sub = r['ZAMOUNTSUB'];
     // Paid in another currency (e.g. UAH from a EUR card): keep the amount as entered.
@@ -169,6 +169,7 @@ MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings
             categoryId: catIds.contains(cat) ? cat : null,
             date: date,
             note: note,
+            memo: memo,
             atBase: atBase,
             atBaseCur: atBase == null ? null : base,
             enteredAmount: foreign ? _minor(sub, txCur) : null,
@@ -190,6 +191,7 @@ MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings
             toAmount: to.currency != acc.currency && toAmt != null ? _minor(toAmt, to.currency) : null,
             date: date,
             note: note,
+            memo: memo,
             atBase: atBase,
             atBaseCur: atBase == null ? null : base,
           ),
@@ -215,7 +217,8 @@ MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings
       final start = DateTime.fromMillisecondsSinceEpoch(next.toInt());
       final end = r['ZENDDATE'];
       final cat = _s(r['ZCATEGORYUID']);
-      final note = [_s(r['ZPAYEE']).trim(), _s(r['ZMEMO']).trim()].where((s) => s.isNotEmpty).join(' ');
+      final note = _s(r['ZPAYEE']).trim();
+      final memo = _s(r['ZMEMO']).trim();
       // The amount is in the repeat's own currency (e.g. US\$ 2,99 paid from a
       // UAH card): keep it as entered and convert for the account.
       final sub = (r['ZAMOUNTSUB'] as num?) ?? 0;
@@ -232,6 +235,7 @@ MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings
             categoryId: type != TxType.transfer && catIds.contains(cat) ? cat : null,
             date: start,
             note: note,
+            memo: memo,
             enteredAmount: foreign ? _minor(sub, txCur) : null,
             enteredCur: foreign ? txCur : null,
           ),
