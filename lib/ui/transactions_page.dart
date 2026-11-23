@@ -724,16 +724,16 @@ class _SummaryView extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final muted = scheme.onSurfaceVariant;
     final cur = store.baseCurrency;
-    final now = store.totalsBase(txns);
     final range = store.periodRange(month);
 
-    // Accounts: expenses (with the account groups they came from) and
-    // transfers into accounts marked "Переказ-витрата".
-    final groups = <String>{};
+    // Accounts: expense records per account group (in the Accounts tab
+    // order), and transfers into accounts marked "Переказ-витрата".
+    final byGroup = <String, int>{};
     var transferOut = 0;
-    for (final t in txns) {
+    final ordered = [...txns]..sort((x, y) => (store.account(x.accountId)?.sort ?? 0).compareTo(store.account(y.accountId)?.sort ?? 0));
+    for (final t in ordered) {
       final a = store.account(t.accountId);
-      if (t.type == TxType.expense && a != null) groups.add(groupOf(a));
+      if (t.type == TxType.expense && a != null) byGroup[groupOf(a)] = (byGroup[groupOf(a)] ?? 0) + store.baseAmount(t);
       if (t.type == TxType.transfer) {
         final to = store.account(t.toAccountId ?? '');
         if (to != null && store.prefs.transferExpense.contains(to.id)) {
@@ -825,7 +825,6 @@ class _SummaryView extends StatelessWidget {
     );
 
     final divider = Divider(height: 1, thickness: 1, color: scheme.onSurface.withValues(alpha: 0.08));
-    final groupList = groups.toList()..sort();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -834,7 +833,8 @@ class _SummaryView extends StatelessWidget {
           Icons.account_balance_wallet_outlined,
           'Рахунки',
           child: box([
-            line(groupList.isEmpty ? 'Витрати' : 'Витрати (${groupList.join(', ')})', money(now.expense, cur)),
+            if (byGroup.isEmpty) line('Витрати', money(0, cur)),
+            for (final g in byGroup.entries) line('Витрати (${g.key})', money(g.value, cur)),
             if (transferOut > 0) line('Переказ-витрата', money(transferOut, cur)),
           ]),
         ),
