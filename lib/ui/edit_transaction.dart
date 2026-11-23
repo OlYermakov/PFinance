@@ -3,9 +3,9 @@ import 'package:material_ui/material_ui.dart';
 
 import '../data/models.dart';
 import '../state/app_store.dart';
-import 'accounts_page.dart' show editAccount;
+import 'accounts_page.dart' show editAccount, groupOf;
 import 'format.dart';
-import 'more_page.dart' show CategoriesPage, currencySymbol, editCategory;
+import 'more_page.dart' show CategoriesPage, accountsSettingsPage, currencySymbol, editCategory;
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -884,34 +884,7 @@ class _TxnEditorState extends State<TxnEditor> {
     final f = _panel!;
     final scheme = Theme.of(context).colorScheme;
     final (String title, VoidCallback? edit, Widget body) = switch (f) {
-      _Field.account || _Field.toAccount => (
-        'Рахунок',
-        null,
-        _Grid(
-          accent: accent,
-          cells: [
-            for (final a in store.activeAccounts.where((a) => f == _Field.account || a.id != _accountId))
-              _Cell(
-                a.name,
-                selected: a.id == (f == _Field.account ? _accountId : _toAccountId),
-                onTap: () {
-                  setState(() {
-                    if (f == _Field.account) {
-                      // the amount is typed in the new account's currency again
-                      if (_accountId != a.id) _amountCur = null;
-                      _accountId = a.id;
-                      if (_toAccountId == a.id) _toAccountId = null;
-                    } else {
-                      _toAccountId = a.id;
-                    }
-                  });
-                  _advance(f);
-                },
-              ),
-            _Cell('Додати', muted: true, onTap: () => editAccount(context)),
-          ],
-        ),
-      ),
+      _Field.account || _Field.toAccount => ('Рахунок', () => _pushPage(accountsSettingsPage()), _accountGrid(store, accent, f)),
       _Field.category => ('Категорія', () => _pushPage(CategoriesPage(type: _type)), _categoryGrid(store, accent)),
       _ => (
         switch (f) {
@@ -953,6 +926,15 @@ class _TxnEditorState extends State<TxnEditor> {
                 Expanded(
                   child: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: scheme.onSurfaceVariant)),
                 ),
+                if (f == _Field.account || f == _Field.toAccount)
+                  IconButton(
+                    tooltip: store.prefs.accountGroupsInPicker ? 'Усі рахунки' : 'За групами',
+                    icon: Icon(store.prefs.accountGroupsInPicker ? Icons.filter_none_rounded : Icons.select_all_rounded),
+                    onPressed: () {
+                      _expanded = null;
+                      store.updatePrefs((p) => p.accountGroupsInPicker = !p.accountGroupsInPicker);
+                    },
+                  ),
                 if (edit != null) IconButton(tooltip: 'Редагувати', icon: const Icon(Icons.edit_outlined), onPressed: edit),
                 IconButton(tooltip: 'Закрити', icon: const Icon(Icons.close_rounded), onPressed: () => _open(null)),
               ],
@@ -994,6 +976,58 @@ class _TxnEditorState extends State<TxnEditor> {
   }
 
   void _pushPage(Widget page) => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => AuroraBackground(child: page)));
+
+  /// Accounts in the order of the Accounts tab (by group). MM can also show
+  /// just the groups; a tap opens the group's accounts below it.
+  Widget _accountGrid(AppStore store, Color accent, _Field f) {
+    final groups = <String, List<Account>>{};
+    for (final a in store.activeAccounts.where((a) => f == _Field.account || a.id != _accountId)) {
+      groups.putIfAbsent(groupOf(a), () => []).add(a);
+    }
+    final chosen = f == _Field.account ? _accountId : _toAccountId;
+    _Cell cell(Account a) => _Cell(
+      a.name,
+      selected: a.id == chosen,
+      onTap: () {
+        setState(() {
+          _expanded = null;
+          if (f == _Field.account) {
+            // the amount is typed in the new account's currency again
+            if (_accountId != a.id) _amountCur = null;
+            _accountId = a.id;
+            if (_toAccountId == a.id) _toAccountId = null;
+          } else {
+            _toAccountId = a.id;
+          }
+        });
+        _advance(f);
+      },
+    );
+    final add = _Cell('Додати', muted: true, onTap: () => editAccount(context));
+    if (!store.prefs.accountGroupsInPicker) {
+      return _Grid(accent: accent, cells: [for (final l in groups.values) ...l.map(cell), add]);
+    }
+    final cells = [
+      for (final g in groups.keys)
+        _Cell(
+          g,
+          id: 'grp:$g',
+          selected: _expanded == 'grp:$g' || groups[g]!.any((a) => a.id == chosen),
+          chevron: _expanded == 'grp:$g' ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+          onTap: () => setState(() => _expanded = _expanded == 'grp:$g' ? null : 'grp:$g'),
+        ),
+    ];
+    final rows = <Widget>[];
+    for (var i = 0; i < cells.length; i += 3) {
+      final row = cells.sublist(i, (i + 3).clamp(0, cells.length));
+      rows.add(_Grid(accent: accent, cells: row));
+      final open = row.where((c) => c.id == _expanded).firstOrNull;
+      if (open != null) {
+        rows.add(_Grid(accent: accent, tinted: true, cells: groups[open.label]!.map(cell).toList()));
+      }
+    }
+    return Column(children: rows);
+  }
 
   Widget _categoryGrid(AppStore store, Color accent) {
     final useSubs = store.prefs.subcategories;
@@ -1189,7 +1223,7 @@ class _Grid extends StatelessWidget {
               for (final c in r)
                 Expanded(
                   child: Container(
-                    height: 48,
+                    height: 54,
                     decoration: BoxDecoration(
                       color: tinted ? accent.withValues(alpha: 0.10) : ((c?.selected ?? false) ? Colors.white.withValues(alpha: 0.06) : null),
                       border: Border(
@@ -1212,8 +1246,8 @@ class _Grid extends StatelessWidget {
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: c.selected ? FontWeight.w700 : FontWeight.w500,
+                                      fontSize: 16,
+                                      fontWeight: c.selected ? FontWeight.w500 : FontWeight.w400,
                                       color: c.selected ? accent : (c.muted ? scheme.onSurfaceVariant : null),
                                     ),
                                   ),

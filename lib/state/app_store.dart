@@ -24,6 +24,7 @@ class Prefs {
   bool incomeBlue = false; // false: green/red, true: blue/red
   bool showDecimals = true;
   bool subcategories = true;
+  bool accountGroupsInPicker = false; // MM: the account picker shows groups first
   bool noteSuggestions = true;
   bool continueAfterSave = false;
   bool carryOver = false; // add the balance of earlier periods to "Разом"
@@ -58,6 +59,7 @@ class Prefs {
     'incomeBlue': incomeBlue,
     'showDecimals': showDecimals,
     'subcategories': subcategories,
+    'accountGroupsInPicker': accountGroupsInPicker,
     'noteSuggestions': noteSuggestions,
     'notesOffV1': true,
     'continueAfterSave': continueAfterSave,
@@ -89,6 +91,7 @@ class Prefs {
     incomeBlue = j['incomeBlue'] as bool? ?? incomeBlue;
     showDecimals = j['showDecimals'] as bool? ?? showDecimals;
     subcategories = j['subcategories'] as bool? ?? subcategories;
+    accountGroupsInPicker = j['accountGroupsInPicker'] as bool? ?? accountGroupsInPicker;
     noteSuggestions = j['noteSuggestions'] as bool? ?? noteSuggestions;
     continueAfterSave = j['continueAfterSave'] as bool? ?? continueAfterSave;
     carryOver = j['carryOver'] as bool? ?? carryOver;

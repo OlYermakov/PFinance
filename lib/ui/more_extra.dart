@@ -263,6 +263,9 @@ class _RepeatsPageState extends State<RepeatsPage> {
 
 // ---- Рахунки (MM: Accounts) -----------------------------------------------------------
 
+/// Account settings (MM: the pencil on the account picker).
+Widget accountsSettingsPage() => const _AccountsMenu();
+
 class _AccountsMenu extends StatelessWidget {
   const _AccountsMenu();
 
