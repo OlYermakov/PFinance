@@ -248,15 +248,15 @@ MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings
       final uid = _s(b['ZUID']);
       // Monthly (6) budgets. UID "<target>_<type>_0_<kind>_6": kind 0 is a
       // category; kind 1 a transfer-expense account, which MM shows under its
-      // account group (as the Stats slice `grp:<group>`).
+      // account (`acc:<id>`); MM sums those under the account's group.
       if (!_active(b['ZISDEL']) || b['ZPERIODTYPEINT'] != 6) continue;
       final seg = uid.split('_');
       final kind = seg.length >= 5 ? seg[seg.length - 2] : '0';
       final String categoryId;
       if (kind == '0' && catIds.contains(target)) {
         categoryId = target;
-      } else if (kind == '1' && transferExpense.contains(target) && accById[target]?.group != null) {
-        categoryId = 'grp:${accById[target]!.group}';
+      } else if (kind == '1' && transferExpense.contains(target) && accById[target] != null) {
+        categoryId = 'acc:$target';
       } else {
         continue;
       }

@@ -26,6 +26,14 @@ class Slice {
   final int amount;
 }
 
+/// The transfer-expense group a `grp:`/`acc:` budget key belongs to.
+String? budgetGroupOf(AppStore store, String key) {
+  if (key.startsWith('grp:')) return key.substring(4);
+  if (!key.startsWith('acc:')) return null;
+  final a = store.account(key.substring(4));
+  return a == null ? null : groupOf(a);
+}
+
 /// Top-level slice key of a record: its top category, or for a transfer that
 /// counts as income/expense (MM "Transfer-Expense") the group of the
 /// transfer-expense account, as `grp:<group>`.
@@ -655,13 +663,21 @@ class _PillTabs<T> extends StatelessWidget {
       .fold(0, (s, t) => s + store.baseAmount(t));
 
   // Top-level categories in their own order, then transfer-expense groups.
+  // MM budgets a transfer-expense account (`acc:<id>`) or its whole group
+  // (`grp:<group>`); the Budget tab shows one row per group with their sum.
   final order = {for (final (i, c) in store.categoriesOf(type).indexed) c.id: i};
-  final rows =
-      store.budgets
-          .where((b) => b.currency == currency && b.categoryId != null)
-          .where((b) => b.categoryId!.startsWith('grp:') ? type == TxType.expense : order.containsKey(b.categoryId))
-          .toList()
-        ..sort((a, b) => (order[a.categoryId] ?? 1 << 20).compareTo(order[b.categoryId] ?? 1 << 20));
+  final mine = store.budgets.where((b) => b.currency == currency && b.categoryId != null).toList();
+  final groupSums = <String, int>{};
+  if (type == TxType.expense) {
+    for (final b in mine) {
+      final g = budgetGroupOf(store, b.categoryId!);
+      if (g != null) groupSums['grp:$g'] = (groupSums['grp:$g'] ?? 0) + b.amount;
+    }
+  }
+  final rows = [
+    ...mine.where((b) => order.containsKey(b.categoryId)).toList()..sort((a, b) => order[a.categoryId]!.compareTo(order[b.categoryId]!)),
+    for (final e in groupSums.entries) Budget(id: e.key, categoryId: e.key, amount: e.value, currency: currency),
+  ];
   final overall = type == TxType.expense ? store.budgets.where((b) => b.currency == currency && b.categoryId == null).firstOrNull : null;
   final limitTotal = overall?.amount ?? rows.fold<int>(0, (s, b) => s + b.amount);
   final spentTotal = overall != null ? txns.fold<int>(0, (s, t) => s + store.baseAmount(t)) : rows.fold<int>(0, (s, b) => s + spentFor(b.categoryId!));
