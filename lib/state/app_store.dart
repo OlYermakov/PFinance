@@ -39,7 +39,6 @@ class Prefs {
   String swipe = 'tabs'; // 'tabs' (switch view tabs), 'period' (change period), 'delete', 'off'
   bool showNote = true; // MM «Показати деталі»: show the description after the note
   bool amountFirst = false; // MM «Порядок введення»: start from the amount
-  bool noteButton = false; // note-history button in the editor; off by default
   bool copyPaste = true; // copy button for records
   // MM "Main currency": symbol in front ("€ 1,00") or behind ("1,00 €")
   bool currencyFront = false;
@@ -66,7 +65,6 @@ class Prefs {
     'subcategories': subcategories,
     'accountGroupsInPicker': accountGroupsInPicker,
     'noteSuggestions': noteSuggestions,
-    'notesOffV1': true,
     'swipeTabsV1': true,
     'continueAfterSave': continueAfterSave,
     'carryOver': carryOver,
@@ -78,7 +76,6 @@ class Prefs {
     'swipe': swipe,
     'showNote': showNote,
     'amountFirst': amountFirst,
-    'noteButton': noteButton,
     'copyPaste': copyPaste,
     'currencyFront': currencyFront,
     'repeatInAdvance': repeatInAdvance,
@@ -110,10 +107,6 @@ class Prefs {
     swipe = j['swipe'] as String? ?? swipe;
     showNote = j['showNote'] as bool? ?? showNote;
     amountFirst = j['amountFirst'] as bool? ?? amountFirst;
-    noteButton = j['noteButton'] as bool? ?? noteButton;
-    // The note button used to be on by default (Alex: remove it); switch it
-    // off once for older settings.
-    if (j['notesOffV1'] != true) noteButton = false;
     // Alex: a swipe must switch the view tabs, never delete records.
     if (j['swipeTabsV1'] != true) swipe = 'tabs';
     copyPaste = j['copyPaste'] as bool? ?? copyPaste;

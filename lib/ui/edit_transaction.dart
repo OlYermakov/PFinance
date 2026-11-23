@@ -226,23 +226,6 @@ class _TxnEditorState extends State<TxnEditor> {
     return _type == TxType.transfer && a != null && b != null && a.currency != b.currency;
   }
 
-  /// Note history for the chosen category (MM "Note button").
-  Future<void> _pickNote(AppStore store) async {
-    final notes = store.noteSuggestions(_subId ?? _categoryId, '');
-    final v = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => notes.isEmpty
-          ? const Padding(padding: EdgeInsets.fromLTRB(24, 0, 24, 32), child: Text('Нотаток для цієї категорії ще немає'))
-          : ListView(
-              shrinkWrap: true,
-              padding: const EdgeInsets.only(bottom: 24),
-              children: [for (final n in notes) ListTile(title: Text(n), onTap: () => Navigator.pop(context, n))],
-            ),
-    );
-    if (v != null) setState(() => _note.text = v);
-  }
-
   Future<void> _save({bool keepOpen = false, bool copy = false}) async {
     final store = StoreScope.read(context);
     final acc = store.account(_accountId);
@@ -777,9 +760,7 @@ class _TxnEditorState extends State<TxnEditor> {
           label: 'Нотатка',
           accent: accent,
           active: _noteFocus.hasFocus,
-          trailing: store.prefs.noteButton && _type != TxType.transfer
-              ? IconButton(tooltip: 'Попередні нотатки', icon: const Icon(Icons.notes_rounded), onPressed: () => _pickNote(store))
-              : _note.text.isNotEmpty && _noteFocus.hasFocus
+          trailing: _note.text.isNotEmpty && _noteFocus.hasFocus
               ? IconButton(
                   tooltip: 'Очистити',
                   icon: Icon(Icons.cancel_rounded, size: 20, color: scheme.onSurfaceVariant),

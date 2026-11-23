@@ -172,18 +172,6 @@ class _TxnSettingsPage extends StatelessWidget {
                   note: 'З чого починається новий запис: з вибору рахунку чи з введення суми.',
                 ),
               ),
-              _Item(
-                null,
-                'Кнопка нотаток',
-                value: _onOff(pr.noteButton),
-                onTap: () => pick<bool>(
-                  'Кнопка нотаток',
-                  {false: 'Вимк.', true: 'Увімк.'},
-                  pr.noteButton,
-                  (p, v) => p.noteButton = v,
-                  note: 'Показує в редакторі кнопку зі списком попередніх нотаток.',
-                ),
-              ),
             ],
           ),
         ],
