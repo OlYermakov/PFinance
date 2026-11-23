@@ -233,7 +233,12 @@ class DayCard extends StatelessWidget {
     final t = store.totalsBase(txns);
     final cur = store.baseCurrency;
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-    final sunday = day.weekday == DateTime.sunday; // Alex: Saturday in the accent like weekdays, Sunday red
+    // MM: Sunday red, Saturday blue, other days in the accent.
+    final dayColor = switch (day.weekday) {
+      DateTime.sunday => p.expense,
+      DateTime.saturday => const Color(0xFF4F9DF0),
+      _ => null,
+    };
     return GlassCard(
       radius: 24,
       padding: const EdgeInsets.only(top: 8, bottom: 2),
@@ -253,11 +258,11 @@ class DayCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      color: (sunday ? p.expense : Theme.of(context).colorScheme.primary).withValues(alpha: 0.18),
+                      color: (dayColor ?? Theme.of(context).colorScheme.primary).withValues(alpha: 0.18),
                     ),
                     child: Text(
                       weekdayShort(day),
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: sunday ? p.expense : null),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: dayColor),
                     ),
                   ),
                   const SizedBox(width: 8),
