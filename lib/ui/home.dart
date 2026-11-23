@@ -1,5 +1,3 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -72,7 +70,7 @@ class _HomeShellState extends State<HomeShell> {
       ),
       child: KeyedSubtree(key: ValueKey(_tab), child: _page()),
     );
-    final fab = _tab == 0 ? const AddButton() : null; // records tab only, like MM
+    final fab = _tab == 0 ? const AddButton() : null; // wide layout: records tab only, like MM
 
     if (wide) {
       return AuroraBackground(
@@ -103,57 +101,116 @@ class _HomeShellState extends State<HomeShell> {
       child: Scaffold(
         extendBody: true,
         body: body,
-        floatingActionButton: fab,
-        bottomNavigationBar: _GlassNavBar(
-          child: NavigationBar(
-            height: 56,
-            selectedIndex: _tab,
-            onDestinationSelected: (i) {
-              HapticFeedback.selectionClick();
-              setState(() => _tab = i);
-            },
-            destinations: [
-              for (final d in _dest)
-                NavigationDestination(icon: Icon(d.$1), selectedIcon: Icon(d.$2), label: d.$3),
-            ],
-          ),
+        bottomNavigationBar: _CurvedNavBar(
+          tab: _tab,
+          items: _dest,
+          onTab: (i) {
+            HapticFeedback.selectionClick();
+            setState(() => _tab = i);
+          },
         ),
       ),
     );
   }
 }
 
-class _GlassNavBar extends StatelessWidget {
-  const _GlassNavBar({required this.child});
-  final Widget child;
+/// Rounded gradient bar with a notch in the middle that holds a round "+"
+/// (Alex's design reference): two tabs on each side, icons only.
+class _CurvedNavBar extends StatelessWidget {
+  const _CurvedNavBar({required this.tab, required this.items, required this.onTab});
+  final int tab;
+  final List<(IconData, IconData, String)> items;
+  final ValueChanged<int> onTab;
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: dark
-                  ? const [Color(0xED141726), Color(0xF20A0C16)]
-                  : const [Color(0xF2FFFFFF), Color(0xF2F4F7FF)],
+    final p = AppPalette.of(context);
+    final inset = MediaQuery.paddingOf(context).bottom;
+    const barH = 58.0, btn = 60.0, rise = 24.0;
+    Widget item(int i) {
+      final sel = i == tab;
+      return Expanded(
+        child: Tooltip(
+          message: items[i].$3,
+          child: InkResponse(
+            onTap: () => onTab(i),
+            radius: 30,
+            child: SizedBox(
+              height: barH,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  AnimatedScale(
+                    scale: sel ? 1.12 : 1,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(sel ? items[i].$2 : items[i].$1, size: 24, color: Colors.white.withValues(alpha: sel ? 1 : 0.62)),
+                  ),
+                  const SizedBox(height: 4),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: sel ? 5 : 0,
+                    height: 5,
+                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  ),
+                ],
+              ),
             ),
-            border: Border(top: BorderSide(color: dark ? const Color(0x14FFFFFF) : const Color(0x1A1E2850))),
           ),
-          child: child,
         ),
+      );
+    }
+
+    return SizedBox(
+      height: barH + rise + inset + 8,
+      child: Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: inset + 8,
+            height: barH,
+            child: PhysicalShape(
+              clipper: const _NotchClipper(radius: btn / 2 + 7),
+              color: Colors.transparent,
+              shadowColor: Colors.black,
+              elevation: 8,
+              clipBehavior: Clip.antiAlias,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [for (final c in p.gradient) Color.lerp(c, const Color(0xFF8FA3B8), 0.28)!]),
+                ),
+                child: Row(children: [item(0), item(1), const SizedBox(width: btn + 24), item(2), item(3)]),
+              ),
+            ),
+          ),
+          const Positioned(top: 0, child: SizedBox(width: btn, height: btn, child: AddButton(size: btn))),
+        ],
       ),
     );
   }
+}
+
+/// Rounded bar with a round bite out of the top middle.
+class _NotchClipper extends CustomClipper<Path> {
+  const _NotchClipper({required this.radius});
+  final double radius;
+
+  @override
+  Path getClip(Size size) {
+    final bar = Path()..addRRect(RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(size.height / 2)));
+    final bite = Path()..addOval(Rect.fromCircle(center: Offset(size.width / 2, 4), radius: radius));
+    return Path.combine(PathOperation.difference, bar, bite);
+  }
+
+  @override
+  bool shouldReclip(_NotchClipper old) => old.radius != radius;
 }
 
 /// Gradient "+" button with a press-bounce and a soft glow.
 class AddButton extends StatefulWidget {
-  const AddButton({super.key});
+  const AddButton({super.key, this.size = 60});
+  final double size;
 
   @override
   State<AddButton> createState() => _AddButtonState();
@@ -178,8 +235,8 @@ class _AddButtonState extends State<AddButton> {
           duration: const Duration(milliseconds: 160),
           curve: Curves.easeOutBack,
           child: Container(
-            width: 60,
-            height: 60,
+            width: widget.size,
+            height: widget.size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: p.gradient),
