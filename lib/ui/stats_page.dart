@@ -7,6 +7,7 @@ import '../state/app_store.dart';
 import 'accounts_page.dart' show groupOf;
 import 'category_page.dart';
 import 'format.dart';
+import 'rose_chart.dart';
 import 'more_page.dart' show budgetSettingsPage;
 import 'edit_transaction.dart' show openTxnEditor;
 import 'theme.dart';
@@ -357,10 +358,7 @@ class _StatsPageState extends State<StatsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        GlassCard(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: LabeledPie(key: ValueKey('${_label(store)}$_type'), slices: slices, total: total),
-        ),
+        GlassCard(padding: const EdgeInsets.symmetric(vertical: 12), child: _rose(store, txns, slices, cur)),
         const SizedBox(height: 12),
         GlassCard(
           padding: const EdgeInsets.symmetric(vertical: 6),
@@ -378,6 +376,62 @@ class _StatsPageState extends State<StatsPage> {
           ),
         ),
       ],
+    );
+  }
+
+  /// The rose with each petal split into parts of the period: weeks of a
+  /// month (1–7, 8–14, 15–21, 22–end) or quarters of a longer period.
+  Widget _rose(AppStore store, List<Txn> txns, List<Slice> slices, String cur) {
+    final r = _range(store);
+    final days = r.end.difference(r.start).inDays;
+    final bounds = <DateTime>[];
+    if (days <= 7) {
+      bounds.add(r.start);
+    } else if (days <= 31) {
+      for (var d = 0; d + 7 <= days || bounds.isEmpty; d += 7) {
+        if (bounds.length == 4) break;
+        bounds.add(DateTime(r.start.year, r.start.month, r.start.day + d));
+      }
+    } else {
+      for (var q = 0; q < 4; q++) {
+        bounds.add(DateTime(r.start.year, r.start.month + q * 3, r.start.day));
+      }
+    }
+    int partOf(DateTime d) {
+      var k = 0;
+      while (k + 1 < bounds.length && !d.isBefore(bounds[k + 1])) {
+        k++;
+      }
+      return k;
+    }
+
+    const months = ['січ', 'лют', 'бер', 'кві', 'тра', 'чер', 'лип', 'сер', 'вер', 'жов', 'лис', 'гру'];
+    final labels = [
+      for (var k = 0; k < bounds.length; k++)
+        () {
+          final s = bounds[k];
+          final e = (k + 1 < bounds.length ? bounds[k + 1] : r.end).subtract(const Duration(days: 1));
+          return days > 31 ? '${months[s.month - 1]}–${months[e.month - 1]}' : '${s.day}–${e.day}';
+        }(),
+    ];
+    final parts = [
+      for (final sl in slices)
+        () {
+          final p = List<int>.filled(bounds.length, 0);
+          for (final t in txns) {
+            if (sliceKey(store, t) == sl.category?.id) p[partOf(t.date)] += store.baseAmount(t);
+          }
+          return p;
+        }(),
+    ];
+    return RoseChart(
+      key: ValueKey('${_label(store)}$_type'),
+      names: [for (final s in slices) s.category?.name ?? 'Без категорії'],
+      colors: [for (var i = 0; i < slices.length; i++) rankColor(i)],
+      parts: parts,
+      partLabels: bounds.length > 1 ? labels : const [],
+      currency: cur,
+      centerLabel: 'Разом',
     );
   }
 
