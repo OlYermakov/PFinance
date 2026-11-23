@@ -364,7 +364,8 @@ class Budget implements Entity {
   );
 }
 
-enum RepeatEvery { day, week, twoWeeks, fourWeeks, month, quarter, year }
+/// Repeat periods, in MM's order.
+enum RepeatEvery { day, weekdays, weekends, week, twoWeeks, fourWeeks, month, monthEnd, twoMonths, quarter, fourMonths, halfYear, year }
 
 /// A repeating record (Money Manager's "Repeat Setting"). Stored in the
 /// settings store, so it travels with backups. Due copies are created as
@@ -388,31 +389,44 @@ class RepeatRule {
     lastDone: lastDone ?? this.lastDone,
   );
 
-  /// The n-th occurrence (n = 0 is [start]). Month/year steps keep the day of
-  /// month, clamped to the month's length (31 → 30/28).
-  DateTime occurrence(int n) {
+  /// Occurrence dates from [start] on (at most 5000). Month steps keep the
+  /// day of month, clamped to the month's length (31 → 30/28); weekdays and
+  /// weekends skip the other days; "end of month" is each month's last day.
+  Iterable<DateTime> get occurrences sync* {
     final s = start;
     DateTime clamp(int y, int m) {
       final last = DateTime(y, m + 1, 0).day;
       return DateTime(y, m, s.day > last ? last : s.day, s.hour, s.minute);
     }
 
-    return switch (every) {
-      RepeatEvery.day => DateTime(s.year, s.month, s.day + n, s.hour, s.minute),
-      RepeatEvery.week => DateTime(s.year, s.month, s.day + 7 * n, s.hour, s.minute),
-      RepeatEvery.twoWeeks => DateTime(s.year, s.month, s.day + 14 * n, s.hour, s.minute),
-      RepeatEvery.fourWeeks => DateTime(s.year, s.month, s.day + 28 * n, s.hour, s.minute),
-      RepeatEvery.month => clamp(s.year, s.month + n),
-      RepeatEvery.quarter => clamp(s.year, s.month + 3 * n),
-      RepeatEvery.year => clamp(s.year + n, s.month),
-    };
+    DateTime days(int n) => DateTime(s.year, s.month, s.day + n, s.hour, s.minute);
+    var k = 0;
+    for (var n = 0; k < 5000 && n < 50000; n++) {
+      final d = switch (every) {
+        RepeatEvery.day || RepeatEvery.weekdays || RepeatEvery.weekends => days(n),
+        RepeatEvery.week => days(7 * n),
+        RepeatEvery.twoWeeks => days(14 * n),
+        RepeatEvery.fourWeeks => days(28 * n),
+        RepeatEvery.month => clamp(s.year, s.month + n),
+        RepeatEvery.monthEnd => DateTime(s.year, s.month + n + 1, 0, s.hour, s.minute),
+        RepeatEvery.twoMonths => clamp(s.year, s.month + 2 * n),
+        RepeatEvery.quarter => clamp(s.year, s.month + 3 * n),
+        RepeatEvery.fourMonths => clamp(s.year, s.month + 4 * n),
+        RepeatEvery.halfYear => clamp(s.year, s.month + 6 * n),
+        RepeatEvery.year => clamp(s.year + n, s.month),
+      };
+      if (every == RepeatEvery.weekdays && d.weekday >= DateTime.saturday) continue;
+      if (every == RepeatEvery.weekends && d.weekday < DateTime.saturday) continue;
+      if (every == RepeatEvery.monthEnd && d.isBefore(DateTime(s.year, s.month, s.day))) continue;
+      k++;
+      yield d;
+    }
   }
 
   /// Occurrences after [lastDone] up to and including [now].
   List<DateTime> dueUntil(DateTime now) {
     final out = <DateTime>[];
-    for (var n = 0; n < 5000; n++) {
-      final d = occurrence(n);
+    for (final d in occurrences) {
       if (d.isAfter(now) || (end != null && d.isAfter(end!))) break;
       if (lastDone == null || d.isAfter(lastDone!)) out.add(d);
     }
@@ -420,8 +434,7 @@ class RepeatRule {
   }
 
   DateTime? nextAfter(DateTime now) {
-    for (var n = 0; n < 5000; n++) {
-      final d = occurrence(n);
+    for (final d in occurrences) {
       if (end != null && d.isAfter(end!)) return null;
       if (d.isAfter(now)) return d;
     }

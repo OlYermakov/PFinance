@@ -1474,20 +1474,32 @@ double? evalExpression(String s) {
 
 String repeatLabel(RepeatEvery r) => switch (r) {
   RepeatEvery.day => 'Щодня',
+  RepeatEvery.weekdays => 'Будні дні',
+  RepeatEvery.weekends => 'Вихідні',
   RepeatEvery.week => 'Щотижня',
   RepeatEvery.twoWeeks => 'Кожні 2 тижні',
   RepeatEvery.fourWeeks => 'Кожні 4 тижні',
   RepeatEvery.month => 'Щомісяця',
-  RepeatEvery.quarter => 'Щокварталу',
-  RepeatEvery.year => 'Щороку',
+  RepeatEvery.monthEnd => 'Вкінці місяця',
+  RepeatEvery.twoMonths => 'Кожні 2 місяці',
+  RepeatEvery.quarter => 'Кожні 3 місяці',
+  RepeatEvery.fourMonths => 'Кожні 4 місяці',
+  RepeatEvery.halfYear => 'Кожні 6 місяців',
+  RepeatEvery.year => 'Раз на рік',
 };
 
 String repeatShort(RepeatEvery r) => switch (r) {
   RepeatEvery.day => 'день',
+  RepeatEvery.weekdays => 'будні',
+  RepeatEvery.weekends => 'вихідні',
   RepeatEvery.week => 'тиждень',
   RepeatEvery.twoWeeks => '2 тижні',
   RepeatEvery.fourWeeks => '4 тижні',
   RepeatEvery.month => 'місяць',
-  RepeatEvery.quarter => 'квартал',
+  RepeatEvery.monthEnd => 'кін. міс.',
+  RepeatEvery.twoMonths => '2 міс.',
+  RepeatEvery.quarter => '3 міс.',
+  RepeatEvery.fourMonths => '4 міс.',
+  RepeatEvery.halfYear => '6 міс.',
   RepeatEvery.year => 'рік',
 };

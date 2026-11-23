@@ -756,8 +756,7 @@ class _SummaryView extends StatelessWidget {
     final from = today.isAfter(range.start) ? today : range.start;
     final upcoming = <(DateTime, RepeatRule)>[];
     for (final r in store.repeats) {
-      for (var n = 0; n < 5000; n++) {
-        final d = r.occurrence(n);
+      for (final d in r.occurrences) {
         if (!d.isBefore(range.end) || (r.end != null && d.isAfter(r.end!))) {
           break;
         }
