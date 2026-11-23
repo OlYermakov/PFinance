@@ -341,7 +341,10 @@ class DayCard extends StatelessWidget {
       padding: const EdgeInsets.only(top: 8, bottom: 2),
       child: Column(
         children: [
-          Padding(
+          // MM: tapping the date line starts a new record on that day
+          InkWell(
+            onTap: () => openTxnEditor(context, date: day),
+            child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -404,6 +407,7 @@ class DayCard extends StatelessWidget {
                   ),
               ],
             ),
+          ),
           ),
           Divider(
             height: 1,
