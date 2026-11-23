@@ -118,13 +118,18 @@ class _HomeShellState extends State<HomeShell> {
 /// (Alex's design reference): two tabs on each side, icons only.
 class _CurvedNavBar extends StatelessWidget {
   const _CurvedNavBar({required this.tab, required this.items, required this.onTab});
+
+  /// Gap to the screen edges, and the display corner radius of an iPhone
+  /// 16 Pro; the bar's lower corners run parallel to the screen's corners.
+  static const _gap = 6.0, _screenRadius = 55.0;
   final int tab;
   final List<(IconData, IconData, String)> items;
   final ValueChanged<int> onTab;
 
   @override
   Widget build(BuildContext context) {
-    final p = AppPalette.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final inset = MediaQuery.paddingOf(context).bottom;
     const barH = 58.0, btn = 60.0, rise = 24.0;
     Widget item(int i) {
@@ -143,14 +148,14 @@ class _CurvedNavBar extends StatelessWidget {
                   AnimatedScale(
                     scale: sel ? 1.12 : 1,
                     duration: const Duration(milliseconds: 200),
-                    child: Icon(sel ? items[i].$2 : items[i].$1, size: 24, color: Colors.white.withValues(alpha: sel ? 1 : 0.62)),
+                    child: Icon(sel ? items[i].$2 : items[i].$1, size: 24, color: sel ? scheme.primary : scheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 4),
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     width: sel ? 5 : 0,
                     height: 5,
-                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: scheme.primary, shape: BoxShape.circle),
                   ),
                 ],
               ),
@@ -161,26 +166,34 @@ class _CurvedNavBar extends StatelessWidget {
     }
 
     return SizedBox(
-      height: barH + rise + inset + 8,
+      height: barH + rise + inset + _gap,
       child: Stack(
         alignment: Alignment.topCenter,
         children: [
           Positioned(
-            left: 12,
-            right: 12,
-            bottom: inset + 8,
-            height: barH,
+            left: _gap,
+            right: _gap,
+            bottom: _gap,
+            height: barH + inset,
             child: PhysicalShape(
-              clipper: const _NotchClipper(radius: btn / 2 + 7),
+              clipper: _NotchClipper(radius: btn / 2 + 7, top: 22, bottom: inset > 0 ? _screenRadius - _gap : 22),
               color: Colors.transparent,
               shadowColor: Colors.black,
               elevation: 8,
               clipBehavior: Clip.antiAlias,
+              // the same colours the bar always had
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [for (final c in p.gradient) Color.lerp(c, const Color(0xFF8FA3B8), 0.28)!]),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: dark ? const [Color(0xFF141726), Color(0xFF0A0C16)] : const [Color(0xFFFFFFFF), Color(0xFFF4F7FF)],
+                  ),
                 ),
-                child: Row(children: [item(0), item(1), const SizedBox(width: btn + 24), item(2), item(3)]),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Row(children: [item(0), item(1), const SizedBox(width: btn + 24), item(2), item(3)]),
+                ),
               ),
             ),
           ),
@@ -193,18 +206,27 @@ class _CurvedNavBar extends StatelessWidget {
 
 /// Rounded bar with a round bite out of the top middle.
 class _NotchClipper extends CustomClipper<Path> {
-  const _NotchClipper({required this.radius});
-  final double radius;
+  const _NotchClipper({required this.radius, required this.top, required this.bottom});
+  final double radius, top, bottom;
 
   @override
   Path getClip(Size size) {
-    final bar = Path()..addRRect(RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(size.height / 2)));
+    final bar = Path()
+      ..addRRect(
+        RRect.fromRectAndCorners(
+          Offset.zero & size,
+          topLeft: Radius.circular(top),
+          topRight: Radius.circular(top),
+          bottomLeft: Radius.circular(bottom),
+          bottomRight: Radius.circular(bottom),
+        ),
+      );
     final bite = Path()..addOval(Rect.fromCircle(center: Offset(size.width / 2, 4), radius: radius));
     return Path.combine(PathOperation.difference, bar, bite);
   }
 
   @override
-  bool shouldReclip(_NotchClipper old) => old.radius != radius;
+  bool shouldReclip(_NotchClipper old) => old.radius != radius || old.top != top || old.bottom != bottom;
 }
 
 /// Gradient "+" button with a press-bounce and a soft glow.
