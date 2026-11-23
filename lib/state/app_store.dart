@@ -32,7 +32,7 @@ class Prefs {
   String? pin; // 4 digits; local convenience lock, not encryption
   // MM "Transaction Settings"
   int timeMode = 1; // 0: no time, 1: input only, 2: input and show in lists
-  String swipe = 'delete'; // 'period' (change period), 'delete', 'off'
+  String swipe = 'tabs'; // 'tabs' (switch view tabs), 'period' (change period), 'delete', 'off'
   bool showNote = true; // show the note in record lists
   bool categoryFirst = false; // input order: category before account
   bool noteButton = false; // note-history button in the editor; off by default
@@ -62,6 +62,7 @@ class Prefs {
     'accountGroupsInPicker': accountGroupsInPicker,
     'noteSuggestions': noteSuggestions,
     'notesOffV1': true,
+    'swipeTabsV1': true,
     'continueAfterSave': continueAfterSave,
     'carryOver': carryOver,
     'copyToToday': copyToToday,
@@ -105,6 +106,8 @@ class Prefs {
     // The note button used to be on by default (Alex: remove it); switch it
     // off once for older settings.
     if (j['notesOffV1'] != true) noteButton = false;
+    // Alex: a swipe must switch the view tabs, never delete records.
+    if (j['swipeTabsV1'] != true) swipe = 'tabs';
     copyPaste = j['copyPaste'] as bool? ?? copyPaste;
     currencyFront = j['currencyFront'] as bool? ?? currencyFront;
     repeatInAdvance = j['repeatInAdvance'] as bool? ?? repeatInAdvance;

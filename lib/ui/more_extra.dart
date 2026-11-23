@@ -26,7 +26,7 @@ class _TxnSettingsPage extends StatelessWidget {
     }
 
     const timeLabels = {0: 'Не вводити', 1: 'Лише введення', 2: 'Введення й показ'};
-    const swipeLabels = {'period': 'Зміна періоду', 'delete': 'Видалення запису', 'off': 'Вимкнено'};
+    const swipeLabels = {'tabs': 'Зміна вкладки', 'period': 'Зміна періоду', 'delete': 'Видалення запису', 'off': 'Вимкнено'};
     return Scaffold(
       appBar: AppBar(title: const Text('Налаштування записів')),
       body: ListView(

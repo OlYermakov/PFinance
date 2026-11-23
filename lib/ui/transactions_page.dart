@@ -53,14 +53,23 @@ class _TransactionsPageState extends State<TransactionsPage> {
       RecordsView.summary => _SummaryView(month: _month, txns: list),
     };
 
-    final swipePeriod = store.prefs.swipe == 'period';
+    // Swipe: switch the view tabs (default) or the period.
+    final swipe = store.prefs.swipe;
     return GestureDetector(
-      onHorizontalDragEnd: !swipePeriod
+      onHorizontalDragEnd: swipe != 'tabs' && swipe != 'period'
           ? null
           : (d) {
               final v = d.primaryVelocity ?? 0;
               if (v.abs() < 300) return;
-              setState(() => _month = DateTime(_month.year, _month.month + (v < 0 ? 1 : -1)));
+              final step = v < 0 ? 1 : -1;
+              setState(() {
+                if (swipe == 'period') {
+                  _month = DateTime(_month.year, _month.month + step);
+                } else {
+                  final i = RecordsView.values.indexOf(_view) + step;
+                  if (i >= 0 && i < RecordsView.values.length) _view = RecordsView.values[i];
+                }
+              });
             },
       child: SafeArea(
         bottom: false,
