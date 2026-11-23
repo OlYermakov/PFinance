@@ -419,7 +419,7 @@ class _RepeatsPageState extends State<RepeatsPage> {
           children: [
             if (_delete)
               IconButton(
-                icon: Icon(Icons.remove_circle_rounded, color: scheme.error),
+                icon: const MinusBadge(),
                 onPressed: () async {
                   if (await _confirm(context, 'Зупинити повтор?', 'Нові записи більше не створюватимуться. Уже створені залишаться.')) {
                     await store.deleteRepeat(r);

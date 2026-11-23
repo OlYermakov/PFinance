@@ -983,11 +983,7 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
           child: _editing
               ? Row(
                   children: [
-                    IconButton(
-                      tooltip: 'Видалити',
-                      icon: Icon(Icons.remove_circle, color: AppPalette.of(context).expense),
-                      onPressed: () => _delete(context, a),
-                    ),
+                    IconButton(tooltip: 'Видалити', icon: const MinusBadge(), onPressed: () => _delete(context, a)),
                     Expanded(child: name),
                     IconButton(
                       tooltip: a.archived ? 'Показувати' : 'Приховати',

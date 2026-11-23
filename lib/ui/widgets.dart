@@ -497,3 +497,22 @@ class PillTabs<T> extends StatelessWidget {
 List<String> weekdayNames(int first) => [
   for (var i = 0; i < 7; i++) const ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'][(first - 1 + i) % 7],
 ];
+
+/// MM's delete mark: a solid red circle with a white bar.
+class MinusBadge extends StatelessWidget {
+  const MinusBadge({super.key, this.size = 24});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(color: AppPalette.of(context).expense, shape: BoxShape.circle),
+    alignment: Alignment.center,
+    child: Container(
+      width: size * 0.46,
+      height: 2.4,
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(2)),
+    ),
+  );
+}
