@@ -20,8 +20,16 @@ class _TxnSettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final pr = store.prefs;
-    Future<void> pick<T>(String title, Map<T, String> options, T current, void Function(Prefs p, T v) set, {String? note, Map<T, Color>? colors}) async {
-      final v = await _choose<T>(context, title, options, current, note: note, colors: colors);
+    Future<void> pick<T>(
+      String title,
+      Map<T, String> options,
+      T current,
+      void Function(Prefs p, T v) set, {
+      String? note,
+      Map<T, Color>? colors,
+      _Spot? spot,
+    }) async {
+      final v = await _choose<T>(context, title, options, current, note: note, colors: colors, preview: spot == null ? null : _SettingPreview(spot));
       if (v != null) store.updatePrefs((p) => set(p, v));
     }
 
@@ -77,6 +85,7 @@ class _TxnSettingsPage extends StatelessWidget {
                   {false: 'Вимк.', true: 'Увімк.'},
                   pr.carryOver,
                   (p, v) => p.carryOver = v,
+                  spot: _Spot.carry,
                   note: 'Перенесення додає залишок попередніх місяців до підсумку «Разом» поточного.',
                 ),
               ),
@@ -89,6 +98,7 @@ class _TxnSettingsPage extends StatelessWidget {
                   const {'green': 'Дохід зелений, витрати червоні', 'blue': 'Дохід синій, витрати червоні', 'accent': 'Дохід за акцентом, витрати червоні'},
                   pr.incomeColor,
                   (p, v) => p.incomeColor = v,
+                  spot: _Spot.colors,
                 ),
               ),
               _Item(
@@ -115,6 +125,7 @@ class _TxnSettingsPage extends StatelessWidget {
                     p.timeMode = v ~/ 2;
                     p.timeAsc = v.isOdd;
                   },
+                  spot: _Spot.time,
                   note: '«Немає» — без часу; «Показ у списку» — час видно в записах; «Лише введення» — час лише в редакторі. Спад./зрост. — порядок записів у дні.',
                 ),
               ),
@@ -122,7 +133,13 @@ class _TxnSettingsPage extends StatelessWidget {
                 null,
                 'Стартовий екран',
                 value: startLabel(pr.startPage),
-                onTap: () => pick<StartPage>('Стартовий екран', {for (final s in StartPage.values) s: startLabel(s)}, pr.startPage, (p, v) => p.startPage = v),
+                onTap: () => pick<StartPage>(
+                  'Стартовий екран',
+                  {for (final s in StartPage.values) s: startLabel(s)},
+                  pr.startPage,
+                  (p, v) => p.startPage = v,
+                  spot: _Spot.tabs,
+                ),
               ),
               _Item(
                 null,
@@ -139,6 +156,7 @@ class _TxnSettingsPage extends StatelessWidget {
                   {false: 'Вимк.', true: 'Увімк.'},
                   pr.showNote,
                   (p, v) => p.showNote = v,
+                  spot: _Spot.note,
                   note: 'Нотатка запису показується в списку записів поруч із категорією.',
                 ),
               ),
@@ -169,6 +187,129 @@ class _TxnSettingsPage extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Which part of the sample screen a setting changes.
+enum _Spot { note, colors, time, carry, tabs }
+
+/// MM-style picture in a setting sheet: a small sample of the records screen
+/// with the part the setting changes outlined in red.
+class _SettingPreview extends StatelessWidget {
+  const _SettingPreview(this.spot);
+  final _Spot spot;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final muted = scheme.onSurfaceVariant;
+    final red = AppPalette.of(context).expense;
+    final inc = incomeColor(context, store);
+    Widget mark(_Spot s, Widget child) => spot != s
+        ? child
+        : Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            decoration: BoxDecoration(
+              border: Border.all(color: red, width: 2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: child,
+          );
+    TextStyle st(double size, Color c, [FontWeight w = FontWeight.w500]) => TextStyle(fontSize: size, color: c, fontWeight: w);
+    Widget col(String label, String v, Color c) => Column(
+      children: [
+        Text(label, style: st(11, muted)),
+        const SizedBox(height: 2),
+        Text(v, style: st(13, c, FontWeight.w600)),
+      ],
+    );
+    final divider = Divider(height: 1, color: scheme.outlineVariant.withValues(alpha: 0.4));
+    return IgnorePointer(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+        ),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Липень 2026', textAlign: TextAlign.center, style: st(13, scheme.onSurface, FontWeight.w600)),
+            const SizedBox(height: 8),
+            Center(
+              child: mark(
+                _Spot.tabs,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final (i, t) in const ['День', 'Календар', 'Місяць', 'Підсумок'].indexed)
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                        decoration: BoxDecoration(color: i == 0 ? scheme.primary : null, borderRadius: BorderRadius.circular(20)),
+                        child: Text(t, style: st(11, i == 0 ? scheme.onPrimary : muted)),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            divider,
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                mark(_Spot.colors, col('Дохід', '1 200,00 €', inc)),
+                mark(_Spot.colors, col('Витрати', '25,00 €', red)),
+                mark(_Spot.carry, col('Разом', '1 175,00 €', scheme.onSurface)),
+              ],
+            ),
+            const SizedBox(height: 6),
+            divider,
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Text('06', style: st(18, scheme.onSurface, FontWeight.w700)),
+                const SizedBox(width: 6),
+                Text('пн', style: st(11, muted)),
+                const Spacer(),
+                Text('25,00 €', style: st(12, red)),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                SizedBox(
+                  width: 64,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Їжа', style: st(12, muted)),
+                      if (spot == _Spot.time) mark(_Spot.time, Text('12:30', style: st(11, muted))),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: mark(_Spot.note, Text('Обід', style: st(13, scheme.onSurface))),
+                      ),
+                      Text('Готівка', style: st(11, muted)),
+                    ],
+                  ),
+                ),
+                Text('25,00 €', style: st(13, red)),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

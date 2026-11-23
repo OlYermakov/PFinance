@@ -21,7 +21,7 @@ import 'widgets.dart';
 
 part 'more_extra.dart';
 
-const appVersion = 'v0.9.58';
+const appVersion = 'v0.9.59';
 
 /// Full names of the supported currencies (Settings → currencies).
 const currencyNames = {
@@ -314,33 +314,35 @@ Future<bool> _confirm(BuildContext context, String title, String body) async =>
     ) ??
     false;
 
-Future<T?> _choose<T>(BuildContext context, String title, Map<T, String> options, T current, {String? note, Map<T, Color>? colors}) => showModalBottomSheet<T>(
-  context: context,
-  showDragHandle: true,
-  isScrollControlled: true,
-  constraints: const BoxConstraints(maxWidth: 520, maxHeight: 640),
-  builder: (context) => ListView(
-    shrinkWrap: true,
-    padding: const EdgeInsets.only(bottom: 24),
-    children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-        child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+Future<T?> _choose<T>(BuildContext context, String title, Map<T, String> options, T current, {String? note, Map<T, Color>? colors, Widget? preview}) =>
+    showModalBottomSheet<T>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 520, maxHeight: 640),
+      builder: (context) => ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.only(bottom: 24),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+            child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+          ),
+          if (preview != null) Padding(padding: const EdgeInsets.fromLTRB(20, 4, 20, 12), child: preview),
+          if (note != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+              child: Text(note, style: TextStyle(fontSize: 13, height: 1.35, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            ),
+          for (final e in options.entries)
+            ListTile(
+              title: Text(e.value, style: TextStyle(color: colors?[e.key])),
+              trailing: e.key == current ? Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+              onTap: () => Navigator.pop(context, e.key),
+            ),
+        ],
       ),
-      if (note != null)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-          child: Text(note, style: TextStyle(fontSize: 13, height: 1.35, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-        ),
-      for (final e in options.entries)
-        ListTile(
-          title: Text(e.value, style: TextStyle(color: colors?[e.key])),
-          trailing: e.key == current ? Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
-          onTap: () => Navigator.pop(context, e.key),
-        ),
-    ],
-  ),
-);
+    );
 
 Future<String?> _askText(BuildContext context, String title, {String initial = '', String? hint}) {
   final ctrl = TextEditingController(text: initial);
