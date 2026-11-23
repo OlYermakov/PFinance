@@ -313,7 +313,15 @@ class _RepeatsPageState extends State<RepeatsPage> {
     Widget section(TxType type, String label, Color color) {
       final list = rules.where((r) => r.template.type == type).toList();
       if (list.isEmpty) return const SizedBox.shrink();
-      final total = list.fold<int>(0, (s, r) => s + store.baseAmount(r.template));
+      // Like MM: what falls due in the coming month (today up to the same day next month).
+      final from = DateTime(now.year, now.month, now.day), to = DateTime(now.year, now.month + 1, now.day);
+      var total = 0;
+      for (final r in list) {
+        for (final d in r.occurrences) {
+          if (!d.isBefore(to) || (r.end != null && d.isAfter(r.end!))) break;
+          if (!d.isBefore(from)) total += store.repeatBase(r.template);
+        }
+      }
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -398,7 +406,7 @@ class _RepeatsPageState extends State<RepeatsPage> {
         ? '${store.account(t.accountId)?.name ?? ''} → ${store.account(t.toAccountId)?.name ?? ''}'
         : [top?.name, if (cat != null && top != null && cat.id != top.id) cat.name].whereType<String>().join('/');
     final acc = t.type == TxType.transfer ? '' : store.account(t.accountId)?.name ?? '';
-    final cur = store.currencyOf(t);
+    final cur = store.shownCurrency(t);
     final muted = TextStyle(color: scheme.onSurfaceVariant, fontSize: 13);
     return InkWell(
       onTap: () => _editRepeat(context, r),
@@ -438,7 +446,7 @@ class _RepeatsPageState extends State<RepeatsPage> {
               ),
             ),
             const SizedBox(width: 8),
-            Text(money(t.amount, cur), style: TextStyle(color: color, fontSize: 16)),
+            Text(money(store.shownAmount(t), cur), style: TextStyle(color: color, fontSize: 16)),
           ],
         ),
       ),
@@ -462,7 +470,7 @@ class _RepeatsPageState extends State<RepeatsPage> {
             children: [
               Text(r.template.note.isNotEmpty ? r.template.note : txnTitle(store, r.template), style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 4),
-              Text('${money(r.template.amount, store.currencyOf(r.template))} · з ${shortDate(r.start)}'),
+              Text('${money(store.shownAmount(r.template), store.shownCurrency(r.template))} · з ${shortDate(r.start)}'),
               const SizedBox(height: 16),
               Wrap(
                 spacing: 8,

@@ -885,7 +885,7 @@ class _SummaryView extends StatelessWidget {
                   for (final (d, r) in upcoming)
                     line(
                       '${r.template.note.isNotEmpty ? r.template.note : txnTitle(store, r.template)}, ${repeatLabel(r.every).toLowerCase()}',
-                      money(r.template.amount, store.account(r.template.accountId)?.currency ?? cur),
+                      money(store.shownAmount(r.template), store.shownCurrency(r.template)),
                       lead: '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}',
                       color: r.template.type == TxType.income
                           ? incomeColor(context, store)

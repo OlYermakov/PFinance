@@ -295,6 +295,24 @@ class AppStore extends ChangeNotifier {
 
   /// Value in the base currency at the rate of the record's day when known
   /// (stamped by [fillDayRates]), otherwise at the current manual rate.
+  /// Converts between any two currencies at the current manual rates; null
+  /// when a rate is missing.
+  int? convertNow(int minor, String from, String to) {
+    if (from == to) return minor;
+    final rf = from == baseCurrency ? 1.0 : prefs.rates[from];
+    final rt = to == baseCurrency ? 1.0 : prefs.rates[to];
+    if (rf == null || rt == null || rt == 0) return null;
+    return _convert(minor, from, to, rf / rt);
+  }
+
+  /// The amount as the user typed it (a foreign currency if so), for display.
+  int shownAmount(Txn t) => t.enteredAmount ?? t.amount;
+  String shownCurrency(Txn t) => t.enteredCur ?? currencyOf(t);
+
+  /// A repeat template in the base currency, from the amount as entered
+  /// (US\$ 2,99 stays US\$ 2,99 whatever the card's currency).
+  int repeatBase(Txn t) => t.enteredAmount != null && t.enteredCur != null ? toBase(t.enteredAmount!, t.enteredCur!) : baseAmount(t);
+
   int baseAmount(Txn t) {
     final cur = currencyOf(t);
     if (cur == baseCurrency) return t.amount;
@@ -576,10 +594,11 @@ class AppStore extends ChangeNotifier {
       if (due.isEmpty) continue;
       for (final d in due) {
         final t = r.template;
+        final accCur = currencyOf(t);
         await saveTxn(
           Txn(
             type: t.type,
-            amount: t.amount,
+            amount: t.enteredAmount != null && t.enteredCur != null ? convertNow(t.enteredAmount!, t.enteredCur!, accCur) ?? t.amount : t.amount,
             accountId: t.accountId,
             toAccountId: t.toAccountId,
             toAmount: t.toAmount,

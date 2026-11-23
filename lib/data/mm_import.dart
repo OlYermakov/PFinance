@@ -215,16 +215,24 @@ MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings
       final end = r['ZENDDATE'];
       final cat = _s(r['ZCATEGORYUID']);
       final note = [_s(r['ZPAYEE']).trim(), _s(r['ZMEMO']).trim()].where((s) => s.isNotEmpty).join(' ');
+      // The amount is in the repeat's own currency (e.g. US\$ 2,99 paid from a
+      // UAH card): keep it as entered and convert for the account.
+      final sub = (r['ZAMOUNTSUB'] as num?) ?? 0;
+      final txCur = isoOf(r['ZCURRENCYUID']);
+      final foreign = txCur != acc.currency && (txCur == base || rates.containsKey(txCur)) && (acc.currency == base || rates.containsKey(acc.currency));
+      double rateOf(String c) => c == base ? 1 : rates[c]!;
       repeats.add(
         RepeatRule(
           template: Txn(
             type: type,
-            amount: _minor((r['ZAMOUNTSUB'] as num?) ?? 0, acc.currency),
+            amount: foreign ? _minor(sub * rateOf(txCur) / rateOf(acc.currency), acc.currency) : _minor(sub, acc.currency),
             accountId: acc.id,
             toAccountId: type == TxType.transfer ? to!.id : null,
             categoryId: type != TxType.transfer && catIds.contains(cat) ? cat : null,
             date: start,
             note: note,
+            enteredAmount: foreign ? _minor(sub, txCur) : null,
+            enteredCur: foreign ? txCur : null,
           ),
           every: every,
           start: start,
