@@ -718,9 +718,6 @@ class _TxnEditorState extends State<TxnEditor> {
           }
         }
         if (rate != null) inBase = store.convertAt(_minor(f, currency)!, currency, rate);
-      } else if (f == _Field.amount && currency.isNotEmpty && v != null && v > 0) {
-        // Same look as a foreign amount: «6,1 EUR» left, «6,10 €» right.
-        inBase = _minor(f, currency);
       }
       if (inBase != null) {
         final muted = TextStyle(color: scheme.onSurfaceVariant);
@@ -741,37 +738,32 @@ class _TxnEditorState extends State<TxnEditor> {
                 Text(money(inBase, base), style: muted.copyWith(fontSize: 16)),
               ],
             ),
-            if (rate != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  'Курс обміну: ${rate.toStringAsFixed(rate < 1 ? 4 : 2).replaceAll('.', ',')}${rateToday ? ' (поточний)' : ''}',
-                  textAlign: TextAlign.right,
-                  style: muted.copyWith(fontSize: 12),
-                ),
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                'Курс обміну: ${rate!.toStringAsFixed(rate < 1 ? 4 : 2).replaceAll('.', ',')}${rateToday ? ' (поточний)' : ''}',
+                textAlign: TextAlign.right,
+                style: muted.copyWith(fontSize: 12),
               ),
+            ),
           ],
         );
       }
-      // MM: the currency code always follows the amount, also in the base
-      // currency («6,10 EUR»), not only for foreign amounts.
-      final inline = e.isNotEmpty && currency.isNotEmpty;
       return Row(
         children: [
           Expanded(
             child: Text(
-              inline ? '$e $currency' : e,
+              e,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: accent),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
           if (hasOp && v != null) Text('= ${_CalcPad.fmt(v)}  ', style: TextStyle(color: scheme.onSurfaceVariant)),
-          if (!inline)
-            Text(
-              currency,
-              style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600),
-            ),
+          Text(
+            currency,
+            style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600),
+          ),
         ],
       );
     }
@@ -897,7 +889,7 @@ class _TxnEditorState extends State<TxnEditor> {
                     ),
                   )
                 : null,
-            child: amountText(_Field.amount, _amountCur ?? cur),
+            child: amountText(_Field.amount, _amountCur ?? (acc == null ? '' : cur)),
           );
           // MM «Порядок введення»: «Від суми» puts the amount first.
           return store.prefs.amountFirst ? [amountRow, accRow, catRow] : [accRow, catRow, amountRow];
