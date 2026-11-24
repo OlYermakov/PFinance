@@ -916,7 +916,7 @@ class _SummaryView extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(52),
               side: BorderSide(color: scheme.onSurface.withValues(alpha: 0.18)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: const StadiumBorder(),
               foregroundColor: scheme.onSurface,
             ),
             onPressed: () => exportForPf(context, month: month),

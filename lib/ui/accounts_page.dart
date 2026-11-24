@@ -1193,7 +1193,7 @@ class _AccountFormState extends State<_AccountForm> {
               backgroundColor: red,
               foregroundColor: Colors.white,
               minimumSize: const Size.fromHeight(46),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              shape: const StadiumBorder(),
             ),
             onPressed: _save,
             child: const Text('Зберегти', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),

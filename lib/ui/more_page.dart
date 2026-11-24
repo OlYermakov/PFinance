@@ -21,7 +21,7 @@ import 'widgets.dart';
 
 part 'more_extra.dart';
 
-const appVersion = 'v0.9.65';
+const appVersion = 'v0.9.66';
 
 /// Full names of the supported currencies (Settings → currencies).
 const currencyNames = {
@@ -936,7 +936,7 @@ class _CategoryFormState extends State<_CategoryForm> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: scheme.onSurface,
                   side: BorderSide(color: muted.withValues(alpha: 0.6)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: const StadiumBorder(),
                   visualDensity: VisualDensity.compact,
                 ),
                 icon: const Icon(Icons.arrow_forward_rounded, size: 18),
@@ -960,7 +960,7 @@ class _CategoryFormState extends State<_CategoryForm> {
               backgroundColor: AppPalette.of(context).expense,
               foregroundColor: Colors.white,
               minimumSize: const Size.fromHeight(46),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              shape: const StadiumBorder(),
             ),
             onPressed: _save,
             child: const Text('Зберегти', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),

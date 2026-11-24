@@ -847,7 +847,26 @@ class _TxnEditorState extends State<TxnEditor> {
             ),
           ),
         ),
-        // MM «Опис»: longer details, shown after the note when «Показати деталі» is on.
+        const SizedBox(height: 10),
+        Divider(height: 22, color: Colors.white.withValues(alpha: 0.08)),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final t in tags) InputChip(label: Text('#$t'), onDeleted: () => _removeTag(t), visualDensity: VisualDensity.compact),
+            ActionChip(
+              avatar: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Тег', style: TextStyle(fontSize: 14)),
+              shape: const StadiumBorder(),
+              side: BorderSide.none,
+              backgroundColor: Colors.black.withValues(alpha: 0.22),
+              visualDensity: VisualDensity.compact,
+              onPressed: _addTag,
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        // MM «Опис» (under the tags): longer details, shown after the note when «Показати деталі» is on.
         _FormRow(
           label: 'Опис',
           accent: accent,
@@ -869,24 +888,6 @@ class _TxnEditorState extends State<TxnEditor> {
               hintText: 'подробиці',
             ),
           ),
-        ),
-        const SizedBox(height: 10),
-        Divider(height: 22, color: Colors.white.withValues(alpha: 0.08)),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final t in tags) InputChip(label: Text('#$t'), onDeleted: () => _removeTag(t), visualDensity: VisualDensity.compact),
-            ActionChip(
-              avatar: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Тег', style: TextStyle(fontSize: 14)),
-              shape: const StadiumBorder(),
-              side: BorderSide.none,
-              backgroundColor: Colors.black.withValues(alpha: 0.22),
-              visualDensity: VisualDensity.compact,
-              onPressed: _addTag,
-            ),
-          ],
         ),
         AnimatedSize(
           duration: const Duration(milliseconds: 200),
@@ -935,7 +936,7 @@ class _TxnEditorState extends State<TxnEditor> {
                   backgroundColor: _type == TxType.transfer ? scheme.primary : accent,
                   foregroundColor: Colors.white,
                   minimumSize: const Size.fromHeight(46),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  shape: const StadiumBorder(),
                 ),
                 onPressed: () => _save(),
                 child: const Text('Зберегти', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
@@ -950,7 +951,7 @@ class _TxnEditorState extends State<TxnEditor> {
                     minimumSize: const Size.fromHeight(46),
                     foregroundColor: scheme.onSurface,
                     side: BorderSide(color: scheme.onSurfaceVariant.withValues(alpha: 0.6)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    shape: const StadiumBorder(),
                   ),
                   onPressed: _next,
                   child: const Text('Далі', style: TextStyle(fontSize: 16)),

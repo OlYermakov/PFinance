@@ -236,7 +236,7 @@ class _StatsPageState extends State<StatsPage> {
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(56, 36),
                           padding: const EdgeInsets.symmetric(horizontal: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: const StadiumBorder(),
                         ),
                         onPressed: _pickMode,
                         child: Row(
