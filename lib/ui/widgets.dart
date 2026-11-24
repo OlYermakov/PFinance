@@ -11,24 +11,28 @@ export 'glass.dart';
 
 /// "‹ Листопад 2026 ›" switcher with a slide animation between periods.
 class MonthSwitcher extends StatelessWidget {
-  const MonthSwitcher({super.key, required this.month, required this.onChanged, this.compact = false, this.year = false});
+  const MonthSwitcher({super.key, required this.month, required this.onChanged, this.compact = false, this.year = false, this.week = false});
   final DateTime month;
   final ValueChanged<DateTime> onChanged;
   final bool compact;
   final bool year; // step by years and show just the year (MM "Місяці")
+  final bool week; // MM «Налаштування періоду: Тижні»: [month] is a week start
 
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final r = store.periodRange(month);
-    final custom = store.prefs.monthStartDay != 1;
+    final r = week ? store.weekRange(month) : store.periodRange(month);
+    final custom = week || store.prefs.monthStartDay != 1;
     final label = year
         ? '${month.year}'
         : custom
         ? '${shortDayMonth(r.start)} – ${shortDayMonth(r.end.subtract(const Duration(days: 1)))}'
         : monthTitle(month);
-    Widget arrow(IconData icon, String tip, int delta) =>
-        _RoundButton(icon: icon, tooltip: tip, onTap: () => onChanged(DateTime(month.year, month.month + delta * (year ? 12 : 1))));
+    Widget arrow(IconData icon, String tip, int delta) => _RoundButton(
+      icon: icon,
+      tooltip: tip,
+      onTap: () => onChanged(week ? DateTime(month.year, month.month, month.day + 7 * delta) : DateTime(month.year, month.month + delta * (year ? 12 : 1))),
+    );
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

@@ -39,6 +39,7 @@ class Prefs {
   String swipe = 'tabs'; // 'tabs' (switch view tabs), 'period' (change period), 'delete', 'off'
   bool showNote = true; // MM «Показати деталі»: show the description after the note
   bool amountFirst = false; // MM «Порядок введення»: start from the amount
+  bool weeklyPeriod = false; // MM «Налаштування періоду»: Тижні instead of Місяці
   bool copyPaste = true; // copy button for records
   // MM "Main currency": symbol in front ("€ 1,00") or behind ("1,00 €")
   bool currencyFront = false;
@@ -76,6 +77,7 @@ class Prefs {
     'swipe': swipe,
     'showNote': showNote,
     'amountFirst': amountFirst,
+    'weeklyPeriod': weeklyPeriod,
     'copyPaste': copyPaste,
     'currencyFront': currencyFront,
     'repeatInAdvance': repeatInAdvance,
@@ -107,6 +109,7 @@ class Prefs {
     swipe = j['swipe'] as String? ?? swipe;
     showNote = j['showNote'] as bool? ?? showNote;
     amountFirst = j['amountFirst'] as bool? ?? amountFirst;
+    weeklyPeriod = j['weeklyPeriod'] as bool? ?? weeklyPeriod;
     // Alex: a swipe must switch the view tabs, never delete records.
     if (j['swipeTabsV1'] != true) swipe = 'tabs';
     copyPaste = j['copyPaste'] as bool? ?? copyPaste;
@@ -248,6 +251,14 @@ class AppStore extends ChangeNotifier {
   }
 
   DateTime get currentPeriod => periodOf(DateTime.now());
+
+  /// First day of the week holding [d] («Початок тижня»).
+  DateTime weekOf(DateTime d) => DateTime(d.year, d.month, d.day - (d.weekday - prefs.weekStart) % 7);
+
+  ({DateTime start, DateTime end}) weekRange(DateTime week) {
+    final s = weekOf(week);
+    return (start: s, end: DateTime(s.year, s.month, s.day + 7));
+  }
 
   ({DateTime start, DateTime end}) periodRange(DateTime month) => (start: periodStart(month.year, month.month), end: periodStart(month.year, month.month + 1));
 

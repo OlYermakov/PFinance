@@ -24,7 +24,22 @@ class TransactionsPage extends StatefulWidget {
 
 class _TransactionsPageState extends State<TransactionsPage> {
   late DateTime _month = StoreScope.read(context).currentPeriod;
+  late DateTime _week = StoreScope.read(context).weekOf(DateTime.now());
   late RecordsView _view = widget.initialView;
+
+  // MM «Тижні»: the Day and Summary views go week by week; the calendar
+  // and the year stay as they are. Week and month follow each other.
+  void _setMonth(AppStore store, DateTime m) {
+    _month = m;
+    final r = store.periodRange(m);
+    if (_week.isBefore(store.weekOf(r.start)) || !_week.isBefore(r.end)) _week = store.weekOf(r.start);
+  }
+
+  void _setWeek(AppStore store, DateTime w) {
+    _week = store.weekOf(w);
+    _month = store.periodOf(_week);
+  }
+
   String _query = '';
   bool _searching = false;
 
@@ -33,8 +48,14 @@ class _TransactionsPageState extends State<TransactionsPage> {
     final store = StoreScope.of(context);
     // MM "Місяці": the whole year, month by month.
     final yearMode = _view == RecordsView.month;
+    final weekMode = store.prefs.weeklyPeriod && (_view == RecordsView.day || _view == RecordsView.summary);
+    final wr = store.weekRange(_week);
     final yr = (start: store.periodRange(DateTime(_month.year, 1)).start, end: store.periodRange(DateTime(_month.year, 12)).end);
-    var list = yearMode ? store.txns.where((t) => !t.date.isBefore(yr.start) && t.date.isBefore(yr.end)).toList() : store.txnsInPeriod(_month);
+    var list = yearMode
+        ? store.txns.where((t) => !t.date.isBefore(yr.start) && t.date.isBefore(yr.end)).toList()
+        : weekMode
+        ? store.txns.where((t) => !t.date.isBefore(wr.start) && t.date.isBefore(wr.end)).toList()
+        : store.txnsInPeriod(_month);
     if (_query.isNotEmpty) {
       final q = _query.toLowerCase();
       list = list.where((t) {
@@ -51,7 +72,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
       RecordsView.day => _DayView(txns: list),
       RecordsView.calendar => _CalendarView(month: _month, txns: list),
       RecordsView.month => _MonthsView(month: _month, txns: list),
-      RecordsView.summary => _SummaryView(month: _month, txns: list),
+      RecordsView.summary => _SummaryView(month: _month, txns: list, range: weekMode ? wr : null),
     };
 
     // Swipe: switch the view tabs (default) or the period.
@@ -65,7 +86,11 @@ class _TransactionsPageState extends State<TransactionsPage> {
               final step = v < 0 ? 1 : -1;
               setState(() {
                 if (swipe == 'period') {
-                  _month = DateTime(_month.year, _month.month + step);
+                  if (weekMode) {
+                    _setWeek(store, DateTime(_week.year, _week.month, _week.day + 7 * step));
+                  } else {
+                    _setMonth(store, DateTime(_month.year, _month.month + step * (yearMode ? 12 : 1)));
+                  }
                 } else {
                   final i = RecordsView.values.indexOf(_view) + step;
                   if (i >= 0 && i < RecordsView.values.length) _view = RecordsView.values[i];
@@ -102,7 +127,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      MonthSwitcher(month: _month, year: yearMode, onChanged: (m) => setState(() => _month = m)),
+                      MonthSwitcher(
+                        month: weekMode ? _week : _month,
+                        year: yearMode,
+                        week: weekMode,
+                        onChanged: (m) => setState(() => weekMode ? _setWeek(store, m) : _setMonth(store, m)),
+                      ),
                       Positioned(
                         right: 0,
                         child: IconButton(
@@ -135,7 +165,9 @@ class _TransactionsPageState extends State<TransactionsPage> {
                   income: tot.income,
                   expense: tot.expense,
                   currency: cur,
-                  carry: store.prefs.carryOver && _query.isEmpty ? store.carryBefore(yearMode ? yr.start : store.periodRange(_month).start) : null,
+                  carry: store.prefs.carryOver && _query.isEmpty
+                      ? store.carryBefore(yearMode ? yr.start : (weekMode ? wr.start : store.periodRange(_month).start))
+                      : null,
                 ),
               ),
             ),
@@ -146,7 +178,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 280),
                       transitionBuilder: (c, a) => FadeTransition(opacity: a, child: c),
-                      child: KeyedSubtree(key: ValueKey(yearMode ? '$_view${_month.year}' : '$_view$_month'), child: content),
+                      child: KeyedSubtree(key: ValueKey(yearMode ? '$_view${_month.year}' : (weekMode ? '$_view$_week' : '$_view$_month')), child: content),
                     ),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 120)),
@@ -730,9 +762,10 @@ double _pace(({DateTime start, DateTime end}) r) {
 }
 
 class _SummaryView extends StatelessWidget {
-  const _SummaryView({required this.month, required this.txns});
+  const _SummaryView({required this.month, required this.txns, this.range});
   final DateTime month;
   final List<Txn> txns;
+  final ({DateTime start, DateTime end})? range; // a week (MM «Тижні»)
 
   @override
   Widget build(BuildContext context) {
@@ -741,7 +774,7 @@ class _SummaryView extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final muted = scheme.onSurfaceVariant;
     final cur = store.baseCurrency;
-    final range = store.periodRange(month);
+    final range = this.range ?? store.periodRange(month);
 
     // Accounts: expense records per account group (in the Accounts tab
     // order), and transfers into accounts marked "Переказ-витрата".

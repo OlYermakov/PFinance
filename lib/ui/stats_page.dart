@@ -110,7 +110,7 @@ const statsModeLabels = {
 
 class _StatsPageState extends State<StatsPage> {
   StatsTab _tab = StatsTab.stats;
-  StatsMode _mode = StatsMode.month;
+  late StatsMode _mode = StoreScope.read(context).prefs.weeklyPeriod ? StatsMode.week : StatsMode.month;
   late DateTime _anchor = DateTime.now();
   DateTimeRange? _custom;
   TxType _type = TxType.expense;
