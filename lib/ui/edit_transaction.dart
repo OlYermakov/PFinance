@@ -749,21 +749,25 @@ class _TxnEditorState extends State<TxnEditor> {
           ],
         );
       }
+      // MM: the currency code always follows the amount, also in the base
+      // currency («6,10 EUR»), not only for foreign amounts.
+      final inline = e.isNotEmpty && currency.isNotEmpty;
       return Row(
         children: [
           Expanded(
             child: Text(
-              e,
+              inline ? '$e $currency' : e,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: accent),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
           if (hasOp && v != null) Text('= ${_CalcPad.fmt(v)}  ', style: TextStyle(color: scheme.onSurfaceVariant)),
-          Text(
-            currency,
-            style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600),
-          ),
+          if (!inline)
+            Text(
+              currency,
+              style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600),
+            ),
         ],
       );
     }
@@ -889,7 +893,7 @@ class _TxnEditorState extends State<TxnEditor> {
                     ),
                   )
                 : null,
-            child: amountText(_Field.amount, _amountCur ?? (acc == null ? '' : cur)),
+            child: amountText(_Field.amount, _amountCur ?? cur),
           );
           // MM «Порядок введення»: «Від суми» puts the amount first.
           return store.prefs.amountFirst ? [amountRow, accRow, catRow] : [accRow, catRow, amountRow];
