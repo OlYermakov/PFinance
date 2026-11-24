@@ -54,6 +54,9 @@ class Prefs {
   Map<String, double> rates = {}; // 1 unit of currency = rate × base
   bool autoRates = true; // refresh [rates] from the internet once a day
   int ratesUpdated = 0; // when [rates] were last fetched (ms)
+  int lastBackup = 0; // when a backup file was last shared or saved (ms)
+  int backupRemindDays = 7; // remind to back up after this many days; 0 = never
+  bool installHintHidden = false; // «Додати на головний екран» dismissed
 
   Map<String, Object?> toJson() => {
     'themeId': themeId,
@@ -76,6 +79,9 @@ class Prefs {
     'rates': rates,
     'autoRates': autoRates,
     'ratesUpdated': ratesUpdated,
+    'lastBackup': lastBackup,
+    'backupRemindDays': backupRemindDays,
+    'installHintHidden': installHintHidden,
     'timeMode': timeMode,
     'timeAsc': timeAsc,
     'swipe': swipe,
@@ -127,6 +133,9 @@ class Prefs {
     appIcon = (j['appIcon'] as num?)?.toInt() ?? appIcon;
     autoRates = j['autoRates'] as bool? ?? autoRates;
     ratesUpdated = (j['ratesUpdated'] as num?)?.toInt() ?? ratesUpdated;
+    lastBackup = (j['lastBackup'] as num?)?.toInt() ?? lastBackup;
+    backupRemindDays = (j['backupRemindDays'] as num?)?.toInt() ?? backupRemindDays;
+    installHintHidden = j['installHintHidden'] as bool? ?? installHintHidden;
     final r = j['rates'];
     if (r is Map) {
       rates = {for (final e in r.entries) e.key as String: (e.value as num).toDouble()};
@@ -243,6 +252,19 @@ class AppStore extends ChangeNotifier {
     });
     return n;
   }
+
+  /// A backup is due: reminders are on, there are records changed since the
+  /// last backup, and that backup is older than [Prefs.backupRemindDays].
+  bool get backupDue {
+    final days = prefs.backupRemindDays;
+    if (days <= 0) return false;
+    final last = DateTime.fromMillisecondsSinceEpoch(prefs.lastBackup);
+    if (DateTime.now().difference(last).inDays < days) return false;
+    return _txns.any((t) => t.updatedAt.isAfter(last));
+  }
+
+  /// Remember that the data was just backed up.
+  Future<void> markBackedUp() => updatePrefs((p) => p.lastBackup = DateTime.now().millisecondsSinceEpoch);
 
   /// Replaceable in tests.
   Future<Map<String, double>?> Function(String base) fetchRatesNow = fetchLatestRates;

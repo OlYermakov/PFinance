@@ -5,6 +5,7 @@ import 'data/repository.dart';
 import 'state/app_store.dart';
 import 'ui/app_icon.dart';
 import 'ui/home.dart';
+import 'ui/pwa.dart';
 import 'ui/theme.dart';
 
 Future<void> main() async {
@@ -14,6 +15,8 @@ Future<void> main() async {
   await store.load();
   applyAppIcon(store.prefs.appIcon);
   runApp(MoneyApp(store: store));
+  // Ask the browser to keep the data even when the device runs low on space.
+  persistStorage();
 }
 
 class MoneyApp extends StatelessWidget {

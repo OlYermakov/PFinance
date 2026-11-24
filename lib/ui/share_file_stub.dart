@@ -1,3 +1,5 @@
 import 'dart:typed_data';
 
-Future<bool> shareFile(Uint8List bytes, String name, String mime) async => false;
+import 'share_file.dart' show ShareResult;
+
+Future<ShareResult> shareFileResult(Uint8List bytes, String name, String mime) async => ShareResult.unsupported;

@@ -12,6 +12,7 @@ import 'accounts_page.dart' show EditAccountsPage, editAccount, groupOf;
 import 'app_icon.dart';
 import 'edit_transaction.dart' show openTxnEditor, repeatLabel;
 import 'export_pf.dart';
+import 'pwa.dart';
 import 'share_file.dart';
 import 'format.dart';
 import 'theme.dart';
@@ -20,7 +21,7 @@ import 'widgets.dart';
 
 part 'more_extra.dart';
 
-const appVersion = 'v0.9.75';
+const appVersion = 'v0.9.78';
 
 /// Full names of the supported currencies (Settings → currencies).
 const currencyNames = {
@@ -962,19 +963,29 @@ Future<void> _export(BuildContext context) async {
     fileExtension: 'json',
     mimeType: MimeType.json,
   );
+  await store.markBackedUp();
   if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Резервну копію збережено')));
 }
 
 /// Backup through the share sheet: iCloud Drive ("Зберегти у Файли"), Mail…
-Future<void> _shareBackup(BuildContext context) async {
+/// Also used by the reminder on the Records tab.
+Future<void> shareBackup(BuildContext context) async {
   final store = StoreScope.read(context);
   final messenger = ScaffoldMessenger.of(context);
   final d = DateTime.now();
   final name = 'pfinance-backup-${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}.json';
   final bytes = Uint8List.fromList(utf8.encode(await store.exportJson()));
-  if (await shareFile(bytes, name, 'application/json')) return;
-  await FileSaver.instance.saveFile(name: name.replaceAll('.json', ''), bytes: bytes, fileExtension: 'json', mimeType: MimeType.json);
-  messenger.showSnackBar(const SnackBar(content: Text('Цей браузер не вміє ділитися файлами, тому копію збережено як завантаження')));
+  switch (await shareFileResult(bytes, name, 'application/json')) {
+    case ShareResult.shared:
+      await store.markBackedUp();
+      return;
+    case ShareResult.cancelled:
+      return;
+    case ShareResult.unsupported:
+      await FileSaver.instance.saveFile(name: name.replaceAll('.json', ''), bytes: bytes, fileExtension: 'json', mimeType: MimeType.json);
+      await store.markBackedUp();
+      messenger.showSnackBar(const SnackBar(content: Text('Цей браузер не вміє ділитися файлами, тому копію збережено як завантаження')));
+  }
 }
 
 Future<void> _import(BuildContext context) async {
@@ -1060,4 +1071,79 @@ Future<void> _importMm(BuildContext context) async {
     nav.pop();
     messenger.showSnackBar(SnackBar(content: Text('Не вдалося імпортувати файл: $e')));
   }
+}
+
+/// How to put PFinance on the home screen; there it works like an app and
+/// the browser does not clear its data.
+Future<void> showInstallHelp(BuildContext context) {
+  final steps = isIos
+      ? const [
+          'Відкрий PFinance у Safari.',
+          'Натисни «Поділитися» (квадрат зі стрілкою вгору) внизу екрана.',
+          'Обери «На початковий екран» і натисни «Додати».',
+          'Далі відкривай PFinance значком з головного екрана.',
+        ]
+      : const [
+          'Відкрий меню браузера (⋮ або ⋯).',
+          'Обери «Установити застосунок» або «Додати на головний екран».',
+          'Далі відкривай PFinance значком з головного екрана чи робочого столу.',
+        ];
+  return showSheetDialog<void>(
+    context: context,
+    builder: (context) {
+      final scheme = Theme.of(context).colorScheme;
+      return AlertDialog(
+        title: const Text('Додати на головний екран'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < steps.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      child: Text(
+                        '${i + 1}.',
+                        style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    Expanded(child: Text(steps[i])),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 4),
+            Text(
+              'Так PFinance відкривається на весь екран, працює без інтернету, а браузер не стирає записи, '
+              'навіть якщо ти довго не заходив у Safari.',
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            style: FilledButton.styleFrom(shape: const StadiumBorder()),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Зрозуміло'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+/// «5 днів тому», «сьогодні», «ще не було».
+String backupAgo(int ms) {
+  if (ms == 0) return 'ще не було';
+  final last = DateTime.fromMillisecondsSinceEpoch(ms);
+  final n = DateTime.now();
+  final days = DateTime(n.year, n.month, n.day).difference(DateTime(last.year, last.month, last.day)).inDays;
+  if (days <= 0) return 'сьогодні';
+  if (days == 1) return 'вчора';
+  final m10 = days % 10, m100 = days % 100;
+  final w = m10 == 1 && m100 != 11 ? 'день' : (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 'дні' : 'днів');
+  return '$days $w тому';
 }

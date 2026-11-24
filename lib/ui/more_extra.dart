@@ -1228,20 +1228,67 @@ class _TagsPage extends StatelessWidget {
 
 // ---- Резервна копія (MM: Backup) --------------------------------------------------
 
-class _BackupPage extends StatelessWidget {
+class _BackupPage extends StatefulWidget {
   const _BackupPage();
 
   @override
+  State<_BackupPage> createState() => _BackupPageState();
+}
+
+class _BackupPageState extends State<_BackupPage> {
+  final _persisted = persistStorage();
+
+  static const _remind = {1: 'Щодня', 7: 'Щотижня', 30: 'Щомісяця', 0: 'Ніколи'};
+
+  @override
   Widget build(BuildContext context) {
-    final store = StoreScope.read(context);
+    final store = StoreScope.of(context);
+    final p = store.prefs;
+    final last = p.lastBackup == 0 ? 'Ще не було' : DateFormat('d MMM y, HH:mm', 'uk').format(DateTime.fromMillisecondsSinceEpoch(p.lastBackup));
     return Scaffold(
       appBar: AppBar(title: const Text('Резервна копія')),
       body: ListView(
         children: [
+          const _Band('Захист даних'),
+          _Group(
+            children: [
+              _Item(null, 'Остання копія', value: last),
+              _Item(
+                null,
+                'Нагадувати про копію',
+                value: _remind[p.backupRemindDays] ?? '${p.backupRemindDays} дн.',
+                onTap: () async {
+                  final v = await _choose<int>(
+                    context,
+                    'Нагадувати про копію',
+                    _remind,
+                    p.backupRemindDays,
+                    note: 'На вкладці «Записи» зʼявиться нагадування, якщо з останньої копії минуло більше часу і є нові зміни.',
+                  );
+                  if (v != null) await store.updatePrefs((p) => p.backupRemindDays = v);
+                },
+              ),
+              FutureBuilder<bool?>(
+                future: _persisted,
+                builder: (context, s) => _Item(
+                  null,
+                  'Сховище браузера',
+                  subtitle: s.data == true ? 'Браузер не стиратиме дані' : 'Може стерти дані, якщо бракує місця',
+                  value: switch (s.data) {
+                    true => 'Захищене',
+                    false => 'Не захищене',
+                    null => s.connectionState == ConnectionState.done ? 'Невідомо' : '…',
+                  },
+                ),
+              ),
+              if (!isStandalone)
+                _Item(null, 'Додати на головний екран', subtitle: 'Як застосунок: надійніше й без інтернету', onTap: () => showInstallHelp(context)),
+            ],
+          ),
           const _Band('Експорт / імпорт'),
           _Group(
             children: [
-              _Item(null, 'Поділитися копією', subtitle: 'iCloud Drive («Зберегти у Файли»), пошта, месенджери', onTap: () => _shareBackup(context)),
+              _Item(null, 'Поділитися копією', subtitle: 'iCloud Drive («Зберегти у Файли»), пошта, месенджери', onTap: () => shareBackup(context)),
               _Item(null, 'Зберегти резервну копію на пристрій', onTap: () => _export(context)),
               _Item(null, 'Відновити з резервної копії', onTap: () => _import(context)),
               _Item(null, 'Імпорт з Money Manager', subtitle: 'Файл резервної копії .mmbak', onTap: () => _importMm(context)),
@@ -1413,6 +1460,11 @@ class _HelpPage extends StatelessWidget {
       ),
       ('Перенести в PF', '«Резервна копія» → «Експорт даних в Excel» (або кнопка в «Підсумку») створює файл, який імпортує дашборд PF.'),
       ('Резервна копія', '«Поділитися копією» зберігає файл у iCloud Drive, пошту чи месенджер; «Відновити» повертає дані з нього.'),
+      (
+        'Де зберігаються дані',
+        'Лише на цьому пристрої, у браузері. Додай PFinance на головний екран («Поділитися» → «На початковий екран» у Safari): '
+            'так браузер не стирає дані. Раз на тиждень (налаштовується в «Резервна копія») на вкладці «Записи» зʼявиться нагадування зберегти копію.',
+      ),
     ];
     return Scaffold(
       appBar: AppBar(title: const Text('Довідка')),

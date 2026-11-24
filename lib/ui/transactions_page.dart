@@ -6,7 +6,8 @@ import '../state/app_store.dart';
 import 'edit_transaction.dart';
 import 'accounts_page.dart' show groupOf;
 import 'export_pf.dart';
-import 'more_page.dart' show RepeatsPage;
+import 'more_page.dart' show RepeatsPage, shareBackup, showInstallHelp, backupAgo;
+import 'pwa.dart';
 import 'stats_page.dart' show editBudget, budgetTotals, BudgetRow;
 import 'format.dart';
 import 'theme.dart';
@@ -171,6 +172,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 ),
               ),
             ),
+            const _DataNotice(),
             Expanded(
               child: CustomScrollView(
                 slivers: [
@@ -188,6 +190,74 @@ class _TransactionsPageState extends State<TransactionsPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// One quiet line under the totals: add the app to the home screen (iPhone
+/// in Safari) or make a backup when one is due.
+class _DataNotice extends StatefulWidget {
+  const _DataNotice();
+
+  static bool _backupClosed = false; // until the app is opened again
+
+  @override
+  State<_DataNotice> createState() => _DataNoticeState();
+}
+
+class _DataNoticeState extends State<_DataNotice> {
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final install = isIos && !isStandalone && !store.prefs.installHintHidden;
+    final backup = !install && !_DataNotice._backupClosed && store.backupDue;
+    Widget? child;
+    if (install || backup) {
+      child = Container(
+        margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        padding: const EdgeInsets.fromLTRB(14, 4, 4, 4),
+        decoration: ShapeDecoration(
+          color: panelColor(context),
+          shape: StadiumBorder(side: BorderSide(color: hairline(context, 0.1))),
+        ),
+        child: Row(
+          children: [
+            Icon(install ? Icons.add_to_home_screen_rounded : Icons.cloud_upload_outlined, size: 20, color: scheme.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                install ? 'Додай PFinance на головний екран' : 'Остання копія: ${backupAgo(store.prefs.lastBackup)}',
+                style: const TextStyle(fontSize: 13),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(shape: const StadiumBorder(), visualDensity: VisualDensity.compact),
+              onPressed: () => install ? showInstallHelp(context) : shareBackup(context),
+              child: Text(install ? 'Як?' : 'Зберегти'),
+            ),
+            IconButton(
+              tooltip: 'Закрити',
+              visualDensity: VisualDensity.compact,
+              iconSize: 18,
+              icon: Icon(Icons.close_rounded, color: scheme.onSurfaceVariant),
+              onPressed: () {
+                if (install) {
+                  store.updatePrefs((p) => p.installHintHidden = true);
+                } else {
+                  setState(() => _DataNotice._backupClosed = true);
+                }
+              },
+            ),
+          ],
+        ),
+      );
+    }
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      child: child ?? const SizedBox(width: double.infinity),
     );
   }
 }
