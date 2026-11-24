@@ -426,6 +426,43 @@ class AppStore extends ChangeNotifier {
     }
   }
 
+  /// Value of 1 unit of [cur] in the base currency on [day]: from records of
+  /// that day that already carry their day value (MM's own rate), else from
+  /// the cached daily rates. Null when that day's rate isn't known yet.
+  double? dayRate(DateTime day, String cur) {
+    final base = baseCurrency;
+    if (cur == base) return 1;
+    final key = _dayKey(day);
+    for (final t in _txns) {
+      if (t.deleted || t.amount == 0 || t.atBase == null || t.atBaseCur != base) continue;
+      if (currencyOf(t) != cur || _dayKey(t.date) != key) continue;
+      return _major(t.atBase!, base) / _major(t.amount, cur);
+    }
+    return _fxDays['$base:$key']?[cur];
+  }
+
+  /// Loads [day]'s rates when they aren't cached (for [dayRate]).
+  Future<void> loadDayRates(DateTime day) async {
+    final key = '$baseCurrency:${_dayKey(day)}';
+    if (_fxDays.containsKey(key) || day.isAfter(DateTime.now())) return;
+    final r = await fetchDayRates(DateTime(day.year, day.month, day.day), baseCurrency);
+    if (r == null) return;
+    _fxDays[key] = r;
+    await repo.setSetting('fxDays', _fxDays);
+    notifyListeners();
+  }
+
+  /// [minor] of [cur] converted with a rate in major units.
+  int convertAt(int minor, String cur, double rate) => _convert(minor, cur, baseCurrency, rate);
+
+  static double _major(int minor, String cur) {
+    var v = minor.toDouble();
+    for (var i = 0; i < fmt.decimalsOf(cur); i++) {
+      v /= 10;
+    }
+    return v;
+  }
+
   int _convert(int minor, String from, String to, double rate) {
     final f = fmt.decimalsOf(from), d = fmt.decimalsOf(to);
     var v = minor * rate;
