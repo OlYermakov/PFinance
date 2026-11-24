@@ -295,7 +295,7 @@ class _StatsPageState extends State<StatsPage> {
                             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
                             decoration: BoxDecoration(
                               border: Border(
-                                bottom: BorderSide(color: _type == t ? col : Colors.white.withValues(alpha: 0.10), width: _type == t ? 3 : 1),
+                                bottom: BorderSide(color: _type == t ? col : hairline(context, 0.10), width: _type == t ? 3 : 1),
                               ),
                             ),
                             // MM: "Дохід € 1 790,32" in one line
@@ -450,7 +450,7 @@ class _StatsPageState extends State<StatsPage> {
               children: [
                 CategoryRow(slice: sl, total: total, currency: cur, index: i),
                 for (final t in (txns.where((t) => sliceKey(store, t) == sl.category?.id).toList()..sort((a, b) => b.date.compareTo(a.date)))) ...[
-                  Divider(height: 1, indent: 16, color: Colors.white.withValues(alpha: 0.06)),
+                  Divider(height: 1, indent: 16, color: hairline(context, 0.06)),
                   InkWell(
                     onTap: () => openTxnEditor(context, existing: t),
                     child: Padding(
@@ -560,7 +560,7 @@ class _StatsPageState extends State<StatsPage> {
             ),
           ),
           for (final e in rows) ...[
-            Divider(height: 1, color: Colors.white.withValues(alpha: 0.07)),
+            Divider(height: 1, color: hairline(context, 0.07)),
             InkWell(
               onTap: () => _openNote(context, e.key, e.value.list),
               child: Padding(
@@ -738,7 +738,7 @@ class _BudgetView extends StatelessWidget {
                 ),
               ),
               Material(
-                color: Colors.white.withValues(alpha: 0.06),
+                color: hairline(context, 0.06),
                 borderRadius: BorderRadius.circular(8),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(8),
@@ -787,7 +787,7 @@ class _BudgetView extends StatelessWidget {
               child: Column(
                 children: [
                   for (final (i, b) in rows.indexed) ...[
-                    if (i > 0) Divider(height: 1, color: Colors.white.withValues(alpha: 0.07)),
+                    if (i > 0) Divider(height: 1, color: hairline(context, 0.07)),
                     InkWell(
                       onTap: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => budgetSettingsPage(type))),
                       child: BudgetRow(

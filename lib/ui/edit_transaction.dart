@@ -402,7 +402,7 @@ class _TxnEditorState extends State<TxnEditor> {
     final names = weekdayNames(ws);
     const sat = Color(0xFF4F9DF0), sun = Color(0xFFF2675B);
     Color? dayColor(DateTime d) => d.weekday == DateTime.saturday ? sat : (d.weekday == DateTime.sunday ? sun : null);
-    final line = Colors.white.withValues(alpha: 0.07);
+    final line = hairline(context, 0.07);
     return Column(
       children: [
         SizedBox(
@@ -447,7 +447,9 @@ class _TxnEditorState extends State<TxnEditor> {
                           height: 48,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: sel ? Colors.white : (inMonth ? null : Colors.black.withValues(alpha: 0.18)),
+                            color: sel
+                                ? scheme.onSurface
+                                : (inMonth ? null : Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.18 : 0.05)),
                             border: Border(
                               right: BorderSide(color: line),
                               bottom: BorderSide(color: line),
@@ -458,7 +460,7 @@ class _TxnEditorState extends State<TxnEditor> {
                             style: TextStyle(
                               fontSize: 18,
                               color: sel
-                                  ? Colors.black
+                                  ? scheme.surface
                                   : !inMonth
                                   ? scheme.onSurfaceVariant.withValues(alpha: 0.6)
                                   : dayColor(d),
@@ -989,7 +991,7 @@ class _TxnEditorState extends State<TxnEditor> {
           ),
         ),
         const SizedBox(height: 10),
-        Divider(height: 22, color: Colors.white.withValues(alpha: 0.08)),
+        Divider(height: 22, color: hairline(context, 0.08)),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -1000,7 +1002,7 @@ class _TxnEditorState extends State<TxnEditor> {
               label: const Text('Тег', style: TextStyle(fontSize: 14)),
               shape: const StadiumBorder(),
               side: BorderSide.none,
-              backgroundColor: Colors.black.withValues(alpha: 0.22),
+              backgroundColor: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.22 : 0.06),
               visualDensity: VisualDensity.compact,
               onPressed: _addTag,
             ),
@@ -1220,7 +1222,7 @@ class _TxnEditorState extends State<TxnEditor> {
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface.withValues(alpha: 0.92),
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+        border: Border(top: BorderSide(color: hairline(context, 0.10))),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1228,7 +1230,7 @@ class _TxnEditorState extends State<TxnEditor> {
           Container(
             height: 42,
             padding: const EdgeInsets.only(left: 16),
-            color: Colors.white.withValues(alpha: 0.06),
+            color: hairline(context, 0.06),
             child: Row(
               children: [
                 Expanded(
@@ -1470,7 +1472,7 @@ class _FormRow extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 decoration: BoxDecoration(
                   border: Border(
-                    bottom: BorderSide(color: active ? accent : Colors.white.withValues(alpha: 0.12), width: active ? 2 : 1),
+                    bottom: BorderSide(color: active ? accent : hairline(context, 0.12), width: active ? 2 : 1),
                   ),
                 ),
                 child: Row(
@@ -1511,7 +1513,7 @@ class _Grid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final line = Colors.white.withValues(alpha: 0.07);
+    final line = hairline(context, 0.07);
     final rows = <List<_Cell?>>[];
     for (var i = 0; i < cells.length; i += 3) {
       final r = <_Cell?>[...cells.sublist(i, (i + 3).clamp(0, cells.length))];
@@ -1530,7 +1532,7 @@ class _Grid extends StatelessWidget {
                   child: Container(
                     height: 54,
                     decoration: BoxDecoration(
-                      color: tinted ? accent.withValues(alpha: 0.10) : ((c?.selected ?? false) ? Colors.white.withValues(alpha: 0.06) : null),
+                      color: tinted ? accent.withValues(alpha: 0.10) : ((c?.selected ?? false) ? hairline(context, 0.06) : null),
                       border: Border(
                         right: BorderSide(color: line),
                         bottom: BorderSide(color: line),
@@ -1618,7 +1620,7 @@ class _CalcPad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final line = Colors.white.withValues(alpha: 0.07);
+    final line = hairline(context, 0.07);
     Widget key(String k, {int flex = 1, Color? bg, Color? fg, VoidCallback? onTap}) => Expanded(
       flex: flex,
       child: Container(

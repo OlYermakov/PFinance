@@ -315,7 +315,7 @@ class DayCard extends StatelessWidget {
               ),
             ),
           ),
-          Divider(height: 1, indent: 18, endIndent: 18, color: Colors.white.withValues(alpha: 0.08)),
+          Divider(height: 1, indent: 18, endIndent: 18, color: hairline(context, 0.08)),
           for (final x in store.prefs.timeAsc ? txns.reversed : txns) TxnTile(txn: x),
         ],
       ),
@@ -547,7 +547,7 @@ class _CalendarView extends StatelessWidget {
                           padding: const EdgeInsets.fromLTRB(4, 4, 4, 2),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
-                            color: isToday ? scheme.primary.withValues(alpha: 0.22) : Colors.white.withValues(alpha: inRange ? 0.04 : 0),
+                            color: isToday ? scheme.primary.withValues(alpha: 0.22) : hairline(context, inRange ? 0.04 : 0),
                             border: isToday ? Border.all(color: scheme.primary.withValues(alpha: 0.7)) : null,
                           ),
                           child: Opacity(
@@ -654,7 +654,7 @@ class _MonthsViewState extends State<_MonthsView> {
     final cur = store.baseCurrency;
     final now = DateTime.now();
     final y = widget.month.year;
-    final line = Colors.white.withValues(alpha: 0.07);
+    final line = hairline(context, 0.07);
     final firstWeekday = store.prefs.weekStart;
 
     Widget amounts(({int income, int expense}) t, {String? totalLabel}) => Column(

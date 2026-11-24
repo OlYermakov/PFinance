@@ -159,7 +159,7 @@ class AccountsPage extends StatelessWidget {
                     child: Column(
                       children: [
                         for (final (i, a) in e.value.indexed) ...[
-                          if (i > 0) Divider(height: 1, indent: 16, color: Colors.white.withValues(alpha: 0.06)),
+                          if (i > 0) Divider(height: 1, indent: 16, color: hairline(context, 0.06)),
                           _AccountRow(account: a),
                         ],
                       ],
@@ -524,7 +524,7 @@ class _AccountPageState extends State<AccountPage> {
                   ),
                 ),
                 for (final t in e.value) ...[
-                  Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+                  Divider(height: 1, color: hairline(context, 0.06)),
                   InkWell(
                     onTap: () => openTxnEditor(context, existing: t),
                     child: Padding(
@@ -872,7 +872,7 @@ class _LinePainter extends CustomPainter {
     final w = size.width / values.length;
     const top = 24.0, bottom = 14.0;
     Offset pt(int i) => Offset(w * i + w / 2, top + (size.height - top - bottom) * (1 - (values[i] - minV) / span * progress));
-    final grid = Paint()..color = Colors.white.withValues(alpha: 0.05);
+    final grid = Paint()..color = (labelStyle.color ?? Colors.grey).withValues(alpha: 0.12);
     for (var i = 0; i <= 4; i++) {
       final y = top + (size.height - top - bottom) * i / 4;
       canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);

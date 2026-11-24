@@ -131,7 +131,7 @@ class EmojiAvatar extends StatelessWidget {
     decoration: BoxDecoration(
       gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [color.withValues(alpha: 0.34), color.withValues(alpha: 0.12)]),
       borderRadius: BorderRadius.circular(size * 0.34),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+      border: Border.all(color: hairline(context, 0.14)),
     ),
     child: hasIcon(emoji)
         ? Text(emoji, style: TextStyle(fontSize: size * 0.48))
@@ -551,3 +551,8 @@ Future<T?> chooseOption<T>(BuildContext context, String title, Map<T, String> op
         ],
       ),
     );
+
+/// Divider / border colour that shows in both themes: white lines on dark,
+/// slightly stronger black lines on light.
+Color hairline(BuildContext context, double alpha) =>
+    Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: alpha) : Colors.black.withValues(alpha: (alpha * 2).clamp(0, 1));
