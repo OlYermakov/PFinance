@@ -70,7 +70,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     final cur = store.baseCurrency;
 
     final Widget content = switch (_view) {
-      RecordsView.day => _DayView(txns: list),
+      RecordsView.day => const SizedBox.shrink(), // a lazy sliver, below
       RecordsView.calendar => _CalendarView(month: _month, txns: list),
       RecordsView.month => _MonthsView(month: _month, txns: list),
       RecordsView.summary => _SummaryView(month: _month, txns: list, range: weekMode ? wr : null),
@@ -176,13 +176,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
             Expanded(
               child: CustomScrollView(
                 slivers: [
-                  SliverToBoxAdapter(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 280),
-                      transitionBuilder: (c, a) => FadeTransition(opacity: a, child: c),
-                      child: KeyedSubtree(key: ValueKey(yearMode ? '$_view${_month.year}' : (weekMode ? '$_view$_week' : '$_view$_month')), child: content),
-                    ),
-                  ),
+                  if (_view == RecordsView.day) _DayView(txns: list) else SliverToBoxAdapter(child: content),
                   const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
               ),
@@ -276,6 +270,8 @@ class _ViewTabs extends StatelessWidget {
 
 // ---- День -------------------------------------------------------------------
 
+/// Day cards, built lazily as the list scrolls (a month can hold hundreds of
+/// records).
 class _DayView extends StatelessWidget {
   const _DayView({required this.txns});
   final List<Txn> txns;
@@ -283,43 +279,23 @@ class _DayView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (txns.isEmpty) {
-      return const EmptyState(icon: Icons.receipt_long_outlined, text: 'Записів за цей період немає.\nНатисни «+», щоб додати.');
+      return const SliverToBoxAdapter(
+        child: EmptyState(icon: Icons.receipt_long_outlined, text: 'Записів за цей період немає.\nНатисни «+», щоб додати.'),
+      );
     }
     final days = <DateTime, List<Txn>>{};
     for (final t in txns) {
       days.putIfAbsent(DateTime(t.date.year, t.date.month, t.date.day), () => []).add(t);
     }
-    return Column(
-      children: [
-        for (final (i, e) in days.entries.indexed)
-          _Appear(
-            index: i,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: DayCard(day: e.key, txns: e.value),
-            ),
-          ),
-      ],
+    final entries = days.entries.toList();
+    return SliverList.builder(
+      itemCount: entries.length,
+      itemBuilder: (context, i) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        child: DayCard(day: entries[i].key, txns: entries[i].value),
+      ),
     );
   }
-}
-
-class _Appear extends StatelessWidget {
-  const _Appear({required this.index, required this.child});
-  final int index;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
-    tween: Tween(begin: 0, end: 1),
-    duration: Duration(milliseconds: 380 + (index.clamp(0, 8)) * 60),
-    curve: Curves.easeOutCubic,
-    builder: (context, t, c) => Opacity(
-      opacity: t,
-      child: Transform.translate(offset: Offset(0, (1 - t) * 16), child: c),
-    ),
-    child: child,
-  );
 }
 
 /// A glass card for one day: big date, weekday, day totals and its records.

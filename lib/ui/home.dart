@@ -60,18 +60,9 @@ class _HomeShellState extends State<HomeShell> {
     if (!store.unlocked) return const AuroraBackground(child: LockScreen());
 
     final wide = MediaQuery.sizeOf(context).width >= 840;
-    final body = AnimatedSwitcher(
-      duration: const Duration(milliseconds: 320),
-      switchInCurve: Curves.easeOutCubic,
-      transitionBuilder: (child, a) => FadeTransition(
-        opacity: a,
-        child: SlideTransition(
-          position: Tween(begin: const Offset(0, 0.02), end: Offset.zero).animate(a),
-          child: child,
-        ),
-      ),
-      child: KeyedSubtree(key: ValueKey(_tab), child: _page()),
-    );
+    // Tabs switch instantly, like MM: a cross-fade draws both pages through
+    // translucent layers for a third of a second and stutters on phones.
+    final body = KeyedSubtree(key: ValueKey(_tab), child: _page());
     final fab = _tab == 0 ? const AddButton() : null; // wide layout: records tab only, like MM
 
     if (wide) {

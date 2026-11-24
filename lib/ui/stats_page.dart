@@ -337,12 +337,7 @@ class _StatsPageState extends State<StatsPage> {
           Expanded(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  child: KeyedSubtree(key: ValueKey('$_tab$_mode'), child: body),
-                ),
-              ],
+              children: [KeyedSubtree(key: ValueKey('$_tab$_mode'), child: body)],
             ),
           ),
         ],
@@ -1141,14 +1136,9 @@ class CategoryRow extends StatelessWidget {
     final c = slice.category;
     final col = color ?? rankColor(index);
     final share = total == 0 ? 0.0 : slice.amount / total;
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: 400 + index.clamp(0, 10) * 60),
-      curve: Curves.easeOutCubic,
-      builder: (context, t, child) => Opacity(
-        opacity: t,
-        child: Transform.translate(offset: Offset(0, (1 - t) * 12), child: child),
-      ),
+    // No fade-in per row: translucent layers on every row stutter on phones.
+    return Material(
+      type: MaterialType.transparency,
       child: ListTile(
         onTap: onTap,
         visualDensity: const VisualDensity(vertical: -2),
