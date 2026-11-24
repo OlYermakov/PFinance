@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../data/models.dart';
+import 'widgets.dart' show chooseOption;
 import '../state/app_store.dart';
 
 /// Builds an .xlsx in the export layout the PF dashboard already imports
@@ -91,56 +92,7 @@ Future<void> exportForPf(BuildContext context, {DateTime? month}) async {
     ('Мин. рік (${span(year(m.year - 1))})', year(m.year - 1)),
     ('Все', null),
   ];
-  final scheme = Theme.of(context).colorScheme;
-  Widget button(String text, VoidCallback onTap, {bool bold = false, bool center = false}) => InkWell(
-    onTap: onTap,
-    child: Container(
-      height: 54,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      alignment: center ? Alignment.center : Alignment.centerLeft,
-      child: Text(text, style: TextStyle(fontSize: 17, fontWeight: bold ? FontWeight.w600 : FontWeight.w400)),
-    ),
-  );
-  final picked = await showModalBottomSheet<int>(
-    context: context,
-    backgroundColor: Colors.transparent,
-    isScrollControlled: true,
-    builder: (context) {
-      final panel = Theme.of(context).brightness == Brightness.dark ? const Color(0xFF23262E) : Colors.white;
-      final line = scheme.onSurface.withValues(alpha: 0.1);
-      return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Material(
-                  color: panel,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(20, 18, 20, 14),
-                        child: Text('Експорт в Excel', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                      ),
-                      for (final (i, o) in options.indexed) ...[Divider(height: 1, color: line), button(o.$1, () => Navigator.pop(context, i))],
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Material(color: panel, child: button('Скасувати', () => Navigator.pop(context), bold: true, center: true)),
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
+  final picked = await chooseOption<int>(context, 'Експорт в Excel', {for (final (i, o) in options.indexed) i: o.$1}, -1);
   if (picked == null) return;
   final r = options[picked].$2;
   try {

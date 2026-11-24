@@ -1289,61 +1289,8 @@ class _AccountFormState extends State<_AccountForm> {
   /// MM: an action sheet titled «Група рахунків» with the groups and Cancel.
   Future<void> _pickGroup() async {
     FocusScope.of(context).unfocus();
-    final scheme = Theme.of(context).colorScheme;
     final groups = accountGroupNames(store);
-    Widget sheetButton(String text, VoidCallback onTap, {bool bold = false}) => InkWell(
-      onTap: onTap,
-      child: SizedBox(
-        height: 56,
-        child: Center(
-          child: Text(
-            text,
-            style: TextStyle(fontSize: 18, color: scheme.primary, fontWeight: bold ? FontWeight.w600 : FontWeight.w400),
-          ),
-        ),
-      ),
-    );
-    final v = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        final panel = panelColor(context);
-        final line = scheme.onSurface.withValues(alpha: 0.1);
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Material(
-                    color: panel,
-                    child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Text('Група рахунків', style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant)),
-                        ),
-                        for (final g in groups) ...[Divider(height: 1, color: line), sheetButton(g, () => Navigator.pop(context, g))],
-                        Divider(height: 1, color: line),
-                        sheetButton('Нова група…', () => Navigator.pop(context, '\u0000new')),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Material(color: panel, child: sheetButton('Скасувати', () => Navigator.pop(context), bold: true)),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    final v = await chooseOption<String>(context, 'Група рахунків', {for (final g in groups) g: g, '\u0000new': 'Нова група…'}, group);
     if (v == null || !mounted) return;
     if (v == '\u0000new') {
       final c = TextEditingController();
