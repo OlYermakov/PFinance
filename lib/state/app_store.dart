@@ -52,6 +52,8 @@ class Prefs {
   // MM "Card expense display": 'moment' (A) or 'balance' (B, payable/outstanding)
   String cardDisplay = 'moment';
   Map<String, double> rates = {}; // 1 unit of currency = rate × base
+  bool autoRates = true; // refresh [rates] from the internet once a day
+  int ratesUpdated = 0; // when [rates] were last fetched (ms)
 
   Map<String, Object?> toJson() => {
     'themeId': themeId,
@@ -72,6 +74,8 @@ class Prefs {
     'copyToToday': copyToToday,
     'pin': pin,
     'rates': rates,
+    'autoRates': autoRates,
+    'ratesUpdated': ratesUpdated,
     'timeMode': timeMode,
     'timeAsc': timeAsc,
     'swipe': swipe,
@@ -121,6 +125,8 @@ class Prefs {
     final st = j['savedTags'];
     if (st is List) savedTags = [for (final x in st) x as String];
     appIcon = (j['appIcon'] as num?)?.toInt() ?? appIcon;
+    autoRates = j['autoRates'] as bool? ?? autoRates;
+    ratesUpdated = (j['ratesUpdated'] as num?)?.toInt() ?? ratesUpdated;
     final r = j['rates'];
     if (r is Map) {
       rates = {for (final e in r.entries) e.key as String: (e.value as num).toDouble()};
@@ -208,7 +214,38 @@ class AppStore extends ChangeNotifier {
     _sortTxns();
     notifyListeners();
     unawaited(fillDayRates());
+    unawaited(refreshRates());
   }
+
+  /// Today's rates for the extra currencies. With [force] false it runs only
+  /// when «Оновлювати щодня» is on and the rates are older than today.
+  /// Returns how many rates were updated, or null when offline.
+  Future<int?> refreshRates({bool force = false}) async {
+    final now = DateTime.now();
+    final last = DateTime.fromMillisecondsSinceEpoch(prefs.ratesUpdated);
+    if (!force && (!prefs.autoRates || (last.year == now.year && last.month == now.month && last.day == now.day))) return 0;
+    final codes = {...currenciesInUse, ...prefs.rates.keys}.where((c) => c != baseCurrency);
+    if (codes.isEmpty) return 0;
+    final got = await fetchRatesNow(baseCurrency);
+    if (got == null) return null;
+    var n = 0;
+    await updatePrefs((p) {
+      final next = {...p.rates};
+      for (final c in codes) {
+        final r = got[c];
+        if (r != null) {
+          next[c] = r;
+          n++;
+        }
+      }
+      p.rates = next;
+      p.ratesUpdated = now.millisecondsSinceEpoch;
+    });
+    return n;
+  }
+
+  /// Replaceable in tests.
+  Future<Map<String, double>?> Function(String base) fetchRatesNow = fetchLatestRates;
 
   Future<void> _seed() async {
     // No starter categories: the user creates their own.

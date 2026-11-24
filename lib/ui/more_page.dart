@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:file_saver/file_saver.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -21,7 +20,7 @@ import 'widgets.dart';
 
 part 'more_extra.dart';
 
-const appVersion = 'v0.9.70';
+const appVersion = 'v0.9.71';
 
 /// Full names of the supported currencies (Settings → currencies).
 const currencyNames = {
@@ -590,7 +589,7 @@ class _CurrenciesPageState extends State<CurrenciesPage> {
       ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Оновити курси',
-        onPressed: _loading ? null : () => _refresh(store, others),
+        onPressed: _loading ? null : () => _refresh(store),
         child: _loading ? const SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2.5)) : const Icon(Icons.sync_rounded),
       ),
       body: ListView(
@@ -610,10 +609,28 @@ class _CurrenciesPageState extends State<CurrenciesPage> {
                   ),
               ],
             ),
+          _Group(
+            children: [
+              _Item(
+                null,
+                'Оновлювати курси щодня',
+                subtitle: store.prefs.ratesUpdated == 0
+                    ? 'Ще не оновлювались'
+                    : 'Оновлено ${shortDate(DateTime.fromMillisecondsSinceEpoch(store.prefs.ratesUpdated))}',
+                trailing: Switch(
+                  value: store.prefs.autoRates,
+                  onChanged: (v) async {
+                    await store.updatePrefs((p) => p.autoRates = v);
+                    if (v) await store.refreshRates();
+                  },
+                ),
+              ),
+            ],
+          ),
           Padding(
             padding: const EdgeInsets.all(20),
             child: Text(
-              'Кнопка оновлення бере сьогоднішні курси з open.er-api.com. Курс можна змінити й уручну.',
+              'Ці курси переводять баланси рахунків в основну валюту. Щоденне оновлення бере сьогоднішні курси з open.er-api.com при першому відкритті застосунку за день; кнопка внизу оновлює їх одразу. Курс, змінений уручну, діє до наступного оновлення. Записи завжди рахуються за курсом свого дня.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
@@ -622,31 +639,12 @@ class _CurrenciesPageState extends State<CurrenciesPage> {
     );
   }
 
-  Future<void> _refresh(AppStore store, List<String> codes) async {
+  Future<void> _refresh(AppStore store) async {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _loading = true);
-    try {
-      final res = await http.get(Uri.parse('https://open.er-api.com/v6/latest/${store.baseCurrency}'));
-      final j = jsonDecode(res.body) as Map<String, Object?>;
-      final rates = (j['rates'] as Map).cast<String, num>();
-      var n = 0;
-      await store.updatePrefs((p) {
-        final next = {...p.rates};
-        for (final c in codes) {
-          final r = rates[c];
-          if (r != null && r > 0) {
-            next[c] = double.parse((1 / r).toStringAsFixed(6));
-            n++;
-          }
-        }
-        p.rates = next;
-      });
-      messenger.showSnackBar(SnackBar(content: Text('Оновлено курсів: $n')));
-    } catch (_) {
-      messenger.showSnackBar(const SnackBar(content: Text('Не вдалося отримати курси. Перевір інтернет.')));
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    final n = await store.refreshRates(force: true);
+    if (mounted) setState(() => _loading = false);
+    messenger.showSnackBar(SnackBar(content: Text(n == null ? 'Не вдалося отримати курси. Перевір інтернет.' : 'Оновлено курсів: $n')));
   }
 
   Future<void> _editRate(BuildContext context, String c) async {

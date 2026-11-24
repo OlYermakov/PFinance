@@ -32,6 +32,23 @@ Future<Map<String, double>?> fetchDailyRates(DateTime day, String base) async {
   return notFound == urls.length ? {} : null;
 }
 
+/// Today's rates (1 unit of currency = rate × [base]) from open.er-api.com,
+/// or null when offline.
+Future<Map<String, double>?> fetchLatestRates(String base) async {
+  try {
+    final r = await http.get(Uri.parse('https://open.er-api.com/v6/latest/$base')).timeout(const Duration(seconds: 15));
+    if (r.statusCode != 200) return null;
+    final m = (jsonDecode(r.body) as Map)['rates'];
+    if (m is! Map) return null;
+    return {
+      for (final e in m.entries)
+        if (e.value is num && (e.value as num) > 0) e.key as String: double.parse((1 / (e.value as num)).toStringAsFixed(6)),
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
 /// {"date": "...", "eur": {"uah": 48.1, ...}} → {"UAH": 1 / 48.1, ...}
 Map<String, double> parseDailyRates(Object? json, String base) {
   final out = <String, double>{};
