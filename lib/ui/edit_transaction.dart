@@ -718,6 +718,9 @@ class _TxnEditorState extends State<TxnEditor> {
           }
         }
         if (rate != null) inBase = store.convertAt(_minor(f, currency)!, currency, rate);
+      } else if (f == _Field.amount && currency.isNotEmpty && v != null && v > 0) {
+        // Same look as a foreign amount: «6,1 EUR» left, «6,10 €» right.
+        inBase = _minor(f, currency);
       }
       if (inBase != null) {
         final muted = TextStyle(color: scheme.onSurfaceVariant);
@@ -738,14 +741,15 @@ class _TxnEditorState extends State<TxnEditor> {
                 Text(money(inBase, base), style: muted.copyWith(fontSize: 16)),
               ],
             ),
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                'Курс обміну: ${rate!.toStringAsFixed(rate < 1 ? 4 : 2).replaceAll('.', ',')}${rateToday ? ' (поточний)' : ''}',
-                textAlign: TextAlign.right,
-                style: muted.copyWith(fontSize: 12),
+            if (rate != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  'Курс обміну: ${rate.toStringAsFixed(rate < 1 ? 4 : 2).replaceAll('.', ',')}${rateToday ? ' (поточний)' : ''}',
+                  textAlign: TextAlign.right,
+                  style: muted.copyWith(fontSize: 12),
+                ),
               ),
-            ),
           ],
         );
       }
