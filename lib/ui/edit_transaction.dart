@@ -140,6 +140,14 @@ class _TxnEditorState extends State<TxnEditor> {
 
   static String _input(int minor, String cur) => minorToInput(minor, cur).replaceAll('.', ',');
 
+  static double _pow(int d) {
+    var m = 1.0;
+    for (var i = 0; i < d; i++) {
+      m *= 10;
+    }
+    return m;
+  }
+
   int? _minor(_Field f, String currency) {
     final v = evalExpression(_expr[f]!);
     if (v == null || v < 0) return null;
@@ -609,6 +617,52 @@ class _TxnEditorState extends State<TxnEditor> {
       final e = _expr[f]!;
       final v = evalExpression(e);
       final hasOp = RegExp(r'[+−×÷]').hasMatch(e);
+      // MM: a foreign amount also shows its value in the main currency and
+      // the exchange rate under it (the record's day rate when unchanged).
+      final base = store.baseCurrency;
+      int? inBase;
+      if (f == _Field.amount && currency.isNotEmpty && currency != base && v != null && v > 0) {
+        final minor = _minor(f, currency)!;
+        final ex = widget.existing;
+        final exCur = ex == null ? null : store.shownCurrency(ex);
+        if (ex != null && exCur == currency && store.shownAmount(ex) == minor && ex.atBase != null && ex.atBaseCur == base) {
+          inBase = ex.atBase;
+        } else {
+          inBase = store.convertNow(minor, currency, base);
+        }
+      }
+      if (inBase != null) {
+        final minor = _minor(f, currency)!;
+        final rate = (inBase / _pow(decimalsOf(base))) / (minor / _pow(decimalsOf(currency)));
+        final muted = TextStyle(color: scheme.onSurfaceVariant);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '$e $currency',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: accent),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (hasOp) Text('= ${_CalcPad.fmt(v!)}  ', style: muted),
+                Text(money(inBase, base), style: muted.copyWith(fontSize: 16)),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                'Курс обміну: ${rate.toStringAsFixed(rate < 1 ? 4 : 2).replaceAll('.', ',')}',
+                textAlign: TextAlign.right,
+                style: muted.copyWith(fontSize: 12),
+              ),
+            ),
+          ],
+        );
+      }
       return Row(
         children: [
           Expanded(
