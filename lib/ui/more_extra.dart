@@ -644,7 +644,7 @@ class _AccountsMenu extends StatelessWidget {
 
 Future<void> _cardDisplay(BuildContext context) async {
   final store = StoreScope.read(context);
-  final v = await showDialog<String>(
+  final v = await showSheetDialog<String>(
     context: context,
     builder: (context) {
       final cur = store.prefs.cardDisplay;
@@ -1011,7 +1011,7 @@ class _BudgetCategoryPageState extends State<_BudgetCategoryPage> {
     final cur = StoreScope.read(context).baseCurrency;
     final ctrl = TextEditingController(text: initial == 0 ? '' : minorToInput(initial, cur));
     ctrl.selection = TextSelection(baseOffset: 0, extentOffset: ctrl.text.length);
-    final v = await showDialog<String>(
+    final v = await showSheetDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title),

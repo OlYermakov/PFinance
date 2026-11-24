@@ -538,7 +538,7 @@ class _TxnEditorState extends State<TxnEditor> {
     final store = StoreScope.read(context);
     final ctrl = TextEditingController();
     final existing = store.tags().map((t) => t.tag).toList();
-    final tag = await showDialog<String>(
+    final tag = await showSheetDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Тег'),
@@ -1165,14 +1165,16 @@ class _TxnEditorState extends State<TxnEditor> {
     return '${w[0].toUpperCase()}${w.substring(1)} ${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
   }
 
-  Widget _repeatButton(ColorScheme scheme) => PopupMenuButton<String>(
-    tooltip: 'Повторювати',
-    initialValue: _repeat?.name ?? 'none',
-    onSelected: (v) => setState(() => _repeat = RepeatEvery.values.asNameMap()[v]),
-    itemBuilder: (_) => [
-      const PopupMenuItem(value: 'none', child: Text('Не повторювати')),
-      for (final r in RepeatEvery.values) PopupMenuItem(value: r.name, child: Text(repeatLabel(r))),
-    ],
+  Widget _repeatButton(ColorScheme scheme) => InkWell(
+    borderRadius: BorderRadius.circular(10),
+    onTap: () async {
+      _open(null);
+      final v = await chooseOption<String>(context, 'Повторювати', {
+        'none': 'Не повторювати',
+        for (final r in RepeatEvery.values) r.name: repeatLabel(r),
+      }, _repeat?.name ?? 'none');
+      if (v != null && mounted) setState(() => _repeat = RepeatEvery.values.asNameMap()[v]);
+    },
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       child: Column(

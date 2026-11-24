@@ -1183,7 +1183,7 @@ Future<void> editBudget(BuildContext context, {required String currency, Budget?
   final used = store.budgets.where((b) => b.currency == currency && b.id != existing?.id).map((b) => b.categoryId).toSet();
   final cats = store.categoriesOf(TxType.expense).where((c) => !used.contains(c.id)).toList();
 
-  await showDialog<void>(
+  await showSheetDialog<void>(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) => AlertDialog(

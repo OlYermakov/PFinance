@@ -1059,7 +1059,7 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
   Future<void> _delete(BuildContext context, Account a) async {
     final store = StoreScope.read(context);
     final related = store.txns.where((t) => t.accountId == a.id || t.toAccountId == a.id).toList();
-    final ok = await showDialog<bool>(
+    final ok = await showSheetDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Видалити «${a.name}»?'),
@@ -1294,7 +1294,7 @@ class _AccountFormState extends State<_AccountForm> {
     if (v == null || !mounted) return;
     if (v == '\u0000new') {
       final c = TextEditingController();
-      final n = await showDialog<String>(
+      final n = await showSheetDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Нова група'),
@@ -1316,7 +1316,7 @@ class _AccountFormState extends State<_AccountForm> {
   }
 
   Future<void> _addCurrency() async {
-    final c = await showDialog<String>(
+    final c = await showSheetDialog<String>(
       context: context,
       builder: (context) => SimpleDialog(
         title: const Text('Валюта'),

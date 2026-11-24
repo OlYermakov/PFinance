@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
@@ -556,3 +558,33 @@ Future<T?> chooseOption<T>(BuildContext context, String title, Map<T, String> op
 /// slightly stronger black lines on light.
 Color hairline(BuildContext context, double alpha) =>
     Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: alpha) : Colors.black.withValues(alpha: (alpha * 2).clamp(0, 1));
+
+/// The app's replacement for [showDialog]: the same dialog content, but it
+/// slides up from the bottom as a full-width panel with rounded top corners
+/// (like the other bottom panels), never floating in the middle.
+Future<T?> showSheetDialog<T>({required BuildContext context, required WidgetBuilder builder, bool barrierDismissible = true}) => showGeneralDialog<T>(
+  context: context,
+  barrierDismissible: barrierDismissible,
+  barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+  barrierColor: Colors.black54,
+  transitionDuration: const Duration(milliseconds: 260),
+  pageBuilder: (ctx, _, _) {
+    final theme = Theme.of(ctx);
+    final w = math.min(MediaQuery.sizeOf(ctx).width, 520.0);
+    return Theme(
+      data: theme.copyWith(
+        dialogTheme: theme.dialogTheme.copyWith(
+          alignment: Alignment.bottomCenter,
+          insetPadding: EdgeInsets.zero,
+          constraints: BoxConstraints(minWidth: w, maxWidth: w),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        ),
+      ),
+      child: Builder(builder: builder),
+    );
+  },
+  transitionBuilder: (ctx, a, _, child) => SlideTransition(
+    position: Tween(begin: const Offset(0, 1), end: Offset.zero).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
+    child: child,
+  ),
+);

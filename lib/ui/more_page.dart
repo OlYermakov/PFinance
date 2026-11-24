@@ -20,7 +20,7 @@ import 'widgets.dart';
 
 part 'more_extra.dart';
 
-const appVersion = 'v0.9.74';
+const appVersion = 'v0.9.75';
 
 /// Full names of the supported currencies (Settings → currencies).
 const currencyNames = {
@@ -290,7 +290,7 @@ String _modeLabel(ThemeMode m) => switch (m) {
   ThemeMode.dark => 'Темний',
 };
 
-Future<void> _info(BuildContext context, String title, String body) => showDialog<void>(
+Future<void> _info(BuildContext context, String title, String body) => showSheetDialog<void>(
   context: context,
   builder: (context) => AlertDialog(
     title: Text(title),
@@ -300,7 +300,7 @@ Future<void> _info(BuildContext context, String title, String body) => showDialo
 );
 
 Future<bool> _confirm(BuildContext context, String title, String body) async =>
-    await showDialog<bool>(
+    await showSheetDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title),
@@ -318,7 +318,7 @@ Future<T?> _choose<T>(BuildContext context, String title, Map<T, String> options
 
 Future<String?> _askText(BuildContext context, String title, {String initial = '', String? hint}) {
   final ctrl = TextEditingController(text: initial);
-  return showDialog<String>(
+  return showSheetDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(title),
@@ -623,7 +623,7 @@ class _CurrenciesPageState extends State<CurrenciesPage> {
   Future<void> _editRate(BuildContext context, String c) async {
     final store = StoreScope.read(context);
     final ctrl = TextEditingController(text: store.prefs.rates[c]?.toString() ?? '');
-    final v = await showDialog<double>(
+    final v = await showSheetDialog<double>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Курс $c'),
