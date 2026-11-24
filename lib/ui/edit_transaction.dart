@@ -5,7 +5,7 @@ import '../data/models.dart';
 import '../state/app_store.dart';
 import 'accounts_page.dart' show editAccount, groupOf;
 import 'format.dart';
-import 'more_page.dart' show CategoriesPage, accountsSettingsPage, currencySymbol, editCategory;
+import 'more_page.dart' show CategoriesPage, accountsSettingsPage, currencyNames, currencySymbol, editCategory;
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -19,7 +19,7 @@ Future<void> openTxnEditor(BuildContext context, {Txn? existing, DateTime? date,
   ),
 );
 
-enum _Field { date, account, toAccount, category, amount, toAmount, fee }
+enum _Field { date, time, account, toAccount, category, amount, toAmount, fee }
 
 class TxnEditor extends StatefulWidget {
   const TxnEditor({super.key, this.existing, this.date, this.amount, this.repeat});
@@ -136,6 +136,8 @@ class _TxnEditorState extends State<TxnEditor> {
     _noteFocus.dispose();
     _memoFocus.dispose();
     _scroll.dispose();
+    _hourWheel.dispose();
+    _minuteWheel.dispose();
     super.dispose();
   }
 
@@ -473,12 +475,60 @@ class _TxnEditorState extends State<TxnEditor> {
     );
   }
 
-  Future<void> _pickTime() async {
-    _open(null);
-    final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_date));
-    if (t != null) {
-      setState(() => _date = DateTime(_date.year, _date.month, _date.day, t.hour, t.minute));
-    }
+  /// MM: the time is picked in the bottom panel, on hour and minute wheels.
+  void _pickTime() {
+    _hourWheel.dispose();
+    _minuteWheel.dispose();
+    _hourWheel = FixedExtentScrollController(initialItem: _date.hour);
+    _minuteWheel = FixedExtentScrollController(initialItem: _date.minute);
+    _open(_Field.time);
+  }
+
+  var _hourWheel = FixedExtentScrollController();
+  var _minuteWheel = FixedExtentScrollController();
+
+  void _setTime({int? hour, int? minute}) => setState(() => _date = DateTime(_date.year, _date.month, _date.day, hour ?? _date.hour, minute ?? _date.minute));
+
+  Widget _timeWheels(ColorScheme scheme, Color accent) {
+    Widget wheel(FixedExtentScrollController c, int count, ValueChanged<int> onPick) => SizedBox(
+      width: 90,
+      child: ListWheelScrollView.useDelegate(
+        controller: c,
+        itemExtent: 42,
+        diameterRatio: 1.6,
+        perspective: 0.004,
+        physics: const FixedExtentScrollPhysics(),
+        onSelectedItemChanged: onPick,
+        childDelegate: ListWheelChildBuilderDelegate(
+          childCount: count,
+          builder: (context, i) => Center(
+            child: Text(i.toString().padLeft(2, '0'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w500)),
+          ),
+        ),
+      ),
+    );
+    return SizedBox(
+      height: 210,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // the band of the chosen time
+          Container(
+            height: 42,
+            margin: const EdgeInsets.symmetric(horizontal: 24),
+            decoration: BoxDecoration(color: accent.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(999)),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              wheel(_hourWheel, 24, (h) => _setTime(hour: h)),
+              Text(':', style: TextStyle(fontSize: 24, color: scheme.onSurfaceVariant)),
+              wheel(_minuteWheel, 60, (m) => _setTime(minute: m)),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _addTag() async {
@@ -743,7 +793,7 @@ class _TxnEditorState extends State<TxnEditor> {
         _FormRow(
           label: 'Дата',
           accent: accent,
-          active: _panel == _Field.date,
+          active: _panel == _Field.date || _panel == _Field.time,
           onTap: _pickDate,
           trailing: _isNew || _isRule
               ? _repeatButton(scheme)
@@ -1141,6 +1191,7 @@ class _TxnEditorState extends State<TxnEditor> {
     final scheme = Theme.of(context).colorScheme;
     final (String title, VoidCallback? edit, Widget body) = switch (f) {
       _Field.date => ('Дата', null, _calendar(store, scheme)),
+      _Field.time => ('Час', null, _timeWheels(scheme, accent)),
       _Field.account || _Field.toAccount => ('Рахунок', () => _pushPage(accountsSettingsPage()), _accountGrid(store, accent, f)),
       _Field.category => ('Категорія', () => _pushPage(CategoriesPage(type: _type)), _categoryGrid(store, accent)),
       _ => (
@@ -1192,12 +1243,23 @@ class _TxnEditorState extends State<TxnEditor> {
                       store.updatePrefs((p) => p.accountGroupsInPicker = !p.accountGroupsInPicker);
                     },
                   ),
+                if (f == _Field.time)
+                  TextButton(
+                    onPressed: () {
+                      final n = DateTime.now();
+                      _hourWheel.animateToItem(n.hour, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+                      _minuteWheel.animateToItem(n.minute, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+                    },
+                    style: TextButton.styleFrom(foregroundColor: scheme.onSurfaceVariant),
+                    child: const Text('Зараз', style: TextStyle(fontSize: 16)),
+                  ),
                 if (f == _Field.date)
                   TextButton(
                     onPressed: () => _setDay(DateTime.now()),
                     style: TextButton.styleFrom(foregroundColor: scheme.onSurfaceVariant),
                     child: const Text('Сьогодні', style: TextStyle(fontSize: 16)),
                   ),
+                if (f == _Field.amount) IconButton(tooltip: 'Інша валюта', icon: const Icon(Icons.language_rounded), onPressed: () => _otherCurrency(store)),
                 if (edit != null) IconButton(tooltip: 'Редагувати', icon: const Icon(Icons.edit_outlined), onPressed: edit),
                 IconButton(tooltip: 'Закрити', icon: const Icon(Icons.close_rounded), onPressed: () => _open(null)),
               ],
@@ -1215,27 +1277,32 @@ class _TxnEditorState extends State<TxnEditor> {
   /// MM: the currencies in use above the keypad; the chosen one is lit.
   Widget _currencyRow(AppStore store, ColorScheme scheme) {
     final accCur = store.account(_accountId)?.currency ?? store.baseCurrency;
-    final list = <String>{accCur, store.baseCurrency, ...store.prefs.rates.keys}.toList();
+    final list = <String>{accCur, store.baseCurrency, ...store.prefs.rates.keys, ?_amountCur}.toList();
     if (list.length < 2) return const SizedBox.shrink();
-    final sel = _amountCur ?? accCur;
-    return Container(
-      height: 44,
-      color: const Color(0xFF2E3557),
-      child: Row(
-        children: [
-          for (final c in list)
-            InkWell(
-              onTap: () => setState(() => _amountCur = c == accCur ? null : c),
-              child: Container(
-                width: 60,
-                alignment: Alignment.center,
-                color: c == sel ? Colors.white.withValues(alpha: 0.16) : null,
-                child: Text(currencySymbol(c), style: const TextStyle(fontSize: 17, color: Colors.white)),
-              ),
-            ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      child: PillTabs<String>(
+        value: _amountCur ?? accCur,
+        items: {for (final c in list) c: currencySymbol(c)},
+        height: 32,
+        onChanged: (c) => setState(() => _amountCur = c == accCur ? null : c),
       ),
     );
+  }
+
+  /// MM's globe: enter the amount in any other currency.
+  Future<void> _otherCurrency(AppStore store) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final accCur = store.account(_accountId)?.currency ?? store.baseCurrency;
+    final c = await chooseOption<String>(context, 'Валюта суми', {
+      for (final c in currencies) c: '$c — ${currencyNames[c] ?? c} (${currencySymbol(c)})',
+    }, _amountCur ?? accCur);
+    if (c == null || !mounted) return;
+    setState(() => _amountCur = c == accCur ? null : c);
+    if (!store.hasRate(c)) {
+      await store.refreshRates(force: true, extra: [c]);
+      if (!store.hasRate(c)) messenger.showSnackBar(SnackBar(content: Text('Немає курсу $c. Задай його в «Більше → Додаткові валюти».')));
+    }
   }
 
   void _pushPage(Widget page) => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => AuroraBackground(child: page)));

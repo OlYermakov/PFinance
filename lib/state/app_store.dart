@@ -220,11 +220,11 @@ class AppStore extends ChangeNotifier {
   /// Today's rates for the extra currencies. With [force] false it runs only
   /// when «Оновлювати щодня» is on and the rates are older than today.
   /// Returns how many rates were updated, or null when offline.
-  Future<int?> refreshRates({bool force = false}) async {
+  Future<int?> refreshRates({bool force = false, Iterable<String> extra = const []}) async {
     final now = DateTime.now();
     final last = DateTime.fromMillisecondsSinceEpoch(prefs.ratesUpdated);
     if (!force && (!prefs.autoRates || (last.year == now.year && last.month == now.month && last.day == now.day))) return 0;
-    final codes = {...currenciesInUse, ...prefs.rates.keys}.where((c) => c != baseCurrency);
+    final codes = {...currenciesInUse, ...prefs.rates.keys, ...extra}.where((c) => c != baseCurrency);
     if (codes.isEmpty) return 0;
     final got = await fetchRatesNow(baseCurrency);
     if (got == null) return null;
