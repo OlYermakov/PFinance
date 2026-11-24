@@ -227,7 +227,7 @@ class _DataNoticeState extends State<_DataNotice> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                install ? 'Додай PFinance на головний екран' : 'Остання копія: ${backupAgo(store.prefs.lastBackup)}',
+                install ? 'Додай на головний екран' : 'Остання копія: ${backupAgo(store.prefs.lastBackup)}',
                 style: const TextStyle(fontSize: 13),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
