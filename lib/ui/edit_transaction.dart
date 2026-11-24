@@ -135,12 +135,39 @@ class _TxnEditorState extends State<TxnEditor> {
     _memo.dispose();
     _noteFocus.dispose();
     _memoFocus.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
   static String _input(int minor, String cur) => minorToInput(minor, cur).replaceAll('.', ',');
 
   final _rateAsked = <String>{};
+
+  // MM: the form moves with what is being entered. A picker (date, account,
+  // category) shows the form from the top; the amount pad and the keyboard
+  // show the active field with «Зберегти / Далі» right above them.
+  final _scroll = ScrollController();
+  String? _lastMode;
+
+  void _autoScroll() {
+    final text = _noteFocus.hasFocus || _memoFocus.hasFocus;
+    final mode = text ? 'text' : _panel?.name;
+    if (mode == _lastMode) return;
+    _lastMode = mode;
+    final toEnd = text || _panel == _Field.amount || _panel == _Field.toAmount || _panel == _Field.fee;
+    if (!toEnd && mode == null) return; // panel closed: leave the form where it is
+    Future<void> go() async {
+      if (!mounted || !_scroll.hasClients || _lastMode != mode) return;
+      final target = toEnd ? _scroll.position.maxScrollExtent : 0.0;
+      if ((_scroll.offset - target).abs() > 1) {
+        await _scroll.animateTo(target, duration: const Duration(milliseconds: 220), curve: Curves.easeOutCubic);
+      }
+    }
+
+    // after the panel has slid in / the keyboard has opened
+    Future.delayed(const Duration(milliseconds: 300), go);
+    if (text) Future.delayed(const Duration(milliseconds: 700), go);
+  }
 
   static double _pow(int d) {
     var m = 1.0;
@@ -689,7 +716,9 @@ class _TxnEditorState extends State<TxnEditor> {
       );
     }
 
+    _autoScroll();
     final form = ListView(
+      controller: _scroll,
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
       children: [
         _TypeTabs(
@@ -715,6 +744,7 @@ class _TxnEditorState extends State<TxnEditor> {
           label: 'Дата',
           accent: accent,
           active: _panel == _Field.date,
+          onTap: _pickDate,
           trailing: _isNew || _isRule
               ? _repeatButton(scheme)
               : switch (widget.existing == null ? null : store.repeatOf(widget.existing!)) {
