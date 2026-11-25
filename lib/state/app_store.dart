@@ -45,6 +45,8 @@ class Prefs {
   bool currencyFront = false;
   // MM "Repeat Setting → Timing of reflection": on the date or whole period in advance
   bool repeatInAdvance = false;
+  // «Найближчі» on Records: repeats due in this many days (0 = hidden)
+  int upcomingDays = 3;
   // MM "Transfer-Expense": transfers into these accounts count as expenses
   List<String> transferExpense = [];
   List<String> savedTags = [];
@@ -93,6 +95,7 @@ class Prefs {
     'copyPaste': copyPaste,
     'currencyFront': currencyFront,
     'repeatInAdvance': repeatInAdvance,
+    'upcomingDays': upcomingDays,
     'transferExpense': transferExpense,
     'savedTags': savedTags,
     'appIcon': appIcon,
@@ -127,6 +130,7 @@ class Prefs {
     copyPaste = j['copyPaste'] as bool? ?? copyPaste;
     currencyFront = j['currencyFront'] as bool? ?? currencyFront;
     repeatInAdvance = j['repeatInAdvance'] as bool? ?? repeatInAdvance;
+    upcomingDays = (j['upcomingDays'] as num?)?.toInt() ?? upcomingDays;
     if (j['cardDisplay'] is String) cardDisplay = j['cardDisplay'] as String;
     final te = j['transferExpense'];
     if (te is List) transferExpense = [for (final x in te) x as String];
@@ -758,6 +762,18 @@ class AppStore extends ChangeNotifier {
       notifyListeners();
     }
     return made;
+  }
+
+  /// Repeats that come due from now until the end of the day [days] days
+  /// ahead (today = 0), soonest first. Ones already created are left out.
+  List<({RepeatRule rule, DateTime date})> upcomingRepeats(int days, {DateTime? now}) {
+    final n = now ?? DateTime.now();
+    final until = DateTime(n.year, n.month, n.day + days + 1).subtract(const Duration(milliseconds: 1));
+    final out = [
+      for (final r in _repeats)
+        for (final d in r.upcoming(n, until)) (rule: r, date: d),
+    ]..sort((a, b) => a.date.compareTo(b.date));
+    return out;
   }
 
   Future<void> saveRepeat(RepeatRule r) async {

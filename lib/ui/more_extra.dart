@@ -449,6 +449,8 @@ class RepeatsPage extends StatefulWidget {
 class _RepeatsPageState extends State<RepeatsPage> {
   bool _delete = false;
 
+  static const _upcoming = {0: 'Не показувати', 1: 'Сьогодні й завтра', 3: 'На 3 дні', 7: 'На тиждень'};
+
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
@@ -530,6 +532,15 @@ class _RepeatsPageState extends State<RepeatsPage> {
                   if (v == null) return;
                   await store.updatePrefs((p) => p.repeatInAdvance = v);
                   await store.runRepeats();
+                },
+              ),
+              _Item(
+                null,
+                'Показувати на «Записах»',
+                value: _upcoming[store.prefs.upcomingDays] ?? '${store.prefs.upcomingDays} дн.',
+                onTap: () async {
+                  final v = await _choose<int>(context, 'Найближчі повтори на «Записах»', _upcoming, store.prefs.upcomingDays);
+                  if (v != null) await store.updatePrefs((p) => p.upcomingDays = v);
                 },
               ),
             ],

@@ -68,6 +68,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
     }
     final tot = store.totalsBase(list);
     final cur = store.baseCurrency;
+    // «Найближчі»: only on the Day view of the period that holds today.
+    final now = DateTime.now();
+    final shown = weekMode ? wr : store.periodRange(_month);
+    final upcoming = _view == RecordsView.day && _query.isEmpty && store.prefs.upcomingDays > 0 && !now.isBefore(shown.start) && now.isBefore(shown.end)
+        ? store.upcomingRepeats(store.prefs.upcomingDays, now: now)
+        : const <({RepeatRule rule, DateTime date})>[];
 
     final Widget content = switch (_view) {
       RecordsView.day => const SizedBox.shrink(), // a lazy sliver, below
@@ -176,6 +182,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
             Expanded(
               child: CustomScrollView(
                 slivers: [
+                  if (upcoming.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                        child: UpcomingCard(items: upcoming, now: now),
+                      ),
+                    ),
                   if (_view == RecordsView.day) _DayView(txns: list) else SliverToBoxAdapter(child: content),
                   const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
@@ -252,6 +265,135 @@ class _DataNoticeState extends State<_DataNotice> {
     return AnimatedSize(
       duration: const Duration(milliseconds: 250),
       child: child ?? const SizedBox(width: double.infinity),
+    );
+  }
+}
+
+/// «Найближчі»: repeating records that come due in the next few days, so a
+/// payment such as «Завтра · Київстар · 300 ₴» is never a surprise. Tap a
+/// row to change its repeat.
+class UpcomingCard extends StatelessWidget {
+  const UpcomingCard({super.key, required this.items, required this.now});
+  final List<({RepeatRule rule, DateTime date})> items;
+  final DateTime now;
+
+  String _when(DateTime d) {
+    final today = DateTime(now.year, now.month, now.day);
+    final diff = DateTime(d.year, d.month, d.day).difference(today).inDays;
+    return switch (diff) {
+      0 => 'Сьогодні',
+      1 => 'Завтра',
+      2 => 'Післязавтра',
+      _ => '${weekdayShort(d)}, ${d.day}.${d.month.toString().padLeft(2, '0')}',
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final p = AppPalette.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final cur = store.baseCurrency;
+    var income = 0, expense = 0;
+    for (final x in items) {
+      final f = store.flowOf(x.rule.template);
+      if (f == TxType.income) income += store.repeatBase(x.rule.template);
+      if (f == TxType.expense) expense += store.repeatBase(x.rule.template);
+    }
+    final muted = TextStyle(color: scheme.onSurfaceVariant, fontSize: 13, height: 1.25);
+    return GlassCard(
+      radius: 24,
+      padding: const EdgeInsets.only(top: 8, bottom: 2),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const RepeatsPage())),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
+              child: Row(
+                children: [
+                  Icon(Icons.event_repeat_rounded, size: 18, color: scheme.primary),
+                  const SizedBox(width: 8),
+                  const Text('Найближчі', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  const Spacer(),
+                  if (income > 0)
+                    Text(
+                      money(income, cur),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: incomeColor(context, store)),
+                    ),
+                  if (income > 0 && expense > 0) const SizedBox(width: 10),
+                  if (expense > 0)
+                    Text(
+                      money(expense, cur),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: p.expense),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          Divider(height: 1, indent: 18, endIndent: 18, color: hairline(context, 0.08)),
+          for (final x in items) _row(context, store, x.rule, x.date, muted),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(BuildContext context, AppStore store, RepeatRule r, DateTime d, TextStyle muted) {
+    final p = AppPalette.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final t = r.template;
+    final f = store.flowOf(t);
+    final color = f == TxType.expense ? p.expense : (f == TxType.income ? incomeColor(context, store) : scheme.onSurfaceVariant);
+    final acc = store.account(t.accountId)?.name ?? '';
+    final under = t.type == TxType.transfer ? '$acc → ${store.account(t.toAccountId)?.name ?? ''}' : acc;
+    final time = store.prefs.timeMode == 2 ? ' · ${TimeOfDay.fromDateTime(d).format(context)}' : '';
+    return InkWell(
+      onTap: () => openTxnEditor(context, repeat: r),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 36),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 92,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${_when(d)}$time',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: muted.copyWith(color: scheme.primary, fontWeight: FontWeight.w600),
+                    ),
+                    Text(repeatLabel(r.every), maxLines: 1, overflow: TextOverflow.ellipsis, style: muted),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t.note.isNotEmpty ? t.note : txnTitle(store, t),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15, height: 1.25),
+                    ),
+                    if (under.isNotEmpty) Text(under, maxLines: 1, overflow: TextOverflow.ellipsis, style: muted),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                money(store.shownAmount(t), store.shownCurrency(t)),
+                style: TextStyle(color: color, fontWeight: FontWeight.w500, fontSize: 15),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

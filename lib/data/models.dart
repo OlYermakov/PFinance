@@ -492,6 +492,17 @@ class RepeatRule {
     return out;
   }
 
+  /// Occurrences that are still to be created: after [now] (and after
+  /// [lastDone]) up to and including [until].
+  List<DateTime> upcoming(DateTime now, DateTime until) {
+    final out = <DateTime>[];
+    for (final d in occurrences) {
+      if (d.isAfter(until) || (end != null && d.isAfter(end!))) break;
+      if (d.isAfter(now) && (lastDone == null || d.isAfter(lastDone!))) out.add(d);
+    }
+    return out;
+  }
+
   DateTime? nextAfter(DateTime now) {
     for (final d in occurrences) {
       if (end != null && d.isAfter(end!)) return null;
