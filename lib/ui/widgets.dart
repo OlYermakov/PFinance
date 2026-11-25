@@ -55,7 +55,7 @@ class MonthSwitcher extends StatelessWidget {
               label,
               key: ValueKey(label),
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 15),
             ),
           ),
         ),
@@ -187,7 +187,7 @@ class TotalsStrip extends StatelessWidget {
     Widget cell(String label, int v, Color? color, {bool sign = false}) => Expanded(
       child: Column(
         children: [
-          Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          Text(label, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const SizedBox(height: 1),
           FittedBox(
             child: AnimatedMoney(
