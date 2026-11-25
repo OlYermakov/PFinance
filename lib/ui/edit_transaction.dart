@@ -189,6 +189,14 @@ class _TxnEditorState extends State<TxnEditor> {
     return (v * m).round();
   }
 
+  /// MM: the amount is shown with its currency in front («€ 85,00»), in every
+  /// currency alike. An empty field shows nothing.
+  static String _withCur(String e, String currency) {
+    if (e.isEmpty || currency.isEmpty) return e;
+    final sym = currencySymbol(currency);
+    return currencyFront || sym != currency ? '$sym $e' : '$e $currency';
+  }
+
   void _open(_Field? f) {
     FocusScope.of(context).unfocus();
     setState(() => _panel = _panel == f ? null : f);
@@ -213,6 +221,10 @@ class _TxnEditorState extends State<TxnEditor> {
         _panel = null;
       }
     });
+    // MM: after the amount the note takes over, with the keyboard.
+    if (_panel == null && (from == _Field.amount || from == _Field.toAmount || from == _Field.fee) && _note.text.isEmpty) {
+      _noteFocus.requestFocus();
+    }
   }
 
   /// "Далі" (MM): go to the next field of the form, in its order.
@@ -728,7 +740,7 @@ class _TxnEditorState extends State<TxnEditor> {
               children: [
                 Expanded(
                   child: Text(
-                    '$e $currency',
+                    _withCur(e, currency),
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: accent),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -753,17 +765,13 @@ class _TxnEditorState extends State<TxnEditor> {
         children: [
           Expanded(
             child: Text(
-              e,
+              _withCur(e, currency),
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: accent),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (hasOp && v != null) Text('= ${_CalcPad.fmt(v)}  ', style: TextStyle(color: scheme.onSurfaceVariant)),
-          Text(
-            currency,
-            style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600),
-          ),
+          if (hasOp && v != null) Text('= ${_CalcPad.fmt(v)}', style: TextStyle(color: scheme.onSurfaceVariant)),
         ],
       );
     }
@@ -1212,8 +1220,14 @@ class _TxnEditorState extends State<TxnEditor> {
               accent: _type == TxType.transfer ? scheme.primary : accent,
               onKey: (k) => setState(() => _expr[f] = _CalcPad.apply(_expr[f]!, k)),
               onDone: () {
+                // MM shows the finished amount with its decimals («€ 85,00»).
                 final v = evalExpression(_expr[f]!);
-                setState(() => _expr[f] = v == null ? '' : _CalcPad.fmt(v));
+                final cur = switch (f) {
+                  _Field.toAmount => store.account(_toAccountId)?.currency,
+                  _ => _amountCur ?? store.account(_accountId)?.currency,
+                };
+                final d = decimalsOf(cur ?? store.baseCurrency);
+                setState(() => _expr[f] = v == null ? '' : v.toStringAsFixed(d).replaceAll('.', ','));
                 _advance(f);
               },
             ),
