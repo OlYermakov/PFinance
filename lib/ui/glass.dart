@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
+import '../l10n/l10n.dart';
 
 
 /// App backdrop: a solid, calm colour behind the flat panels.
@@ -72,7 +73,7 @@ class PfLogo extends StatelessWidget {
     final h = size * 1.15;
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Semantics(
-      label: 'PFinance · Персональні фінанси',
+      label: tr('PFinance · Персональні фінанси'),
       child: CustomPaint(size: Size(h * _PfLogoPainter.w / _PfLogoPainter.h, h), painter: _PfLogoPainter(dark)),
     );
   }

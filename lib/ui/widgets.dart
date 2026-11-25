@@ -8,6 +8,7 @@ import '../state/app_store.dart';
 import 'format.dart';
 import 'glass.dart';
 import 'theme.dart';
+import '../l10n/l10n.dart';
 
 export 'glass.dart';
 
@@ -38,7 +39,7 @@ class MonthSwitcher extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        arrow(Icons.chevron_left_rounded, 'Попередній період', -1),
+        arrow(Icons.chevron_left_rounded, tr('Попередній період'), -1),
         SizedBox(
           width: compact ? 150 : 176,
           child: AnimatedSwitcher(
@@ -58,7 +59,7 @@ class MonthSwitcher extends StatelessWidget {
             ),
           ),
         ),
-        arrow(Icons.chevron_right_rounded, 'Наступний період', 1),
+        arrow(Icons.chevron_right_rounded, tr('Наступний період'), 1),
       ],
     );
   }
@@ -205,13 +206,13 @@ class TotalsStrip extends StatelessWidget {
       child: Column(
         children: [
           Row(
-            children: [cell('Дохід', income, incColor), cell('Витрати', expense, p.expense), cell('Разом', income - expense + (carry ?? 0), null, sign: true)],
+            children: [cell(tr('Дохід'), income, incColor), cell(tr('Витрати'), expense, p.expense), cell(tr('Разом'), income - expense + (carry ?? 0), null, sign: true)],
           ),
           if (carry != null)
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(
-                'з них перенесено з минулих періодів: ${money(carry!, currency, sign: true)}',
+                tr('з них перенесено з минулих періодів: {0}', [money(carry!, currency, sign: true)]),
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ),
@@ -229,9 +230,9 @@ Color incomeColor(BuildContext context, AppStore store) => switch (store.prefs.i
 };
 
 String txnTitle(AppStore store, Txn t) {
-  if (t.type == TxType.transfer) return 'Переказ';
+  if (t.type == TxType.transfer) return tr('Переказ');
   final c = store.category(t.categoryId);
-  if (c == null) return 'Без категорії';
+  if (c == null) return tr('Без категорії');
   final top = store.topCategory(t.categoryId);
   return top != null && top.id != c.id ? '${top.name} · ${c.name}' : c.name;
 }
@@ -293,8 +294,8 @@ class SectionTitle extends StatelessWidget {
 /// a plain number pad at the bottom. [onComplete] returns false to reject
 /// the code (the pad then clears and shows [errorText]).
 class PinPad extends StatefulWidget {
-  const PinPad({super.key, required this.message, required this.onComplete, this.errorText, this.onClose, this.title = 'PIN-код'});
-  final String title;
+  const PinPad({super.key, required this.message, required this.onComplete, this.errorText, this.onClose, this.title});
+  final String? title;
   final String message;
   final String? errorText;
   final Future<bool> Function(String code) onComplete;
@@ -352,7 +353,7 @@ class _PinPadState extends State<PinPad> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         leading: widget.onClose == null ? null : IconButton(icon: const Icon(Icons.close_rounded), onPressed: widget.onClose),
-        title: Text(widget.title),
+        title: Text(widget.title ?? tr('PIN-код')),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -501,7 +502,7 @@ class PillTabs<T> extends StatelessWidget {
 
 /// Short weekday names in display order, starting from [first] (DateTime.monday..sunday).
 List<String> weekdayNames(int first) => [
-  for (var i = 0; i < 7; i++) const ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'][(first - 1 + i) % 7],
+  for (var i = 0; i < 7; i++) [tr('Пн'), tr('Вт'), tr('Ср'), tr('Чт'), tr('Пт'), tr('Сб'), tr('Нд')][(first - 1 + i) % 7],
 ];
 
 /// MM's delete mark: a solid red circle with a white bar.

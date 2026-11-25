@@ -10,15 +10,16 @@ import 'more_page.dart' show currencySymbol;
 import 'stats_page.dart' show slicesFor, CategoryRow;
 import 'theme.dart';
 import 'widgets.dart';
+import '../l10n/l10n.dart';
 
-const kindLabels = {
-  AccountKind.cash: ('Готівка', Icons.payments_outlined),
-  AccountKind.card: ('Картки', Icons.credit_card_rounded),
-  AccountKind.bank: ('Банк', Icons.account_balance_outlined),
-  AccountKind.savings: ('Заощадження', Icons.savings_outlined),
-  AccountKind.credit: ('Кредити', Icons.credit_score_outlined),
-  AccountKind.investment: ('Інвестиції', Icons.trending_up_rounded),
-  AccountKind.other: ('Інше', Icons.wallet_outlined),
+Map<AccountKind, (String, IconData)> get kindLabels => {
+  AccountKind.cash: (tr('Готівка'), Icons.payments_outlined),
+  AccountKind.card: (tr('Картки'), Icons.credit_card_rounded),
+  AccountKind.bank: (tr('Банк'), Icons.account_balance_outlined),
+  AccountKind.savings: (tr('Заощадження'), Icons.savings_outlined),
+  AccountKind.credit: (tr('Кредити'), Icons.credit_score_outlined),
+  AccountKind.investment: (tr('Інвестиції'), Icons.trending_up_rounded),
+  AccountKind.other: (tr('Інше'), Icons.wallet_outlined),
 };
 
 String groupOf(Account a) => (a.group?.trim().isNotEmpty ?? false) ? a.group!.trim() : kindLabels[a.kind]!.$1;
@@ -80,20 +81,20 @@ class AccountsPage extends StatelessWidget {
                     const SizedBox(width: 80),
                     Expanded(
                       child: Text(
-                        'Рахунки',
+                        tr('Рахунки'),
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 17),
                       ),
                     ),
                     IconButton(
                       visualDensity: VisualDensity.compact,
-                      tooltip: 'Редагувати список',
+                      tooltip: tr('Редагувати список'),
                       icon: const Icon(Icons.edit_outlined),
                       onPressed: () => _push(context, const EditAccountsPage()),
                     ),
                     IconButton(
                       visualDensity: VisualDensity.compact,
-                      tooltip: 'Новий рахунок',
+                      tooltip: tr('Новий рахунок'),
                       icon: const Icon(Icons.add_rounded),
                       onPressed: () => editAccount(context),
                     ),
@@ -104,9 +105,9 @@ class AccountsPage extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                   child: Row(
                     children: [
-                      stat('Активи', nw.assets, incomeColor(context, store)),
-                      stat('Пасиви', -nw.liabilities, p.expense),
-                      stat('Разом', nw.total, null),
+                      stat(tr('Активи'), nw.assets, incomeColor(context, store)),
+                      stat(tr('Пасиви'), -nw.liabilities, p.expense),
+                      stat(tr('Разом'), nw.total, null),
                     ],
                   ),
                 ),
@@ -170,13 +171,13 @@ class AccountsPage extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 14),
                     child: Center(
-                      child: TextButton(onPressed: () => _push(context, const EditAccountsPage()), child: Text('Приховані рахунки: $hidden')),
+                      child: TextButton(onPressed: () => _push(context, const EditAccountsPage()), child: Text(tr('Приховані рахунки: {0}', [hidden]))),
                     ),
                   ),
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
-                    'Сірим показано рахунки, що не входять у загальні підсумки.',
+                    tr('Сірим показано рахунки, що не входять у загальні підсумки.'),
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
@@ -228,10 +229,10 @@ class _AccountRow extends StatelessWidget {
                   if (cycle != null) ...[
                     const SizedBox(height: 4),
                     Text(
-                      'До сплати ${money(-cycle.payable, account.currency)} · до ${cycle.due.day}.${cycle.due.month.toString().padLeft(2, '0')}',
+                      tr('До сплати {0} · до {1}.{2}', [money(-cycle.payable, account.currency), cycle.due.day, cycle.due.month.toString().padLeft(2, '0')]),
                       style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
                     ),
-                    Text('Поточний цикл ${money(cycle.outstanding, account.currency)}', style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant)),
+                    Text(tr('Поточний цикл {0}', [money(cycle.outstanding, account.currency)]), style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant)),
                   ],
                 ],
               ),
@@ -396,18 +397,18 @@ class _AccountPageState extends State<AccountPage> {
         centerTitle: true,
         actions: [
           IconButton(
-            tooltip: 'Графік',
+            tooltip: tr('Графік'),
             icon: const Icon(Icons.bar_chart_rounded),
             onPressed: () => _push(context, _AccountChartPage(account: a)),
           ),
           IconButton(
-            tooltip: 'Змінити рахунок',
+            tooltip: tr('Змінити рахунок'),
             icon: const Icon(Icons.edit_outlined),
             onPressed: () => editAccount(context, existing: a),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(tooltip: 'Новий запис', onPressed: () => openTxnEditor(context), child: const Icon(Icons.add_rounded)),
+      floatingActionButton: FloatingActionButton(tooltip: tr('Новий запис'), onPressed: () => openTxnEditor(context), child: const Icon(Icons.add_rounded)),
       // MM: period, tabs and totals stay put; only the records scroll.
       body: Column(
         children: [
@@ -442,7 +443,7 @@ class _AccountPageState extends State<AccountPage> {
                 ),
                 PillTabs<_AccView>(
                   value: _view,
-                  items: const {_AccView.day: 'По днях', _AccView.month: 'По місяцях', _AccView.year: 'По роках'},
+                  items: {_AccView.day: tr('По днях'), _AccView.month: tr('По місяцях'), _AccView.year: tr('По роках')},
                   onChanged: (v) => setState(() => _view = v),
                 ),
                 const SizedBox(height: 8),
@@ -451,10 +452,10 @@ class _AccountPageState extends State<AccountPage> {
                   padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 6),
                   child: Row(
                     children: [
-                      cell('Надходження', plain(total.dep), incomeColor(context, store)),
-                      cell('Списання', plain(total.wd), p.expense),
-                      cell('Разом', plain(total.dep - total.wd), null),
-                      if (_view != _AccView.year) cell('Баланс', plain(balanceAt(range.end)), null),
+                      cell(tr('Надходження'), plain(total.dep), incomeColor(context, store)),
+                      cell(tr('Списання'), plain(total.wd), p.expense),
+                      cell(tr('Разом'), plain(total.dep - total.wd), null),
+                      if (_view != _AccView.year) cell(tr('Баланс'), plain(balanceAt(range.end)), null),
                     ],
                   ),
                 ),
@@ -480,7 +481,7 @@ class _AccountPageState extends State<AccountPage> {
     ColorScheme scheme,
   ) {
     final list = all.where((t) => !t.date.isBefore(r.start) && t.date.isBefore(r.end)).toList().reversed.toList();
-    if (list.isEmpty) return const EmptyState(icon: Icons.receipt_long_outlined, text: 'Записів за цей період немає');
+    if (list.isEmpty) return EmptyState(icon: Icons.receipt_long_outlined, text: tr('Записів за цей період немає'));
     final days = <DateTime, List<Txn>>{};
     for (final t in list) {
       days.putIfAbsent(DateTime(t.date.year, t.date.month, t.date.day), () => []).add(t);
@@ -536,9 +537,9 @@ class _AccountPageState extends State<AccountPage> {
                             width: 92,
                             child: Text(
                               t.type == TxType.transfer
-                                  ? 'Переказ'
+                                  ? tr('Переказ')
                                   : [
-                                      store.topCategory(t.categoryId)?.name ?? 'Без категорії',
+                                      store.topCategory(t.categoryId)?.name ?? tr('Без категорії'),
                                       if (store.category(t.categoryId)?.parentId != null) store.category(t.categoryId)!.name,
                                     ].join('\n'),
                               style: TextStyle(color: muted, fontSize: 13),
@@ -567,7 +568,7 @@ class _AccountPageState extends State<AccountPage> {
                                 money(accountDelta(t, a.id).abs(), cur),
                                 style: TextStyle(fontWeight: FontWeight.w700, color: accountDelta(t, a.id) >= 0 ? incomeColor(context, store) : p.expense),
                               ),
-                              Text('Баланс ${money(after[t.id] ?? 0, cur)}', style: TextStyle(color: muted, fontSize: 12)),
+                              Text(tr('Баланс {0}', [money(after[t.id] ?? 0, cur)]), style: TextStyle(color: muted, fontSize: 12)),
                             ],
                           ),
                         ],
@@ -710,7 +711,7 @@ class _AccountChartPageState extends State<_AccountChartPage> {
             padding: const EdgeInsets.only(right: 12),
             child: SizedBox(
               width: 96,
-              child: PillTabs<bool>(value: _years, items: const {false: 'М', true: 'Р'}, onChanged: (v) => setState(() => _years = v)),
+              child: PillTabs<bool>(value: _years, items: {false: tr('М'), true: tr('Р')}, onChanged: (v) => setState(() => _years = v)),
             ),
           ),
         ],
@@ -752,7 +753,7 @@ class _AccountChartPageState extends State<_AccountChartPage> {
             ),
           ),
           const SizedBox(height: 14),
-          for (final (label, slices, total, color) in [('Доходи', inc, incTotal, incomeColor(context, store)), ('Витрати', exp, expTotal, p.expense)]) ...[
+          for (final (label, slices, total, color) in [(tr('Доходи'), inc, incTotal, incomeColor(context, store)), (tr('Витрати'), exp, expTotal, p.expense)]) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
               child: Row(
@@ -773,7 +774,7 @@ class _AccountChartPageState extends State<_AccountChartPage> {
             if (slices.isEmpty)
               Padding(
                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                child: Text('Немає', style: TextStyle(color: scheme.onSurfaceVariant)),
+                child: Text(tr('Немає'), style: TextStyle(color: scheme.onSurfaceVariant)),
               )
             else
               GlassCard(
@@ -938,7 +939,7 @@ List<Object> _groupedEntries(List<Account> accounts) {
 /// Groups to offer when adding an account: those in use, else MM's defaults.
 List<String> accountGroupNames(AppStore store) {
   final used = {for (final a in store.accounts) groupOf(a)};
-  return used.isEmpty ? ['Готівка', 'Банк', 'Картки', 'Інвестиції'] : used.toList();
+  return used.isEmpty ? [tr('Готівка'), tr('Банк'), tr('Картки'), tr('Інвестиції')] : used.toList();
 }
 
 class EditAccountsPage extends StatefulWidget {
@@ -983,10 +984,10 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
           child: _editing
               ? Row(
                   children: [
-                    IconButton(tooltip: 'Видалити', icon: const MinusBadge(), onPressed: () => _delete(context, a)),
+                    IconButton(tooltip: tr('Видалити'), icon: const MinusBadge(), onPressed: () => _delete(context, a)),
                     Expanded(child: name),
                     IconButton(
-                      tooltip: a.archived ? 'Показувати' : 'Приховати',
+                      tooltip: a.archived ? tr('Показувати') : tr('Приховати'),
                       icon: Icon(a.archived ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: scheme.onSurfaceVariant),
                       onPressed: () => store.saveAccount(a.copyWith(archived: !a.archived)),
                     ),
@@ -1012,12 +1013,12 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: _editing ? IconButton(tooltip: 'Готово', icon: const Icon(Icons.close_rounded), onPressed: () => setState(() => _editing = false)) : null,
-        title: Text(_editing ? 'Редаг.' : 'Рахунки'),
+        leading: _editing ? IconButton(tooltip: tr('Готово'), icon: const Icon(Icons.close_rounded), onPressed: () => setState(() => _editing = false)) : null,
+        title: Text(_editing ? tr('Редаг.') : tr('Рахунки')),
         centerTitle: true,
         actions: [
-          if (!_editing) IconButton(tooltip: 'Редагувати', icon: const Icon(Icons.edit_outlined), onPressed: () => setState(() => _editing = true)),
-          IconButton(tooltip: 'Новий рахунок', icon: const Icon(Icons.add_rounded), onPressed: () => editAccount(context)),
+          if (!_editing) IconButton(tooltip: tr('Редагувати'), icon: const Icon(Icons.edit_outlined), onPressed: () => setState(() => _editing = true)),
+          IconButton(tooltip: tr('Новий рахунок'), icon: const Icon(Icons.add_rounded), onPressed: () => editAccount(context)),
         ],
       ),
       body: ReorderableListView.builder(
@@ -1062,18 +1063,18 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
     final ok = await showSheetDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Видалити «${a.name}»?'),
+        title: Text(tr('Видалити «{0}»?', [a.name])),
         content: Text(
           related.isEmpty
-              ? 'Рахунок буде видалено.'
-              : 'Разом із рахунком буде видалено ${related.length} його записів. Якщо записи треба зберегти, краще приховай рахунок (значок ока).',
+              ? tr('Рахунок буде видалено.')
+              : tr('Разом із рахунком буде видалено {0} його записів. Якщо записи треба зберегти, краще приховай рахунок (значок ока).', [related.length]),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Скасувати')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('Скасувати'))),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Видалити'),
+            child: Text(tr('Видалити')),
           ),
         ],
       ),
@@ -1106,7 +1107,7 @@ class _AccountForm extends StatefulWidget {
 class _AccountFormState extends State<_AccountForm> {
   late final AppStore store = StoreScope.read(context);
   late final Account? ex = widget.existing;
-  late String group = ex == null ? (accountGroupNames(store).firstOrNull ?? 'Банк') : groupOf(ex!);
+  late String group = ex == null ? (accountGroupNames(store).firstOrNull ?? tr('Банк')) : groupOf(ex!);
   late final name = TextEditingController(text: ex?.name ?? '');
   late String currency = ex?.currency ?? store.baseCurrency;
   late final amount = TextEditingController(text: ex == null || ex!.initialBalance == 0 ? '' : minorToInput(ex!.initialBalance, currency));
@@ -1148,21 +1149,21 @@ class _AccountFormState extends State<_AccountForm> {
     const valueStyle = TextStyle(fontSize: 16);
 
     return Scaffold(
-      appBar: AppBar(title: Text(ex == null ? 'Додати' : 'Редаг.'), centerTitle: true),
+      appBar: AppBar(title: Text(ex == null ? tr('Додати') : tr('Редаг.')), centerTitle: true),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
         children: [
           _AccRow(
-            label: 'Група',
+            label: tr('Група'),
             onTap: _pickGroup,
             child: Text(group, style: valueStyle),
           ),
           _AccRow(
-            label: 'Назва',
+            label: tr('Назва'),
             child: TextField(controller: name, autofocus: ex == null, style: valueStyle, decoration: plain()),
           ),
           _AccRow(
-            label: 'Сума',
+            label: tr('Сума'),
             child: TextField(
               controller: amount,
               style: valueStyle,
@@ -1171,7 +1172,7 @@ class _AccountFormState extends State<_AccountForm> {
             ),
           ),
           _AccRow(
-            label: 'Валюта',
+            label: tr('Валюта'),
             height: 56,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -1184,7 +1185,7 @@ class _AccountFormState extends State<_AccountForm> {
             ),
           ),
           _AccRow(
-            label: 'Деталі',
+            label: tr('Деталі'),
             child: TextField(controller: note, style: valueStyle, decoration: plain()),
           ),
           const SizedBox(height: 28),
@@ -1196,22 +1197,22 @@ class _AccountFormState extends State<_AccountForm> {
               shape: const StadiumBorder(),
             ),
             onPressed: _save,
-            child: const Text('Зберегти', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
+            child: Text(tr('Зберегти'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
           ),
           const SizedBox(height: 28),
-          Text('Додатково', style: TextStyle(fontSize: 14, color: muted)),
+          Text(tr('Додатково'), style: TextStyle(fontSize: 14, color: muted)),
           const SizedBox(height: 8),
           ColorPickerRow(value: color, onChanged: (v) => setState(() => color = v)),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Враховувати в підсумках'),
+            title: Text(tr('Враховувати в підсумках')),
             value: include,
             onChanged: (v) => setState(() => include = v),
           ),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Картка з датою розрахунку'),
-            subtitle: const Text('Кредитна картка: витрати сплачуються раз на місяць'),
+            title: Text(tr('Картка з датою розрахунку')),
+            subtitle: Text(tr('Кредитна картка: витрати сплачуються раз на місяць')),
             value: card,
             onChanged: (v) => setState(() => card = v),
           ),
@@ -1221,8 +1222,8 @@ class _AccountFormState extends State<_AccountForm> {
                 Expanded(
                   child: DropdownButtonFormField<int>(
                     initialValue: settleDay,
-                    decoration: const InputDecoration(labelText: 'Дата розрахунку'),
-                    items: [for (var d = 1; d <= 31; d++) DropdownMenuItem(value: d, child: Text('$d число'))],
+                    decoration: InputDecoration(labelText: tr('Дата розрахунку')),
+                    items: [for (var d = 1; d <= 31; d++) DropdownMenuItem(value: d, child: Text(tr('{0} число', [d])))],
                     onChanged: (v) => setState(() => settleDay = v!),
                   ),
                 ),
@@ -1230,8 +1231,8 @@ class _AccountFormState extends State<_AccountForm> {
                 Expanded(
                   child: DropdownButtonFormField<int>(
                     initialValue: payDay,
-                    decoration: const InputDecoration(labelText: 'Дата платежу'),
-                    items: [for (var d = 1; d <= 31; d++) DropdownMenuItem(value: d, child: Text('$d число'))],
+                    decoration: InputDecoration(labelText: tr('Дата платежу')),
+                    items: [for (var d = 1; d <= 31; d++) DropdownMenuItem(value: d, child: Text(tr('{0} число', [d])))],
                     onChanged: (v) => setState(() => payDay = v!),
                   ),
                 ),
@@ -1240,7 +1241,7 @@ class _AccountFormState extends State<_AccountForm> {
             const SizedBox(height: 12),
             DropdownButtonFormField<String?>(
               initialValue: store.accounts.any((a) => a.id == payFrom) ? payFrom : null,
-              decoration: const InputDecoration(labelText: 'Сплачується з рахунку'),
+              decoration: InputDecoration(labelText: tr('Сплачується з рахунку')),
               items: [
                 const DropdownMenuItem<String?>(value: null, child: Text('—')),
                 for (final a in store.accounts.where((a) => a.id != ex?.id)) DropdownMenuItem<String?>(value: a.id, child: Text(a.name)),
@@ -1251,7 +1252,7 @@ class _AccountFormState extends State<_AccountForm> {
           if (hasTxns)
             Padding(
               padding: const EdgeInsets.only(top: 12),
-              child: Text('Валюту не можна змінити, бо в рахунку є записи.', style: TextStyle(fontSize: 12, color: muted)),
+              child: Text(tr('Валюту не можна змінити, бо в рахунку є записи.'), style: TextStyle(fontSize: 12, color: muted)),
             ),
         ],
       ),
@@ -1290,21 +1291,21 @@ class _AccountFormState extends State<_AccountForm> {
   Future<void> _pickGroup() async {
     FocusScope.of(context).unfocus();
     final groups = accountGroupNames(store);
-    final v = await chooseOption<String>(context, 'Група рахунків', {for (final g in groups) g: g, '\u0000new': 'Нова група…'}, group);
+    final v = await chooseOption<String>(context, tr('Група рахунків'), {for (final g in groups) g: g, '\u0000new': tr('Нова група…')}, group);
     if (v == null || !mounted) return;
     if (v == '\u0000new') {
       final c = TextEditingController();
       final n = await showSheetDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Нова група'),
+          title: Text(tr('Нова група')),
           content: TextField(
             controller: c,
             autofocus: true,
-            decoration: const InputDecoration(labelText: 'Назва групи'),
+            decoration: InputDecoration(labelText: tr('Назва групи')),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Скасувати')),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Скасувати'))),
             FilledButton(onPressed: () => Navigator.pop(context, c.text.trim()), child: const Text('OK')),
           ],
         ),
@@ -1319,7 +1320,7 @@ class _AccountFormState extends State<_AccountForm> {
     final c = await showSheetDialog<String>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Валюта'),
+        title: Text(tr('Валюта')),
         children: [
           for (final c in currencies.where((c) => !curList.contains(c)))
             SimpleDialogOption(onPressed: () => Navigator.pop(context, c), child: Text('$c  ${currencySymbol(c)}')),
@@ -1335,7 +1336,7 @@ class _AccountFormState extends State<_AccountForm> {
 
   void _save() {
     if (name.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Введи назву рахунку')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('Введи назву рахунку'))));
       return;
     }
     final txt = amount.text.trim();
@@ -1395,7 +1396,8 @@ class _AccRow extends StatelessWidget {
               width: 74,
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text(label, style: TextStyle(fontSize: 15, color: scheme.onSurfaceVariant)),
+                // Long words of other languages shrink to fit instead of breaking.
+                child: Padding(padding: const EdgeInsets.only(right: 6), child: FittedBox(fit: BoxFit.scaleDown, child: Text(label, maxLines: 1, style: TextStyle(fontSize: 15, color: scheme.onSurfaceVariant)))),
               ),
             ),
             Expanded(

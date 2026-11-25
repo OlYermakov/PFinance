@@ -19,17 +19,18 @@ import 'format.dart';
 import 'theme.dart';
 import 'transactions_page.dart' show TxnTile;
 import 'widgets.dart';
+import '../l10n/l10n.dart';
 
 part 'more_extra.dart';
 
-const appVersion = 'v0.9.83';
+const appVersion = 'v0.9.84';
 
 /// Full names of the supported currencies (Settings → currencies).
-const currencyNames = {
-  'UAH': 'Гривня', 'USD': 'Долар США', 'EUR': 'Євро', 'GBP': 'Фунт стерлінгів', 'PLN': 'Злотий', //
-  'CHF': 'Швейцарський франк', 'CZK': 'Чеська крона', 'CAD': 'Канадський долар', 'AUD': 'Австралійський долар',
-  'JPY': 'Єна', 'CNY': 'Юань', 'TRY': 'Турецька ліра', 'SEK': 'Шведська крона', 'NOK': 'Норвезька крона',
-  'DKK': 'Данська крона', 'HUF': 'Форинт', 'RON': 'Румунський лей', 'GEL': 'Ларі', 'KZT': 'Тенге', 'ILS': 'Шекель',
+Map<String, String> get currencyNames => {
+  'UAH': tr('Гривня'), 'USD': tr('Долар США'), 'EUR': tr('Євро'), 'GBP': tr('Фунт стерлінгів'), 'PLN': tr('Злотий'), //
+  'CHF': tr('Швейцарський франк'), 'CZK': tr('Чеська крона'), 'CAD': tr('Канадський долар'), 'AUD': tr('Австралійський долар'),
+  'JPY': tr('Єна'), 'CNY': tr('Юань'), 'TRY': tr('Турецька ліра'), 'SEK': tr('Шведська крона'), 'NOK': tr('Норвезька крона'),
+  'DKK': tr('Данська крона'), 'HUF': tr('Форинт'), 'RON': tr('Румунський лей'), 'GEL': tr('Ларі'), 'KZT': tr('Тенге'), 'ILS': tr('Шекель'),
 };
 
 String currencySymbol(String c) => NumberFormat.simpleCurrency(name: c).currencySymbol;
@@ -68,70 +69,73 @@ class MorePage extends StatelessWidget {
                   children: [
                     _Item(
                       Icons.receipt_long_outlined,
-                      'Налаштування записів',
-                      subtitle: 'Початок місяця, тижня, перенесення, час, свайп…',
+                      tr('Налаштування записів'),
+                      subtitle: tr('Початок місяця, тижня, перенесення, час, свайп…'),
                       onTap: () => push(const _TxnSettingsPage()),
                     ),
-                    _Item(Icons.repeat_rounded, 'Повторювані записи', onTap: () => push(const RepeatsPage())),
-                    _Item(Icons.content_copy_rounded, 'Копіювання записів', onTap: () => push(const _CopyPastePage())),
+                    _Item(Icons.repeat_rounded, tr('Повторювані записи'), onTap: () => push(const RepeatsPage())),
+                    _Item(Icons.content_copy_rounded, tr('Копіювання записів'), onTap: () => push(const _CopyPastePage())),
                   ],
                 ),
-                const _Band('Категорії й рахунки'),
+                _Band(tr('Категорії й рахунки')),
                 _Group(
                   children: [
-                    _Item(Icons.south_west_rounded, 'Категорії доходів', onTap: () => push(const CategoriesPage(type: TxType.income))),
-                    _Item(Icons.north_east_rounded, 'Категорії витрат', onTap: () => push(const CategoriesPage(type: TxType.expense))),
+                    _Item(Icons.south_west_rounded, tr('Категорії доходів'), onTap: () => push(const CategoriesPage(type: TxType.income))),
+                    _Item(Icons.north_east_rounded, tr('Категорії витрат'), onTap: () => push(const CategoriesPage(type: TxType.expense))),
                     _Item(
                       Icons.account_balance_wallet_outlined,
-                      'Рахунки',
-                      subtitle: 'Групи, рахунки, у підсумках, переказ-витрата…',
+                      tr('Рахунки'),
+                      subtitle: tr('Групи, рахунки, у підсумках, переказ-витрата…'),
                       onTap: () => push(const _AccountsMenu()),
                     ),
-                    _Item(Icons.track_changes_rounded, 'Бюджет', onTap: () => push(const _BudgetPage())),
-                    _Item(Icons.sell_outlined, 'Теги', onTap: () => push(const _TagsPage())),
+                    _Item(Icons.track_changes_rounded, tr('Бюджет'), onTap: () => push(const _BudgetPage())),
+                    _Item(Icons.sell_outlined, tr('Теги'), onTap: () => push(const _TagsPage())),
                   ],
                 ),
-                const _Band('Налаштування'),
+                _Band(tr('Налаштування')),
                 _Group(
                   children: [
                     _Item(
                       Icons.settings_backup_restore_rounded,
-                      'Резервна копія',
-                      subtitle: 'Експорт, імпорт, повне скидання',
+                      tr('Резервна копія'),
+                      subtitle: tr('Експорт, імпорт, повне скидання'),
                       onTap: () => push(const _BackupPage()),
                     ),
-                    _Item(Icons.lock_outline_rounded, 'PIN-код', badge: pr.pin == null ? null : 'УВІМК.', onTap: () => _pinSettings(context)),
+                    _Item(Icons.lock_outline_rounded, tr('PIN-код'), badge: pr.pin == null ? null : tr('УВІМК.'), onTap: () => _pinSettings(context)),
                     _Item(
                       Icons.payments_outlined,
-                      'Основна валюта',
+                      tr('Основна валюта'),
                       subtitle: '${pr.baseCurrency} (${currencySymbol(pr.baseCurrency)})',
                       onTap: () => push(const _MainCurrencyPage()),
                     ),
                     _Item(
                       Icons.currency_exchange_rounded,
-                      'Додаткові валюти',
+                      tr('Додаткові валюти'),
                       subtitle: subs.isEmpty ? null : subs.map(currencySymbol).join(', '),
                       onTap: () => push(const CurrenciesPage()),
                     ),
-                    _Item(Icons.notifications_none_rounded, 'Нагадування', onTap: () => push(const _AlarmPage())),
+                    _Item(Icons.notifications_none_rounded, tr('Нагадування'), onTap: () => push(const _AlarmPage())),
                     _Item(
                       Icons.palette_outlined,
-                      'Стиль',
+                      tr('Стиль'),
                       subtitle: '${_modeLabel(pr.themeMode)} · ${themeById(pr.themeId).name}',
                       onTap: () => push(const _ThemePage()),
                     ),
-                    _Item(Icons.apps_rounded, 'Іконка застосунку', onTap: () => _pickAppIcon(context)),
+                    _Item(Icons.apps_rounded, tr('Іконка застосунку'), onTap: () => _pickAppIcon(context)),
                     _Item(
                       Icons.translate_rounded,
-                      'Мова',
-                      subtitle: 'Українська',
-                      onTap: () => _info(context, 'Мова', 'Поки що застосунок українською. Англійська та інші мови з\'являться перед виходом для всіх.'),
+                      tr('Мова'),
+                      subtitle: languages[pr.language] ?? languages['uk'],
+                      onTap: () async {
+                        final v = await chooseOption<String>(context, tr('Мова'), languages, pr.language);
+                        if (v != null) await store.updatePrefs((p) => p.language = v);
+                      },
                     ),
-                    _Item(Icons.help_outline_rounded, 'Довідка', onTap: () => push(const _HelpPage())),
+                    _Item(Icons.help_outline_rounded, tr('Довідка'), onTap: () => push(const _HelpPage())),
                   ],
                 ),
                 const SizedBox(height: 20),
-                Center(child: Text('Дані зберігаються лише на цьому пристрої', style: Theme.of(context).textTheme.bodySmall)),
+                Center(child: Text(tr('Дані зберігаються лише на цьому пристрої'), style: Theme.of(context).textTheme.bodySmall)),
               ],
             ),
           ),
@@ -284,12 +288,12 @@ class _InfoHeader extends StatelessWidget {
   }
 }
 
-String _onOff(bool v) => v ? 'Увімк.' : 'Вимк.';
+String _onOff(bool v) => v ? tr('Увімк.') : tr('Вимк.');
 
 String _modeLabel(ThemeMode m) => switch (m) {
-  ThemeMode.system => 'Як у системі',
-  ThemeMode.light => 'Світлий',
-  ThemeMode.dark => 'Темний',
+  ThemeMode.system => tr('Як у системі'),
+  ThemeMode.light => tr('Світлий'),
+  ThemeMode.dark => tr('Темний'),
 };
 
 Future<void> _info(BuildContext context, String title, String body) => showSheetDialog<void>(
@@ -297,7 +301,7 @@ Future<void> _info(BuildContext context, String title, String body) => showSheet
   builder: (context) => AlertDialog(
     title: Text(title),
     content: Text(body),
-    actions: [FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Зрозуміло'))],
+    actions: [FilledButton(onPressed: () => Navigator.pop(context), child: Text(tr('Зрозуміло')))],
   ),
 );
 
@@ -308,8 +312,8 @@ Future<bool> _confirm(BuildContext context, String title, String body) async =>
         title: Text(title),
         content: Text(body),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Скасувати')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Так')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('Скасувати'))),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(tr('Так'))),
         ],
       ),
     ) ??
@@ -331,8 +335,8 @@ Future<String?> _askText(BuildContext context, String title, {String initial = '
         onSubmitted: (v) => Navigator.pop(context, v.trim()),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Скасувати')),
-        FilledButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: const Text('Зберегти')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Скасувати'))),
+        FilledButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: Text(tr('Зберегти'))),
       ],
     ),
   );
@@ -343,7 +347,7 @@ Future<String?> _askText(BuildContext context, String title, {String initial = '
 Future<void> _pinSettings(BuildContext context) async {
   final store = StoreScope.read(context);
   if (store.prefs.pin != null) {
-    final v = await _choose<String>(context, 'PIN-код', {'change': 'Змінити PIN-код', 'off': 'Вимкнути PIN-код'}, '');
+    final v = await _choose<String>(context, tr('PIN-код'), {'change': tr('Змінити PIN-код'), 'off': tr('Вимкнути PIN-код')}, '');
     if (v == 'off') {
       store.updatePrefs((p) => p.pin = null);
       return;
@@ -368,7 +372,7 @@ class _PinSetupState extends State<_PinSetup> {
 
   @override
   Widget build(BuildContext context) => PinPad(
-    message: _first == null ? (_mismatch ? 'Коди не збіглися' : 'Введи новий PIN-код') : 'Повтори PIN-код',
+    message: _first == null ? (_mismatch ? tr('Коди не збіглися') : tr('Введи новий PIN-код')) : tr('Повтори PIN-код'),
     onClose: () => Navigator.pop(context),
     onComplete: (code) async {
       if (_first == null) {
@@ -404,7 +408,7 @@ Future<void> _pickAppIcon(BuildContext context) async {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Іконка застосунку', style: Theme.of(context).textTheme.titleLarge),
+          Text(tr('Іконка застосунку'), style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           Wrap(
             spacing: 16,
@@ -425,7 +429,7 @@ Future<void> _pickAppIcon(BuildContext context) async {
             ],
           ),
           const SizedBox(height: 16),
-          Text('На телефоні нова іконка з\'явиться, коли знову додаси сайт на головний екран.', style: Theme.of(context).textTheme.bodySmall),
+          Text(tr('На телефоні нова іконка з\'явиться, коли знову додаси сайт на головний екран.'), style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     ),
@@ -440,7 +444,7 @@ Future<void> _pickAppIcon(BuildContext context) async {
 Future<void> changeBaseCurrency(BuildContext context) async {
   final store = StoreScope.read(context);
   final base = store.baseCurrency;
-  final v = await _choose<String>(context, 'Основна валюта', {for (final c in currencies) c: '$c — ${currencyNames[c] ?? c}'}, base);
+  final v = await _choose<String>(context, tr('Основна валюта'), {for (final c in currencies) c: '$c — ${currencyNames[c] ?? c}'}, base);
   if (v == null || v == base) return;
   await store.updatePrefs((p) {
     // Re-express the rates against the new base.
@@ -478,11 +482,11 @@ class _MainCurrencyPageState extends State<_MainCurrencyPage> {
     final sample = _decimals ? '1,00' : '1';
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Основна валюта'),
+        title: Text(tr('Основна валюта')),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: OutlinedButton(onPressed: () => changeBaseCurrency(context), child: const Text('Змінити')),
+            child: OutlinedButton(onPressed: () => changeBaseCurrency(context), child: Text(tr('Змінити'))),
           ),
         ],
       ),
@@ -502,8 +506,8 @@ class _MainCurrencyPageState extends State<_MainCurrencyPage> {
           const SizedBox(height: 12),
           _Group(
             children: [
-              _Item(null, 'Позиція символу', value: _front ? 'Спереду' : 'Позаду', onTap: () => setState(() => _front = !_front)),
-              _Item(null, 'Десяткові', value: _decimals ? '1,00' : '1', onTap: () => setState(() => _decimals = !_decimals)),
+              _Item(null, tr('Позиція символу'), value: _front ? tr('Спереду') : tr('Позаду'), onTap: () => setState(() => _front = !_front)),
+              _Item(null, tr('Десяткові'), value: _decimals ? '1,00' : '1', onTap: () => setState(() => _decimals = !_decimals)),
             ],
           ),
           Padding(
@@ -517,7 +521,7 @@ class _MainCurrencyPageState extends State<_MainCurrencyPage> {
                 });
                 if (context.mounted) Navigator.pop(context);
               },
-              child: const Text('Зберегти'),
+              child: Text(tr('Зберегти')),
             ),
           ),
         ],
@@ -544,17 +548,17 @@ class _CurrenciesPageState extends State<CurrenciesPage> {
     final store = StoreScope.of(context);
     final base = store.baseCurrency;
     final others = {...store.currenciesInUse, ...store.prefs.rates.keys}.where((c) => c != base).toList()..sort();
-    final nf = NumberFormat('#,##0.######', locale);
+    final nf = NumberFormat('#,##0.######', numberLocale);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Додаткові валюти'),
+        title: Text(tr('Додаткові валюти')),
         actions: [
-          IconButton(tooltip: 'Редагувати', icon: Icon(_edit ? Icons.check_rounded : Icons.edit_outlined), onPressed: () => setState(() => _edit = !_edit)),
+          IconButton(tooltip: tr('Редагувати'), icon: Icon(_edit ? Icons.check_rounded : Icons.edit_outlined), onPressed: () => setState(() => _edit = !_edit)),
           IconButton(
-            tooltip: 'Додати валюту',
+            tooltip: tr('Додати валюту'),
             icon: const Icon(Icons.add_rounded),
             onPressed: () async {
-              final v = await _choose<String>(context, 'Додати валюту', {
+              final v = await _choose<String>(context, tr('Додати валюту'), {
                 for (final c in currencies.where((c) => c != base && !others.contains(c))) c: '$c — ${currencyNames[c] ?? c}',
               }, '');
               if (v != null && context.mounted) _editRate(context, v);
@@ -563,14 +567,14 @@ class _CurrenciesPageState extends State<CurrenciesPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        tooltip: 'Оновити курси',
+        tooltip: tr('Оновити курси'),
         onPressed: _loading ? null : () => _refresh(store),
         child: _loading ? const SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2.5)) : const Icon(Icons.sync_rounded),
       ),
       body: ListView(
         children: [
           if (others.isEmpty)
-            const EmptyState(icon: Icons.currency_exchange_rounded, text: 'Додаткових валют немає.\nДодай валюту кнопкою «+».')
+            EmptyState(icon: Icons.currency_exchange_rounded, text: tr('Додаткових валют немає.\nДодай валюту кнопкою «+».'))
           else
             _Group(
               children: [
@@ -588,10 +592,10 @@ class _CurrenciesPageState extends State<CurrenciesPage> {
             children: [
               _Item(
                 null,
-                'Оновлювати курси щодня',
+                tr('Оновлювати курси щодня'),
                 subtitle: store.prefs.ratesUpdated == 0
-                    ? 'Ще не оновлювались'
-                    : 'Оновлено ${shortDate(DateTime.fromMillisecondsSinceEpoch(store.prefs.ratesUpdated))}',
+                    ? tr('Ще не оновлювались')
+                    : tr('Оновлено {0}', [shortDate(DateTime.fromMillisecondsSinceEpoch(store.prefs.ratesUpdated))]),
                 trailing: Switch(
                   value: store.prefs.autoRates,
                   onChanged: (v) async {
@@ -605,7 +609,9 @@ class _CurrenciesPageState extends State<CurrenciesPage> {
           Padding(
             padding: const EdgeInsets.all(20),
             child: Text(
-              'Ці курси переводять баланси рахунків в основну валюту. Щоденне оновлення бере сьогоднішні курси з open.er-api.com при першому відкритті застосунку за день; кнопка внизу оновлює їх одразу. Курс, змінений уручну, діє до наступного оновлення. Записи завжди рахуються за курсом свого дня.',
+              tr(
+                'Ці курси переводять баланси рахунків в основну валюту. Щоденне оновлення бере сьогоднішні курси з open.er-api.com при першому відкритті застосунку за день; кнопка внизу оновлює їх одразу. Курс, змінений уручну, діє до наступного оновлення. Записи завжди рахуються за курсом свого дня.',
+              ),
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
@@ -619,7 +625,7 @@ class _CurrenciesPageState extends State<CurrenciesPage> {
     setState(() => _loading = true);
     final n = await store.refreshRates(force: true);
     if (mounted) setState(() => _loading = false);
-    messenger.showSnackBar(SnackBar(content: Text(n == null ? 'Не вдалося отримати курси. Перевір інтернет.' : 'Оновлено курсів: $n')));
+    messenger.showSnackBar(SnackBar(content: Text(n == null ? tr('Не вдалося отримати курси. Перевір інтернет.') : tr('Оновлено курсів: {0}', [n]))));
   }
 
   Future<void> _editRate(BuildContext context, String c) async {
@@ -628,7 +634,7 @@ class _CurrenciesPageState extends State<CurrenciesPage> {
     final v = await showSheetDialog<double>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Курс $c'),
+        title: Text(tr('Курс {0}', [c])),
         content: TextField(
           controller: ctrl,
           autofocus: true,
@@ -636,8 +642,8 @@ class _CurrenciesPageState extends State<CurrenciesPage> {
           decoration: InputDecoration(prefixText: '1 $c = ', suffixText: store.baseCurrency),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Скасувати')),
-          FilledButton(onPressed: () => Navigator.pop(context, double.tryParse(ctrl.text.replaceAll(',', '.'))), child: const Text('Зберегти')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Скасувати'))),
+          FilledButton(onPressed: () => Navigator.pop(context, double.tryParse(ctrl.text.replaceAll(',', '.'))), child: Text(tr('Зберегти'))),
         ],
       ),
     );
@@ -661,19 +667,19 @@ class CategoriesPage extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final cats = parent == null ? store.categoriesOf(type) : store.subcategoriesOf(parent!.id);
     final line = scheme.onSurface.withValues(alpha: 0.08);
-    final title = parent?.name ?? (type == TxType.income ? 'Категорії доходів' : 'Категорії витрат');
+    final title = parent?.name ?? (type == TxType.income ? tr('Категорії доходів') : tr('Категорії витрат'));
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
         actions: [
           if (parent != null)
             IconButton(
-              tooltip: 'Змінити категорію',
+              tooltip: tr('Змінити категорію'),
               icon: const Icon(Icons.edit_outlined),
               onPressed: () => editCategory(context, type: type, existing: parent),
             ),
           IconButton(
-            tooltip: parent == null ? 'Нова категорія' : 'Нова підкатегорія',
+            tooltip: parent == null ? tr('Нова категорія') : tr('Нова підкатегорія'),
             icon: const Icon(Icons.add_rounded),
             onPressed: () => editCategory(context, type: type, parent: parent),
           ),
@@ -685,7 +691,7 @@ class CategoriesPage extends StatelessWidget {
             Container(
               color: panelColor(context),
               child: SwitchListTile(
-                title: const Text('Підкатегорії'),
+                title: Text(tr('Підкатегорії')),
                 value: store.prefs.subcategories,
                 onChanged: (v) => store.updatePrefs((p) => p.subcategories = v),
               ),
@@ -694,7 +700,10 @@ class CategoriesPage extends StatelessWidget {
           ],
           if (cats.isEmpty)
             Expanded(
-              child: EmptyState(icon: Icons.category_outlined, text: parent == null ? 'Категорій ще немає.\nДодай першу кнопкою «+».' : 'Підкатегорій немає.'),
+              child: EmptyState(
+                icon: Icons.category_outlined,
+                text: parent == null ? tr('Категорій ще немає.\nДодай першу кнопкою «+».') : tr('Підкатегорій немає.'),
+              ),
             )
           else
             Expanded(
@@ -734,10 +743,10 @@ class CategoriesPage extends StatelessWidget {
                         child: Row(
                           children: [
                             IconButton(
-                              tooltip: 'Видалити',
+                              tooltip: tr('Видалити'),
                               icon: const MinusBadge(),
                               onPressed: () async {
-                                if (await _confirm(context, 'Видалити «${c.name}»?', 'Записи з цією категорією залишаться, але без категорії.')) {
+                                if (await _confirm(context, tr('Видалити «{0}»?', [c.name]), tr('Записи з цією категорією залишаться, але без категорії.'))) {
                                   store.saveCategory(c.copyWith(deleted: true));
                                 }
                               },
@@ -759,7 +768,7 @@ class CategoriesPage extends StatelessWidget {
                               ),
                             ),
                             IconButton(
-                              tooltip: 'Змінити',
+                              tooltip: tr('Змінити'),
                               icon: Icon(Icons.edit_outlined, color: scheme.onSurfaceVariant),
                               onPressed: () => editCategory(context, type: type, existing: c),
                             ),
@@ -843,7 +852,7 @@ class _CategoryFormState extends State<_CategoryForm> {
   Future<void> _promote() async {
     final store = StoreScope.read(context);
     final e = widget.existing!;
-    if (!await _confirm(context, 'Зробити «${e.name}» основною категорією?', 'Записи цієї підкатегорії перейдуть разом із нею.')) return;
+    if (!await _confirm(context, tr('Зробити «{0}» основною категорією?', [e.name]), tr('Записи цієї підкатегорії перейдуть разом із нею.'))) return;
     await store.saveCategory(
       Category(
         id: e.id,
@@ -900,7 +909,7 @@ class _CategoryFormState extends State<_CategoryForm> {
     );
     return Scaffold(
       appBar: AppBar(
-        title: Text(isNew ? 'Додати' : 'Редаг.'),
+        title: Text(isNew ? tr('Додати') : tr('Редаг.')),
         actions: [
           if (isSub && !isNew)
             Padding(
@@ -913,7 +922,7 @@ class _CategoryFormState extends State<_CategoryForm> {
                   visualDensity: VisualDensity.compact,
                 ),
                 icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                label: const Text('Основна категорія'),
+                label: Text(tr('Основна категорія')),
                 onPressed: _promote,
               ),
             ),
@@ -923,10 +932,10 @@ class _CategoryFormState extends State<_CategoryForm> {
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: [
           if (isSub) ...[
-            row('Категорія', Text(parent.name, style: valueStyle.copyWith(color: muted))),
-            row('Підкатегорія', TextField(controller: _name, autofocus: true, style: valueStyle, decoration: plain(), onSubmitted: (_) => _save())),
+            row(tr('Категорія'), Text(parent.name, style: valueStyle.copyWith(color: muted))),
+            row(tr('Підкатегорія'), TextField(controller: _name, autofocus: true, style: valueStyle, decoration: plain(), onSubmitted: (_) => _save())),
           ] else
-            row('Категорія', TextField(controller: _name, autofocus: true, style: valueStyle, decoration: plain(), onSubmitted: (_) => _save())),
+            row(tr('Категорія'), TextField(controller: _name, autofocus: true, style: valueStyle, decoration: plain(), onSubmitted: (_) => _save())),
           const SizedBox(height: 28),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -936,13 +945,13 @@ class _CategoryFormState extends State<_CategoryForm> {
               shape: const StadiumBorder(),
             ),
             onPressed: _save,
-            child: const Text('Зберегти', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
+            child: Text(tr('Зберегти'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
           ),
           if (!isSub) ...[
             const SizedBox(height: 28),
-            Text('Додатково', style: TextStyle(fontSize: 14, color: muted)),
+            Text(tr('Додатково'), style: TextStyle(fontSize: 14, color: muted)),
             const SizedBox(height: 4),
-            row('Значок', TextField(controller: _emoji, style: const TextStyle(fontSize: 20), decoration: plain('— (емодзі, необовʼязково)'))),
+            row(tr('Значок'), TextField(controller: _emoji, style: const TextStyle(fontSize: 20), decoration: plain(tr('— (емодзі, необовʼязково)')))),
             const SizedBox(height: 12),
             ColorPickerRow(value: _color, onChanged: (v) => setState(() => _color = v)),
           ],
@@ -965,7 +974,7 @@ Future<void> _export(BuildContext context) async {
     mimeType: MimeType.json,
   );
   await store.markBackedUp();
-  if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Резервну копію збережено')));
+  if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('Резервну копію збережено'))));
 }
 
 /// Backup through the share sheet: iCloud Drive ("Зберегти у Файли"), Mail…
@@ -985,7 +994,7 @@ Future<void> shareBackup(BuildContext context) async {
     case ShareResult.unsupported:
       await FileSaver.instance.saveFile(name: name.replaceAll('.json', ''), bytes: bytes, fileExtension: 'json', mimeType: MimeType.json);
       await store.markBackedUp();
-      messenger.showSnackBar(const SnackBar(content: Text('Цей браузер не вміє ділитися файлами, тому копію збережено як завантаження')));
+      messenger.showSnackBar(SnackBar(content: Text(tr('Цей браузер не вміє ділитися файлами, тому копію збережено як завантаження'))));
   }
 }
 
@@ -996,20 +1005,20 @@ Future<void> _import(BuildContext context) async {
   if (files.isEmpty) return;
   final bytes = await files.single.readAsBytes();
   if (!context.mounted) return;
-  if (!await _confirm(context, 'Відновити з копії?', 'Поточні дані буде замінено даними з файлу.')) return;
+  if (!await _confirm(context, tr('Відновити з копії?'), tr('Поточні дані буде замінено даними з файлу.'))) return;
   if (!context.mounted) return;
   final nav = Navigator.of(context, rootNavigator: true);
   showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => const PopScope(
+    builder: (_) => PopScope(
       canPop: false,
       child: AlertDialog(
         content: Row(
           children: [
             SizedBox.square(dimension: 28, child: CircularProgressIndicator(strokeWidth: 3)),
             SizedBox(width: 20),
-            Expanded(child: Text('Відновлюю дані…')),
+            Expanded(child: Text(tr('Відновлюю дані…'))),
           ],
         ),
       ),
@@ -1018,10 +1027,10 @@ Future<void> _import(BuildContext context) async {
   try {
     await store.importJson(utf8.decode(bytes));
     nav.pop();
-    messenger.showSnackBar(const SnackBar(content: Text('Дані відновлено')));
+    messenger.showSnackBar(SnackBar(content: Text(tr('Дані відновлено'))));
   } catch (e) {
     nav.pop();
-    messenger.showSnackBar(SnackBar(content: Text('Не вдалося прочитати файл: $e')));
+    messenger.showSnackBar(SnackBar(content: Text(tr('Не вдалося прочитати файл: {0}', [e]))));
   }
 }
 
@@ -1036,8 +1045,8 @@ Future<void> _importMm(BuildContext context) async {
   if (!context.mounted) return;
   if (!await _confirm(
     context,
-    'Імпортувати з Money Manager?',
-    'Поточні записи, рахунки, категорії, повтори й бюджети буде замінено даними з файлу. Налаштування вигляду залишаться.',
+    tr('Імпортувати з Money Manager?'),
+    tr('Поточні записи, рахунки, категорії, повтори й бюджети буде замінено даними з файлу. Налаштування вигляду залишаться.'),
   )) {
     return;
   }
@@ -1046,14 +1055,14 @@ Future<void> _importMm(BuildContext context) async {
   showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => const PopScope(
+    builder: (_) => PopScope(
       canPop: false,
       child: AlertDialog(
         content: Row(
           children: [
             SizedBox.square(dimension: 28, child: CircularProgressIndicator(strokeWidth: 3)),
             SizedBox(width: 20),
-            Expanded(child: Text('Імпортую дані…')),
+            Expanded(child: Text(tr('Імпортую дані…'))),
           ],
         ),
       ),
@@ -1065,12 +1074,18 @@ Future<void> _importMm(BuildContext context) async {
     if (!context.mounted) return;
     await _info(
       context,
-      'Імпорт завершено',
-      'Рахунків: ${s['accounts']}\nКатегорій: ${s['categories']}\nЗаписів: ${s['transactions']}\nПовторів: ${s['repeats']}\nБюджетів: ${s['budgets']}',
+      tr('Імпорт завершено'),
+      tr('Рахунків: {0}\nКатегорій: {1}\nЗаписів: {2}\nПовторів: {3}\nБюджетів: {4}', [
+        s['accounts'],
+        s['categories'],
+        s['transactions'],
+        s['repeats'],
+        s['budgets'],
+      ]),
     );
   } catch (e) {
     nav.pop();
-    messenger.showSnackBar(SnackBar(content: Text('Не вдалося імпортувати файл: $e')));
+    messenger.showSnackBar(SnackBar(content: Text(tr('Не вдалося імпортувати файл: {0}', [e]))));
   }
 }
 
@@ -1078,23 +1093,23 @@ Future<void> _importMm(BuildContext context) async {
 /// the browser does not clear its data.
 Future<void> showInstallHelp(BuildContext context) {
   final steps = isIos
-      ? const [
-          'Відкрий PFinance у Safari.',
-          'Натисни «Поділитися» (квадрат зі стрілкою вгору) внизу екрана.',
-          'Обери «На початковий екран» і натисни «Додати».',
-          'Далі відкривай PFinance значком з головного екрана.',
+      ? [
+          tr('Відкрий PFinance у Safari.'),
+          tr('Натисни «Поділитися» (квадрат зі стрілкою вгору) внизу екрана.'),
+          tr('Обери «На початковий екран» і натисни «Додати».'),
+          tr('Далі відкривай PFinance значком з головного екрана.'),
         ]
-      : const [
-          'Відкрий меню браузера (⋮ або ⋯).',
-          'Обери «Установити застосунок» або «Додати на головний екран».',
-          'Далі відкривай PFinance значком з головного екрана чи робочого столу.',
+      : [
+          tr('Відкрий меню браузера (⋮ або ⋯).'),
+          tr('Обери «Установити застосунок» або «Додати на головний екран».'),
+          tr('Далі відкривай PFinance значком з головного екрана чи робочого столу.'),
         ];
   return showSheetDialog<void>(
     context: context,
     builder: (context) {
       final scheme = Theme.of(context).colorScheme;
       return AlertDialog(
-        title: const Text('Додати на головний екран'),
+        title: Text(tr('Додати на головний екран')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1118,8 +1133,8 @@ Future<void> showInstallHelp(BuildContext context) {
               ),
             const SizedBox(height: 4),
             Text(
-              'Так PFinance відкривається на весь екран, працює без інтернету, а браузер не стирає записи, '
-              'навіть якщо ти довго не заходив у Safari.',
+              tr('Так PFinance відкривається на весь екран, працює без інтернету, а браузер не стирає записи, ') +
+                  tr('навіть якщо ти довго не заходив у Safari.'),
               style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
             ),
           ],
@@ -1128,7 +1143,7 @@ Future<void> showInstallHelp(BuildContext context) {
           FilledButton(
             style: FilledButton.styleFrom(shape: const StadiumBorder()),
             onPressed: () => Navigator.pop(context),
-            child: const Text('Зрозуміло'),
+            child: Text(tr('Зрозуміло')),
           ),
         ],
       );
@@ -1138,13 +1153,18 @@ Future<void> showInstallHelp(BuildContext context) {
 
 /// «5 днів тому», «сьогодні», «ще не було».
 String backupAgo(int ms) {
-  if (ms == 0) return 'ще не було';
+  if (ms == 0) return tr('ще не було');
   final last = DateTime.fromMillisecondsSinceEpoch(ms);
   final n = DateTime.now();
   final days = DateTime(n.year, n.month, n.day).difference(DateTime(last.year, last.month, last.day)).inDays;
-  if (days <= 0) return 'сьогодні';
-  if (days == 1) return 'вчора';
+  if (days <= 0) return tr('сьогодні');
+  if (days == 1) return tr('вчора');
   final m10 = days % 10, m100 = days % 100;
-  final w = m10 == 1 && m100 != 11 ? 'день' : (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 'дні' : 'днів');
-  return '$days $w тому';
+  // Ukrainian has three plural forms; the other languages say "days" for 2+.
+  final w = lang != 'uk'
+      ? tr('днів')
+      : m10 == 1 && m100 != 11
+      ? tr('день')
+      : (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? tr('дні') : tr('днів'));
+  return tr('{0} {1} тому', [days, w]);
 }

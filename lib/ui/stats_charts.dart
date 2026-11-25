@@ -6,18 +6,19 @@ import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 
 import 'format.dart';
+import '../l10n/l10n.dart';
 
 /// Which chart the Statistics tab shows above the category list.
 enum StatsChart { rose, donut, bars, treemap, bubbles, cumulative, radial }
 
-const statsChartLabels = {
-  StatsChart.rose: 'Троянда з тижнями',
-  StatsChart.donut: 'Пончик',
-  StatsChart.bars: 'Смуги за рангом',
-  StatsChart.treemap: 'Плитки',
-  StatsChart.bubbles: 'Бульбашки',
-  StatsChart.cumulative: 'Накопичувальна лінія',
-  StatsChart.radial: 'Радіальні смуги',
+Map<StatsChart, String> get statsChartLabels => {
+  StatsChart.rose: tr('Троянда з тижнями'),
+  StatsChart.donut: tr('Пончик'),
+  StatsChart.bars: tr('Смуги за рангом'),
+  StatsChart.treemap: tr('Плитки'),
+  StatsChart.bubbles: tr('Бульбашки'),
+  StatsChart.cumulative: tr('Накопичувальна лінія'),
+  StatsChart.radial: tr('Радіальні смуги'),
 };
 
 StatsChart statsChartOf(String name) => StatsChart.values.asNameMap()[name] ?? StatsChart.rose;
@@ -102,7 +103,7 @@ class RankBars extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 4),
                 child: Row(
                   children: [
-                    Expanded(child: Text('Інші (${names.length - rows})', style: _muted(context, 13))),
+                    Expanded(child: Text(tr('Інші ({0})', [names.length - rows]), style: _muted(context, 13))),
                     Text(money(rest, currency), style: _muted(context, 13)),
                   ],
                 ),
@@ -110,7 +111,7 @@ class RankBars extends StatelessWidget {
             const SizedBox(height: 6),
             Row(
               children: [
-                Expanded(child: Text('Разом', style: _muted(context, 13))),
+                Expanded(child: Text(tr('Разом'), style: _muted(context, 13))),
                 Text(money(total, currency), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
               ],
             ),
@@ -326,8 +327,8 @@ class CumulativeLine extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             prev.isEmpty || prevSum == 0
-                ? (today != null ? 'на сьогодні' : 'за період')
-                : '${diff <= 0 ? 'на ${money(-diff, currency)} менше' : 'на ${money(diff, currency)} більше'}, ніж $prevLabel ${today != null ? 'на цей день' : ''}'
+                ? (today != null ? tr('на сьогодні') : tr('за період'))
+                : tr('{0}, ніж {1} {2}', [diff <= 0 ? tr('на {0} менше', [money(-diff, currency)]) : tr('на {0} більше', [money(diff, currency)]), prevLabel, today != null ? tr('на цей день') : ''])
                       .trim(),
             style: muted,
           ),
@@ -352,9 +353,9 @@ class CumulativeLine extends StatelessWidget {
           Wrap(
             spacing: 14,
             children: [
-              _legend(context, color, 'цей період', solid: true),
+              _legend(context, color, tr('цей період'), solid: true),
               _legend(context, Theme.of(context).colorScheme.onSurfaceVariant, prevLabel),
-              if (budget != null) _legend(context, Theme.of(context).colorScheme.error, 'бюджет'),
+              if (budget != null) _legend(context, Theme.of(context).colorScheme.error, tr('бюджет')),
             ],
           ),
         ],
@@ -522,7 +523,7 @@ class _RadialBarsState extends State<RadialBars> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(_sel == null ? 'Разом' : widget.names[_sel!], style: _muted(context, 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(_sel == null ? tr('Разом') : widget.names[_sel!], style: _muted(context, 12), maxLines: 1, overflow: TextOverflow.ellipsis),
                       Text(
                         money(_sel == null ? total : widget.amounts[_sel!], widget.currency),
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),

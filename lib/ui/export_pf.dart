@@ -8,6 +8,7 @@ import 'package:material_ui/material_ui.dart';
 import '../data/models.dart';
 import 'widgets.dart' show chooseOption;
 import '../state/app_store.dart';
+import '../l10n/l10n.dart';
 
 /// Builds an .xlsx in the export layout the PF dashboard already imports
 /// (Period, Accounts, Category, Subcategory, Note, EUR, Income/Expense,
@@ -86,13 +87,13 @@ Future<void> exportForPf(BuildContext context, {DateTime? month}) async {
   }
 
   final options = <(String, ({DateTime start, DateTime end})?)>[
-    ('Місяць (${span(cur)})', cur),
-    ('Мин. місяць (${span(prev)})', prev),
-    ('Рік (${span(year(m.year))})', year(m.year)),
-    ('Мин. рік (${span(year(m.year - 1))})', year(m.year - 1)),
-    ('Все', null),
+    (tr('Місяць ({0})', [span(cur)]), cur),
+    (tr('Мин. місяць ({0})', [span(prev)]), prev),
+    (tr('Рік ({0})', [span(year(m.year))]), year(m.year)),
+    (tr('Мин. рік ({0})', [span(year(m.year - 1))]), year(m.year - 1)),
+    (tr('Все'), null),
   ];
-  final picked = await chooseOption<int>(context, 'Експорт в Excel', {for (final (i, o) in options.indexed) i: o.$1}, -1);
+  final picked = await chooseOption<int>(context, tr('Експорт в Excel'), {for (final (i, o) in options.indexed) i: o.$1}, -1);
   if (picked == null) return;
   final r = options[picked].$2;
   try {
@@ -103,8 +104,8 @@ Future<void> exportForPf(BuildContext context, {DateTime? month}) async {
         ? 'PF-export-all-${f.format(DateTime.now())}'
         : 'PF-export-${f.format(r.start)}_${f.format(r.end.subtract(const Duration(days: 1)))}';
     await FileSaver.instance.saveFile(name: name, bytes: bytes, fileExtension: 'xlsx', mimeType: MimeType.microsoftExcel);
-    messenger.showSnackBar(SnackBar(content: Text('Excel збережено: $n записів. Імпортуй його в PF кнопкою імпорту.')));
+    messenger.showSnackBar(SnackBar(content: Text(tr('Excel збережено: {0} записів. Імпортуй його в PF кнопкою імпорту.', [n]))));
   } catch (e) {
-    messenger.showSnackBar(SnackBar(content: Text('Не вдалося створити файл: $e')));
+    messenger.showSnackBar(SnackBar(content: Text(tr('Не вдалося створити файл: {0}', [e]))));
   }
 }

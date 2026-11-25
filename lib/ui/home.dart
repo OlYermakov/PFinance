@@ -11,6 +11,7 @@ import 'stats_page.dart';
 import 'theme.dart';
 import 'transactions_page.dart';
 import 'widgets.dart';
+import '../l10n/l10n.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -23,11 +24,11 @@ class _HomeShellState extends State<HomeShell> {
   late int _tab;
   late RecordsView _initialView;
 
-  static const _dest = [
-    (Icons.receipt_long_outlined, Icons.receipt_long_rounded, 'Записи'),
-    (Icons.donut_large_outlined, Icons.donut_large_rounded, 'Статистика'),
-    (Icons.account_balance_wallet_outlined, Icons.account_balance_wallet_rounded, 'Рахунки'),
-    (Icons.more_horiz_rounded, Icons.more_horiz_rounded, 'Більше'),
+  static List<(IconData, IconData, String)> get _dest => [
+    (Icons.receipt_long_outlined, Icons.receipt_long_rounded, tr('Записи')),
+    (Icons.donut_large_outlined, Icons.donut_large_rounded, tr('Статистика')),
+    (Icons.account_balance_wallet_outlined, Icons.account_balance_wallet_rounded, tr('Рахунки')),
+    (Icons.more_horiz_rounded, Icons.more_horiz_rounded, tr('Більше')),
   ];
 
   @override
@@ -264,7 +265,7 @@ class _AddButtonState extends State<AddButton> {
     final p = AppPalette.of(context);
     return Semantics(
       button: true,
-      label: 'Додати запис',
+      label: tr('Додати запис'),
       child: GestureDetector(
         onTapDown: (_) => setState(() => _down = true),
         onTapCancel: () => setState(() => _down = false),
@@ -303,8 +304,8 @@ class _LockScreenState extends State<LockScreen> {
   @override
   Widget build(BuildContext context) => PinPad(
     title: 'PFinance',
-    message: 'Введи PIN-код',
-    errorText: 'Невірний PIN-код',
+    message: tr('Введи PIN-код'),
+    errorText: tr('Невірний PIN-код'),
     onComplete: (code) async {
       final store = StoreScope.read(context);
       if (code != store.prefs.pin) return false;

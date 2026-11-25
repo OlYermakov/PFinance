@@ -8,6 +8,7 @@ import 'format.dart';
 import 'more_page.dart' show CategoriesPage, accountsSettingsPage, currencyNames, currencySymbol, editCategory;
 import 'theme.dart';
 import 'widgets.dart';
+import '../l10n/l10n.dart';
 
 /// Opens the full-screen record editor (Money Manager layout: labelled rows on
 /// top, a picker panel at the bottom).
@@ -285,25 +286,25 @@ class _TxnEditorState extends State<TxnEditor> {
   Future<void> _save({bool keepOpen = false, bool copy = false}) async {
     final store = StoreScope.read(context);
     final acc = store.account(_accountId);
-    if (acc == null) return setState(() => _error = 'Обери рахунок');
+    if (acc == null) return setState(() => _error = tr('Обери рахунок'));
     if (_type != TxType.transfer && _categoryId == null) {
-      return setState(() => _error = 'Обери категорію');
+      return setState(() => _error = tr('Обери категорію'));
     }
     final amount = _amountIn(store, acc.currency);
     if (amount == null || amount == 0) {
-      return setState(() => _error = 'Введи суму');
+      return setState(() => _error = tr('Введи суму'));
     }
     int? toAmount;
     int? fee;
     if (_type == TxType.transfer) {
       final to = store.account(_toAccountId);
       if (to == null || to.id == acc.id) {
-        return setState(() => _error = 'Обери рахунок, куди переказ');
+        return setState(() => _error = tr('Обери рахунок, куди переказ'));
       }
       if (to.currency != acc.currency) {
         toAmount = _minor(_Field.toAmount, to.currency);
         if (toAmount == null || toAmount == 0) {
-          return setState(() => _error = 'Введи суму зарахування в ${to.currency}');
+          return setState(() => _error = tr('Введи суму зарахування в {0}', [to.currency]));
         }
       }
       if (_showFee) fee = _minor(_Field.fee, acc.currency);
@@ -349,7 +350,7 @@ class _TxnEditorState extends State<TxnEditor> {
     if (fee != null && fee > 0) {
       // A transfer fee is an expense on the sending account.
       await store.saveTxn(
-        Txn(type: TxType.expense, amount: fee, accountId: acc.id, categoryId: _feeCategory(store)?.id, date: txn.date, note: 'Комісія за переказ'),
+        Txn(type: TxType.expense, amount: fee, accountId: acc.id, categoryId: _feeCategory(store)?.id, date: txn.date, note: tr('Комісія за переказ')),
       );
     }
     if (_repeat != null && _isNew && !copy) {
@@ -361,7 +362,7 @@ class _TxnEditorState extends State<TxnEditor> {
     if (!mounted) return;
     if (copy) {
       Navigator.pop(context);
-      messenger.showSnackBar(SnackBar(content: Text('Скопійовано на ${shortDate(txn.date)}')));
+      messenger.showSnackBar(SnackBar(content: Text(tr('Скопійовано на {0}', [shortDate(txn.date)]))));
       return;
     }
     if (keepOpen) {
@@ -385,7 +386,7 @@ class _TxnEditorState extends State<TxnEditor> {
 
   Category? _feeCategory(AppStore store) {
     final cats = store.categoriesOf(TxType.expense);
-    return cats.where((c) => c.name.toLowerCase().contains('коміс')).firstOrNull ?? cats.where((c) => c.name == 'Інше').firstOrNull ?? cats.lastOrNull;
+    return cats.where((c) => c.name.toLowerCase().contains(tr('коміс'))).firstOrNull ?? cats.where((c) => c.name == tr('Інше')).firstOrNull ?? cats.lastOrNull;
   }
 
   /// MM: the date is picked on a month calendar in the bottom panel.
@@ -437,7 +438,7 @@ class _TxnEditorState extends State<TxnEditor> {
               for (final n in names)
                 Expanded(
                   child: Center(
-                    child: Text(n, style: TextStyle(fontSize: 12, color: n == 'Сб' ? sat : (n == 'Нд' ? sun : scheme.onSurfaceVariant))),
+                    child: Text(n, style: TextStyle(fontSize: 12, color: n == tr('Сб') ? sat : (n == tr('Нд') ? sun : scheme.onSurfaceVariant))),
                   ),
                 ),
             ],
@@ -553,7 +554,7 @@ class _TxnEditorState extends State<TxnEditor> {
     final tag = await showSheetDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Тег'),
+        title: Text(tr('Тег')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -561,7 +562,7 @@ class _TxnEditorState extends State<TxnEditor> {
             TextField(
               controller: ctrl,
               autofocus: true,
-              decoration: const InputDecoration(prefixText: '#', hintText: 'відпустка'),
+              decoration: InputDecoration(prefixText: '#', hintText: tr('відпустка')),
               onSubmitted: (v) => Navigator.pop(context, v),
             ),
             if (existing.isNotEmpty) ...[
@@ -575,8 +576,8 @@ class _TxnEditorState extends State<TxnEditor> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Скасувати')),
-          FilledButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('Додати')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Скасувати'))),
+          FilledButton(onPressed: () => Navigator.pop(context, ctrl.text), child: Text(tr('Додати'))),
         ],
       ),
     );
@@ -609,9 +610,9 @@ class _TxnEditorState extends State<TxnEditor> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Шаблони', style: Theme.of(context).textTheme.titleLarge),
+                Text(tr('Шаблони'), style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 4),
-                Text('Часті записи одним дотиком: оренда, кава, проїзд.', style: Theme.of(context).textTheme.bodySmall),
+                Text(tr('Часті записи одним дотиком: оренда, кава, проїзд.'), style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 12),
                 for (final t in list)
                   ListTile(
@@ -624,7 +625,7 @@ class _TxnEditorState extends State<TxnEditor> {
                       children: [
                         if (t.amount > 0) Text(money(t.amount, store.currencyOf(t)), style: const TextStyle(fontWeight: FontWeight.w700)),
                         IconButton(
-                          tooltip: 'Видалити шаблон',
+                          tooltip: tr('Видалити шаблон'),
                           icon: const Icon(Icons.close_rounded, size: 18),
                           onPressed: () async {
                             await store.deleteTemplate(t);
@@ -635,11 +636,11 @@ class _TxnEditorState extends State<TxnEditor> {
                     ),
                     onTap: () => Navigator.pop(context, t),
                   ),
-                if (list.isEmpty) const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Шаблонів ще немає.')),
+                if (list.isEmpty) Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text(tr('Шаблонів ще немає.'))),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   icon: const Icon(Icons.star_outline_rounded),
-                  label: const Text('Зберегти поточний запис як шаблон'),
+                  label: Text(tr('Зберегти поточний запис як шаблон')),
                   onPressed: () async {
                     final acc = store.account(_accountId);
                     await store.saveTemplate(
@@ -697,9 +698,9 @@ class _TxnEditorState extends State<TxnEditor> {
       TxType.transfer => scheme.onSurface,
     };
     final title = switch (_type) {
-      TxType.expense => 'Витрата',
-      TxType.income => 'Дохід',
-      TxType.transfer => 'Переказ',
+      TxType.expense => tr('Витрата'),
+      TxType.income => tr('Дохід'),
+      TxType.transfer => tr('Переказ'),
     };
     final cat = store.category(_subId ?? _categoryId);
     final top = store.category(_categoryId);
@@ -753,7 +754,7 @@ class _TxnEditorState extends State<TxnEditor> {
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                'Курс обміну: ${rate!.toStringAsFixed(rate < 1 ? 4 : 2).replaceAll('.', ',')}${rateToday ? ' (поточний)' : ''}',
+                tr('Курс обміну: {0}{1}', [rate!.toStringAsFixed(rate < 1 ? 4 : 2).replaceAll('.', ','), rateToday ? tr(' (поточний)') : '']),
                 textAlign: TextAlign.right,
                 style: muted.copyWith(fontSize: 12),
               ),
@@ -801,7 +802,7 @@ class _TxnEditorState extends State<TxnEditor> {
         ),
         const SizedBox(height: 8),
         _FormRow(
-          label: 'Дата',
+          label: tr('Дата'),
           accent: accent,
           active: _panel == _Field.date || _panel == _Field.time,
           onTap: _pickDate,
@@ -839,13 +840,13 @@ class _TxnEditorState extends State<TxnEditor> {
         ),
         ...(() {
           final accRow = _FormRow(
-            label: _type == TxType.transfer ? 'Звідки' : 'Рахунок',
+            label: _type == TxType.transfer ? tr('Звідки') : tr('Рахунок'),
             accent: accent,
             active: _panel == _Field.account,
             onTap: () => _open(_Field.account),
             trailing: _type == TxType.transfer
                 ? IconButton(
-                    tooltip: 'Поміняти місцями',
+                    tooltip: tr('Поміняти місцями'),
                     icon: const Icon(Icons.swap_vert_rounded),
                     onPressed: () => setState(() {
                       final a = _accountId;
@@ -858,14 +859,14 @@ class _TxnEditorState extends State<TxnEditor> {
           );
           final Widget catRow = _type == TxType.transfer
               ? _FormRow(
-                  label: 'Куди',
+                  label: tr('Куди'),
                   accent: accent,
                   active: _panel == _Field.toAccount,
                   onTap: () => _open(_Field.toAccount),
                   child: Text(to?.name ?? '', style: _valueStyle),
                 )
               : _FormRow(
-                  label: 'Категорія',
+                  label: tr('Категорія'),
                   accent: accent,
                   active: _panel == _Field.category,
                   onTap: () => _open(_Field.category),
@@ -877,7 +878,7 @@ class _TxnEditorState extends State<TxnEditor> {
                   ),
                 );
           final Widget amountRow = _FormRow(
-            label: 'Сума',
+            label: tr('Сума'),
             accent: accent,
             active: _panel == _Field.amount,
             onTap: () => _open(_Field.amount),
@@ -893,7 +894,7 @@ class _TxnEditorState extends State<TxnEditor> {
                         _showFee = !_showFee;
                         _panel = _showFee ? _Field.fee : null;
                       }),
-                      child: const Text('Комісія'),
+                      child: Text(tr('Комісія')),
                     ),
                   )
                 : null,
@@ -904,21 +905,21 @@ class _TxnEditorState extends State<TxnEditor> {
         })(),
         if (cross)
           _FormRow(
-            label: 'Зараховано',
+            label: tr('Зараховано'),
             accent: accent,
             active: _panel == _Field.toAmount,
             onTap: () => _open(_Field.toAmount),
             child: amountText(_Field.toAmount, to!.currency),
           ),
         if (_type == TxType.transfer && _showFee)
-          _FormRow(label: 'Комісія', accent: accent, active: _panel == _Field.fee, onTap: () => _open(_Field.fee), child: amountText(_Field.fee, cur)),
+          _FormRow(label: tr('Комісія'), accent: accent, active: _panel == _Field.fee, onTap: () => _open(_Field.fee), child: amountText(_Field.fee, cur)),
         _FormRow(
-          label: 'Нотатка',
+          label: tr('Нотатка'),
           accent: accent,
           active: _noteFocus.hasFocus,
           trailing: _note.text.isNotEmpty && _noteFocus.hasFocus
               ? IconButton(
-                  tooltip: 'Очистити',
+                  tooltip: tr('Очистити'),
                   icon: Icon(Icons.cancel_rounded, size: 20, color: scheme.onSurfaceVariant),
                   onPressed: () => setState(() => _note.clear()),
                 )
@@ -981,14 +982,14 @@ class _TxnEditorState extends State<TxnEditor> {
                     focusNode: _noteFocus,
                     style: _valueStyle,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       isDense: true,
                       filled: false,
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(vertical: 6),
-                      hintText: 'магазин, одержувач…',
+                      hintText: tr('магазин, одержувач…'),
                     ),
                     onChanged: (_) => setState(() {}),
                     onSubmitted: (_) => _save(),
@@ -1007,7 +1008,7 @@ class _TxnEditorState extends State<TxnEditor> {
             for (final t in tags) InputChip(label: Text('#$t'), onDeleted: () => _removeTag(t), visualDensity: VisualDensity.compact),
             ActionChip(
               avatar: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Тег', style: TextStyle(fontSize: 14)),
+              label: Text(tr('Тег'), style: TextStyle(fontSize: 14)),
               shape: const StadiumBorder(),
               side: BorderSide.none,
               backgroundColor: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.22 : 0.06),
@@ -1019,7 +1020,7 @@ class _TxnEditorState extends State<TxnEditor> {
         const SizedBox(height: 6),
         // MM «Опис» (under the tags): longer details, shown after the note when «Показати деталі» is on.
         _FormRow(
-          label: 'Опис',
+          label: tr('Опис'),
           accent: accent,
           active: _memoFocus.hasFocus,
           child: TextField(
@@ -1029,14 +1030,14 @@ class _TxnEditorState extends State<TxnEditor> {
             minLines: 1,
             maxLines: 4,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               isDense: true,
               filled: false,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(vertical: 6),
-              hintText: 'подробиці',
+              hintText: tr('подробиці'),
             ),
           ),
         ),
@@ -1055,14 +1056,14 @@ class _TxnEditorState extends State<TxnEditor> {
         if (_savedInSeries > 0)
           Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: Text('Збережено записів: $_savedInSeries', style: TextStyle(color: scheme.onSurfaceVariant)),
+            child: Text(tr('Збережено записів: {0}', [_savedInSeries]), style: TextStyle(color: scheme.onSurfaceVariant)),
           ),
         const SizedBox(height: 18),
         Row(
           children: [
             if (!_isNew) ...[
               IconButton.outlined(
-                tooltip: 'Видалити',
+                tooltip: tr('Видалити'),
                 icon: const Icon(Icons.delete_outline_rounded),
                 onPressed: () async {
                   if (!await confirmDeleteRecord(context, repeat: _isRule)) return;
@@ -1076,7 +1077,7 @@ class _TxnEditorState extends State<TxnEditor> {
               ),
               const SizedBox(width: 8),
               if (store.prefs.copyPaste && !_isRule) ...[
-                IconButton.outlined(tooltip: 'Копіювати', icon: const Icon(Icons.copy_rounded), onPressed: () => _save(copy: true)),
+                IconButton.outlined(tooltip: tr('Копіювати'), icon: const Icon(Icons.copy_rounded), onPressed: () => _save(copy: true)),
                 const SizedBox(width: 8),
               ],
             ],
@@ -1091,7 +1092,7 @@ class _TxnEditorState extends State<TxnEditor> {
                   shape: const StadiumBorder(),
                 ),
                 onPressed: () => _save(),
-                child: const Text('Зберегти', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
+                child: Text(tr('Зберегти'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
               ),
             ),
             if (_isNew) ...[
@@ -1106,7 +1107,7 @@ class _TxnEditorState extends State<TxnEditor> {
                     shape: const StadiumBorder(),
                   ),
                   onPressed: _next,
-                  child: const Text('Далі', style: TextStyle(fontSize: 16)),
+                  child: Text(tr('Далі'), style: TextStyle(fontSize: 16)),
                 ),
               ),
             ],
@@ -1122,7 +1123,7 @@ class _TxnEditorState extends State<TxnEditor> {
           child: Text(title, key: ValueKey(title)),
         ),
         centerTitle: true,
-        actions: [IconButton(tooltip: 'Шаблони', icon: const Icon(Icons.star_outline_rounded), onPressed: _templates)],
+        actions: [IconButton(tooltip: tr('Шаблони'), icon: const Icon(Icons.star_outline_rounded), onPressed: _templates)],
       ),
       body: SafeArea(
         top: false,
@@ -1178,8 +1179,8 @@ class _TxnEditorState extends State<TxnEditor> {
     borderRadius: BorderRadius.circular(10),
     onTap: () async {
       _open(null);
-      final v = await chooseOption<String>(context, 'Повторювати', {
-        'none': 'Не повторювати',
+      final v = await chooseOption<String>(context, tr('Повторювати'), {
+        'none': tr('Не повторювати'),
         for (final r in RepeatEvery.values) r.name: repeatLabel(r),
       }, _repeat?.name ?? 'none');
       if (v != null && mounted) setState(() => _repeat = RepeatEvery.values.asNameMap()[v]);
@@ -1191,7 +1192,7 @@ class _TxnEditorState extends State<TxnEditor> {
         children: [
           Icon(Icons.repeat_rounded, color: _repeat == null ? scheme.onSurfaceVariant : scheme.primary),
           Text(
-            _repeat == null ? 'Повтор' : repeatShort(_repeat!),
+            _repeat == null ? tr('Повтор') : repeatShort(_repeat!),
             style: TextStyle(fontSize: 11, color: _repeat == null ? scheme.onSurfaceVariant : scheme.primary, fontWeight: FontWeight.w600),
           ),
         ],
@@ -1203,15 +1204,15 @@ class _TxnEditorState extends State<TxnEditor> {
     final f = _panel!;
     final scheme = Theme.of(context).colorScheme;
     final (String title, VoidCallback? edit, Widget body) = switch (f) {
-      _Field.date => ('Дата', null, _calendar(store, scheme)),
-      _Field.time => ('Час', null, _timeWheels(scheme, accent)),
-      _Field.account || _Field.toAccount => ('Рахунок', () => _pushPage(accountsSettingsPage()), _accountGrid(store, accent, f)),
-      _Field.category => ('Категорія', () => _pushPage(CategoriesPage(type: _type)), _categoryGrid(store, accent)),
+      _Field.date => (tr('Дата'), null, _calendar(store, scheme)),
+      _Field.time => (tr('Час'), null, _timeWheels(scheme, accent)),
+      _Field.account || _Field.toAccount => (tr('Рахунок'), () => _pushPage(accountsSettingsPage()), _accountGrid(store, accent, f)),
+      _Field.category => (tr('Категорія'), () => _pushPage(CategoriesPage(type: _type)), _categoryGrid(store, accent)),
       _ => (
         switch (f) {
-          _Field.toAmount => 'Зараховано',
-          _Field.fee => 'Комісія',
-          _ => 'Сума',
+          _Field.toAmount => tr('Зараховано'),
+          _Field.fee => tr('Комісія'),
+          _ => tr('Сума'),
         },
         null,
         Column(
@@ -1255,7 +1256,7 @@ class _TxnEditorState extends State<TxnEditor> {
                 ),
                 if (f == _Field.account || f == _Field.toAccount)
                   IconButton(
-                    tooltip: store.prefs.accountGroupsInPicker ? 'Усі рахунки' : 'За групами',
+                    tooltip: store.prefs.accountGroupsInPicker ? tr('Усі рахунки') : tr('За групами'),
                     icon: Icon(store.prefs.accountGroupsInPicker ? Icons.filter_none_rounded : Icons.select_all_rounded),
                     onPressed: () {
                       _expanded = null;
@@ -1270,17 +1271,17 @@ class _TxnEditorState extends State<TxnEditor> {
                       _minuteWheel.animateToItem(n.minute, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
                     },
                     style: TextButton.styleFrom(foregroundColor: scheme.onSurfaceVariant),
-                    child: const Text('Зараз', style: TextStyle(fontSize: 16)),
+                    child: Text(tr('Зараз'), style: TextStyle(fontSize: 16)),
                   ),
                 if (f == _Field.date)
                   TextButton(
                     onPressed: () => _setDay(DateTime.now()),
                     style: TextButton.styleFrom(foregroundColor: scheme.onSurfaceVariant),
-                    child: const Text('Сьогодні', style: TextStyle(fontSize: 16)),
+                    child: Text(tr('Сьогодні'), style: TextStyle(fontSize: 16)),
                   ),
-                if (f == _Field.amount) IconButton(tooltip: 'Інша валюта', icon: const Icon(Icons.language_rounded), onPressed: () => _otherCurrency(store)),
-                if (edit != null) IconButton(tooltip: 'Редагувати', icon: const Icon(Icons.edit_outlined), onPressed: edit),
-                IconButton(tooltip: 'Закрити', icon: const Icon(Icons.close_rounded), onPressed: () => _open(null)),
+                if (f == _Field.amount) IconButton(tooltip: tr('Інша валюта'), icon: const Icon(Icons.language_rounded), onPressed: () => _otherCurrency(store)),
+                if (edit != null) IconButton(tooltip: tr('Редагувати'), icon: const Icon(Icons.edit_outlined), onPressed: edit),
+                IconButton(tooltip: tr('Закрити'), icon: const Icon(Icons.close_rounded), onPressed: () => _open(null)),
               ],
             ),
           ),
@@ -1326,14 +1327,14 @@ class _TxnEditorState extends State<TxnEditor> {
   Future<void> _otherCurrency(AppStore store) async {
     final messenger = ScaffoldMessenger.of(context);
     final accCur = store.account(_accountId)?.currency ?? store.baseCurrency;
-    final c = await chooseOption<String>(context, 'Валюта суми', {
+    final c = await chooseOption<String>(context, tr('Валюта суми'), {
       for (final c in currencies) c: '$c — ${currencyNames[c] ?? c} (${currencySymbol(c)})',
     }, _amountCur ?? accCur);
     if (c == null || !mounted) return;
     setState(() => _amountCur = c == accCur ? null : c);
     if (!store.hasRate(c)) {
       await store.refreshRates(force: true, extra: [c]);
-      if (!store.hasRate(c)) messenger.showSnackBar(SnackBar(content: Text('Немає курсу $c. Задай його в «Більше → Додаткові валюти».')));
+      if (!store.hasRate(c)) messenger.showSnackBar(SnackBar(content: Text(tr('Немає курсу {0}. Задай його в «Більше → Додаткові валюти».', [c]))));
     }
   }
 
@@ -1365,7 +1366,7 @@ class _TxnEditorState extends State<TxnEditor> {
         _advance(f);
       },
     );
-    final add = _Cell('Додати', muted: true, onTap: () => editAccount(context));
+    final add = _Cell(tr('Додати'), muted: true, onTap: () => editAccount(context));
     if (!store.prefs.accountGroupsInPicker) {
       return _Grid(accent: accent, cells: [for (final l in groups.values) ...l.map(cell), add]);
     }
@@ -1395,7 +1396,7 @@ class _TxnEditorState extends State<TxnEditor> {
     final useSubs = store.prefs.subcategories;
     final cells = <_Cell>[
       for (final c in store.categoriesOf(_type)) _categoryCell(store, c, useSubs ? store.subcategoriesOf(c.id) : const <Category>[]),
-      _Cell('Додати', muted: true, onTap: () => editCategory(context, type: _type)),
+      _Cell(tr('Додати'), muted: true, onTap: () => editCategory(context, type: _type)),
     ];
     final rows = <Widget>[];
     for (var i = 0; i < cells.length; i += 3) {
@@ -1421,7 +1422,7 @@ class _TxnEditorState extends State<TxnEditor> {
                   },
                 ),
               _Cell(
-                'Додати',
+                tr('Додати'),
                 muted: true,
                 onTap: () => editCategory(context, type: _type, parent: store.category(open.id)),
               ),
@@ -1463,7 +1464,7 @@ class _TypeTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) => PillTabs<TxType>(
     value: value,
-    items: const {TxType.income: 'Дохід', TxType.expense: 'Витрата', TxType.transfer: 'Переказ'},
+    items: {TxType.income: tr('Дохід'), TxType.expense: tr('Витрата'), TxType.transfer: tr('Переказ')},
     pillColors: colors,
     onChanged: onChanged,
   );
@@ -1494,7 +1495,8 @@ class _FormRow extends StatelessWidget {
               width: 74,
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text(label, style: TextStyle(fontSize: 15, color: scheme.onSurfaceVariant)),
+                // Long words of other languages shrink to fit instead of breaking.
+                child: Padding(padding: const EdgeInsets.only(right: 6), child: FittedBox(fit: BoxFit.scaleDown, child: Text(label, maxLines: 1, style: TextStyle(fontSize: 15, color: scheme.onSurfaceVariant)))),
               ),
             ),
             Expanded(
@@ -1736,35 +1738,35 @@ double? evalExpression(String s) {
 }
 
 String repeatLabel(RepeatEvery r) => switch (r) {
-  RepeatEvery.day => 'Щодня',
-  RepeatEvery.weekdays => 'Будні дні',
-  RepeatEvery.weekends => 'Вихідні',
-  RepeatEvery.week => 'Щотижня',
-  RepeatEvery.twoWeeks => 'Кожні 2 тижні',
-  RepeatEvery.fourWeeks => 'Кожні 4 тижні',
-  RepeatEvery.month => 'Щомісяця',
-  RepeatEvery.monthEnd => 'Вкінці місяця',
-  RepeatEvery.twoMonths => 'Кожні 2 місяці',
-  RepeatEvery.quarter => 'Кожні 3 місяці',
-  RepeatEvery.fourMonths => 'Кожні 4 місяці',
-  RepeatEvery.halfYear => 'Кожні 6 місяців',
-  RepeatEvery.year => 'Раз на рік',
+  RepeatEvery.day => tr('Щодня'),
+  RepeatEvery.weekdays => tr('Будні дні'),
+  RepeatEvery.weekends => tr('Вихідні'),
+  RepeatEvery.week => tr('Щотижня'),
+  RepeatEvery.twoWeeks => tr('Кожні 2 тижні'),
+  RepeatEvery.fourWeeks => tr('Кожні 4 тижні'),
+  RepeatEvery.month => tr('Щомісяця'),
+  RepeatEvery.monthEnd => tr('Вкінці місяця'),
+  RepeatEvery.twoMonths => tr('Кожні 2 місяці'),
+  RepeatEvery.quarter => tr('Кожні 3 місяці'),
+  RepeatEvery.fourMonths => tr('Кожні 4 місяці'),
+  RepeatEvery.halfYear => tr('Кожні 6 місяців'),
+  RepeatEvery.year => tr('Раз на рік'),
 };
 
 String repeatShort(RepeatEvery r) => switch (r) {
-  RepeatEvery.day => 'день',
-  RepeatEvery.weekdays => 'будні',
-  RepeatEvery.weekends => 'вихідні',
-  RepeatEvery.week => 'тиждень',
-  RepeatEvery.twoWeeks => '2 тижні',
-  RepeatEvery.fourWeeks => '4 тижні',
-  RepeatEvery.month => 'місяць',
-  RepeatEvery.monthEnd => 'кін. міс.',
-  RepeatEvery.twoMonths => '2 міс.',
-  RepeatEvery.quarter => '3 міс.',
-  RepeatEvery.fourMonths => '4 міс.',
-  RepeatEvery.halfYear => '6 міс.',
-  RepeatEvery.year => 'рік',
+  RepeatEvery.day => tr('день'),
+  RepeatEvery.weekdays => tr('будні'),
+  RepeatEvery.weekends => tr('вихідні'),
+  RepeatEvery.week => tr('тиждень'),
+  RepeatEvery.twoWeeks => tr('2 тижні'),
+  RepeatEvery.fourWeeks => tr('4 тижні'),
+  RepeatEvery.month => tr('місяць'),
+  RepeatEvery.monthEnd => tr('кін. міс.'),
+  RepeatEvery.twoMonths => tr('2 міс.'),
+  RepeatEvery.quarter => tr('3 міс.'),
+  RepeatEvery.fourMonths => tr('4 міс.'),
+  RepeatEvery.halfYear => tr('6 міс.'),
+  RepeatEvery.year => tr('рік'),
 };
 
 /// MM asks before deleting a record (bottom panel, like every dialog).
@@ -1774,18 +1776,18 @@ Future<bool> confirmDeleteRecord(BuildContext context, {bool repeat = false}) as
     builder: (context) {
       final scheme = Theme.of(context).colorScheme;
       return AlertDialog(
-        title: Text(repeat ? 'Видалити повтор?' : 'Видалити запис?'),
-        content: Text(repeat ? 'Нові записи більше не створюватимуться. Уже створені залишаться.' : 'Запис буде видалено.'),
+        title: Text(repeat ? tr('Видалити повтор?') : tr('Видалити запис?')),
+        content: Text(repeat ? tr('Нові записи більше не створюватимуться. Уже створені залишаться.') : tr('Запис буде видалено.')),
         actions: [
           TextButton(
             style: TextButton.styleFrom(shape: const StadiumBorder()),
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Ні'),
+            child: Text(tr('Ні')),
           ),
           FilledButton(
             style: FilledButton.styleFrom(shape: const StadiumBorder(), backgroundColor: scheme.error, foregroundColor: scheme.onError),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Видалити'),
+            child: Text(tr('Видалити')),
           ),
         ],
       );

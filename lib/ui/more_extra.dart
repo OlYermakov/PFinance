@@ -8,12 +8,12 @@ class _TxnSettingsPage extends StatelessWidget {
   const _TxnSettingsPage();
 
   static String startLabel(StartPage s) => switch (s) {
-    StartPage.day => 'День',
-    StartPage.calendar => 'Календар',
-    StartPage.month => 'Місяць',
-    StartPage.summary => 'Підсумок',
-    StartPage.stats => 'Статистика',
-    StartPage.accounts => 'Рахунки',
+    StartPage.day => tr('День'),
+    StartPage.calendar => tr('Календар'),
+    StartPage.month => tr('Місяць'),
+    StartPage.summary => tr('Підсумок'),
+    StartPage.stats => tr('Статистика'),
+    StartPage.accounts => tr('Рахунки'),
   };
 
   @override
@@ -33,26 +33,26 @@ class _TxnSettingsPage extends StatelessWidget {
       if (v != null) store.updatePrefs((p) => set(p, v));
     }
 
-    const timeLabels = {
-      0: 'Немає, спад.',
-      1: 'Немає, зрост.',
-      4: 'Показ у списку, спад.',
-      5: 'Показ у списку, зрост.',
-      2: 'Лише введення, спад.',
-      3: 'Лише введення, зрост.',
+    final timeLabels = {
+      0: tr('Немає, спад.'),
+      1: tr('Немає, зрост.'),
+      4: tr('Показ у списку, спад.'),
+      5: tr('Показ у списку, зрост.'),
+      2: tr('Лише введення, спад.'),
+      3: tr('Лише введення, зрост.'),
     };
-    const weekdays = {1: 'Понеділок', 2: 'Вівторок', 3: 'Середа', 4: 'Четвер', 5: 'Пʼятниця', 6: 'Субота', 7: 'Неділя'};
-    const shiftLabels = {0: '', 1: ' · пт', 2: ' · пн'};
-    const swipeLabels = {'tabs': 'Зміна вкладки', 'period': 'Зміна періоду', 'delete': 'Видалення запису', 'off': 'Вимкнено'};
+    final weekdays = {1: tr('Понеділок'), 2: tr('Вівторок'), 3: tr('Середа'), 4: tr('Четвер'), 5: tr('Пʼятниця'), 6: tr('Субота'), 7: tr('Неділя')};
+    final shiftLabels = {0: '', 1: tr(' · пт'), 2: tr(' · пн')};
+    final swipeLabels = {'tabs': tr('Зміна вкладки'), 'period': tr('Зміна періоду'), 'delete': tr('Видалення запису'), 'off': tr('Вимкнено')};
     return Scaffold(
-      appBar: AppBar(title: const Text('Налаштування записів')),
+      appBar: AppBar(title: Text(tr('Налаштування записів'))),
       body: ListView(
         children: [
           _Group(
             children: [
               _Item(
                 null,
-                'Початок місяця',
+                tr('Початок місяця'),
                 value: '${pr.monthStartDay}${shiftLabels[pr.monthStartShift]}',
                 onTap: () => showModalBottomSheet<void>(
                   context: context,
@@ -64,10 +64,10 @@ class _TxnSettingsPage extends StatelessWidget {
               ),
               _Item(
                 null,
-                'Початок тижня',
+                tr('Початок тижня'),
                 value: weekdays[pr.weekStart],
                 onTap: () => pick<int>(
-                  'Початок тижня',
+                  tr('Початок тижня'),
                   {
                     for (final d in [7, 1, 2, 3, 4, 5, 6]) d: weekdays[d]!,
                   },
@@ -78,36 +78,36 @@ class _TxnSettingsPage extends StatelessWidget {
               ),
               _Item(
                 null,
-                'Перенесення залишку',
+                tr('Перенесення залишку'),
                 value: _onOff(pr.carryOver),
                 onTap: () => pick<bool>(
-                  'Перенесення залишку',
-                  {false: 'Вимк.', true: 'Увімк.'},
+                  tr('Перенесення залишку'),
+                  {false: tr('Вимк.'), true: tr('Увімк.')},
                   pr.carryOver,
                   (p, v) => p.carryOver = v,
                   spot: _Spot.carry,
-                  note: 'Перенесення додає залишок попередніх місяців до підсумку «Разом» поточного.',
+                  note: tr('Перенесення додає залишок попередніх місяців до підсумку «Разом» поточного.'),
                 ),
               ),
               _Item(
                 null,
-                'Налаштування періоду',
-                value: pr.weeklyPeriod ? 'Тижні' : 'Місяці',
+                tr('Налаштування періоду'),
+                value: pr.weeklyPeriod ? tr('Тижні') : tr('Місяці'),
                 onTap: () => pick<bool>(
-                  'Налаштування періоду',
-                  {false: 'Місяці', true: 'Тижні'},
+                  tr('Налаштування періоду'),
+                  {false: tr('Місяці'), true: tr('Тижні')},
                   pr.weeklyPeriod,
                   (p, v) => p.weeklyPeriod = v,
-                  note: '«Тижні»: у записах (День, Підсумок) і в Статистиці стрілки перемикають тижні, і всі підсумки рахуються за тиждень. Тиждень починається з дня, вибраного в «Початку тижня». Календар і бюджет лишаються помісячними.',
+                  note: tr('«Тижні»: у записах (День, Підсумок) і в Статистиці стрілки перемикають тижні, і всі підсумки рахуються за тиждень. Тиждень починається з дня, вибраного в «Початку тижня». Календар і бюджет лишаються помісячними.'),
                 ),
               ),
               _Item(
                 null,
-                'Колір доходів і витрат',
-                value: const {'green': 'Дохід зелений', 'blue': 'Дохід синій', 'accent': 'Дохід за акцентом'}[pr.incomeColor] ?? 'Дохід зелений',
+                tr('Колір доходів і витрат'),
+                value: {'green': tr('Дохід зелений'), 'blue': tr('Дохід синій'), 'accent': tr('Дохід за акцентом')}[pr.incomeColor] ?? tr('Дохід зелений'),
                 onTap: () => pick<String>(
-                  'Колір доходів',
-                  const {'green': 'Дохід зелений, витрати червоні', 'blue': 'Дохід синій, витрати червоні', 'accent': 'Дохід за акцентом, витрати червоні'},
+                  tr('Колір доходів'),
+                  {'green': tr('Дохід зелений, витрати червоні'), 'blue': tr('Дохід синій, витрати червоні'), 'accent': tr('Дохід за акцентом, витрати червоні')},
                   pr.incomeColor,
                   (p, v) => p.incomeColor = v,
                   spot: _Spot.colors,
@@ -115,22 +115,22 @@ class _TxnSettingsPage extends StatelessWidget {
               ),
               _Item(
                 null,
-                'Автозаповнення',
+                tr('Автозаповнення'),
                 value: _onOff(pr.noteSuggestions),
                 onTap: () => pick<bool>(
-                  'Автозаповнення',
-                  {false: 'Вимк.', true: 'Увімк.'},
+                  tr('Автозаповнення'),
+                  {false: tr('Вимк.'), true: tr('Увімк.')},
                   pr.noteSuggestions,
                   (p, v) => p.noteSuggestions = v,
-                  note: 'Під час введення нотатки показує схожі нотатки з попередніх записів. Вибір підказки заповнює категорію, рахунок і суму.',
+                  note: tr('Під час введення нотатки показує схожі нотатки з попередніх записів. Вибір підказки заповнює категорію, рахунок і суму.'),
                 ),
               ),
               _Item(
                 null,
-                'Введення часу',
+                tr('Введення часу'),
                 value: timeLabels[_timeKey(pr)],
                 onTap: () => pick<int>(
-                  'Введення часу',
+                  tr('Введення часу'),
                   timeLabels,
                   _timeKey(pr),
                   (p, v) {
@@ -138,15 +138,15 @@ class _TxnSettingsPage extends StatelessWidget {
                     p.timeAsc = v.isOdd;
                   },
                   spot: _Spot.time,
-                  note: '«Немає» — без часу; «Показ у списку» — час видно в записах; «Лише введення» — час лише в редакторі. Спад./зрост. — порядок записів у дні.',
+                  note: tr('«Немає» — без часу; «Показ у списку» — час видно в записах; «Лише введення» — час лише в редакторі. Спад./зрост. — порядок записів у дні.'),
                 ),
               ),
               _Item(
                 null,
-                'Стартовий екран',
+                tr('Стартовий екран'),
                 value: startLabel(pr.startPage),
                 onTap: () => pick<StartPage>(
-                  'Стартовий екран',
+                  tr('Стартовий екран'),
                   {for (final s in StartPage.values) s: startLabel(s)},
                   pr.startPage,
                   (p, v) => p.startPage = v,
@@ -155,33 +155,33 @@ class _TxnSettingsPage extends StatelessWidget {
               ),
               _Item(
                 null,
-                'Свайп',
+                tr('Свайп'),
                 value: swipeLabels[pr.swipe],
-                onTap: () => pick<String>('Свайп у списку записів', swipeLabels, pr.swipe, (p, v) => p.swipe = v),
+                onTap: () => pick<String>(tr('Свайп у списку записів'), swipeLabels, pr.swipe, (p, v) => p.swipe = v),
               ),
               _Item(
                 null,
-                'Показати деталі',
+                tr('Показати деталі'),
                 value: _onOff(pr.showNote),
                 onTap: () => pick<bool>(
-                  'Показати деталі',
-                  {false: 'Вимк.', true: 'Увімк.'},
+                  tr('Показати деталі'),
+                  {false: tr('Вимк.'), true: tr('Увімк.')},
                   pr.showNote,
                   (p, v) => p.showNote = v,
                   spot: _Spot.note,
-                  note: 'Опис запису (поле «Опис» у редакторі) показується в списку сірим одразу після нотатки.',
+                  note: tr('Опис запису (поле «Опис» у редакторі) показується в списку сірим одразу після нотатки.'),
                 ),
               ),
               _Item(
                 null,
-                'Порядок введення',
-                value: pr.amountFirst ? 'Спершу сума' : 'Спершу рахунок',
+                tr('Порядок введення'),
+                value: pr.amountFirst ? tr('Спершу сума') : tr('Спершу рахунок'),
                 onTap: () => pick<bool>(
-                  'Порядок введення',
-                  {false: 'Спершу рахунок', true: 'Спершу сума'},
+                  tr('Порядок введення'),
+                  {false: tr('Спершу рахунок'), true: tr('Спершу сума')},
                   pr.amountFirst,
                   (p, v) => p.amountFirst = v,
-                  note: 'З чого починається новий запис: з вибору рахунку чи з введення суми.',
+                  note: tr('З чого починається новий запис: з вибору рахунку чи з введення суми.'),
                 ),
               ),
             ],
@@ -238,7 +238,7 @@ class _SettingPreview extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Липень 2026', textAlign: TextAlign.center, style: st(13, scheme.onSurface, FontWeight.w600)),
+            Text(tr('Липень 2026'), textAlign: TextAlign.center, style: st(13, scheme.onSurface, FontWeight.w600)),
             const SizedBox(height: 8),
             Center(
               child: mark(
@@ -246,7 +246,7 @@ class _SettingPreview extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    for (final (i, t) in const ['День', 'Календар', 'Місяць', 'Підсумок'].indexed)
+                    for (final (i, t) in [tr('День'), tr('Календар'), tr('Місяць'), tr('Підсумок')].indexed)
                       Container(
                         margin: const EdgeInsets.symmetric(horizontal: 2),
                         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
@@ -263,9 +263,9 @@ class _SettingPreview extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                mark(_Spot.colors, col('Дохід', '1 200,00 €', inc)),
-                mark(_Spot.colors, col('Витрати', '25,00 €', red)),
-                mark(_Spot.carry, col('Разом', '1 175,00 €', scheme.onSurface)),
+                mark(_Spot.colors, col(tr('Дохід'), '1 200,00 €', inc)),
+                mark(_Spot.colors, col(tr('Витрати'), '25,00 €', red)),
+                mark(_Spot.carry, col(tr('Разом'), '1 175,00 €', scheme.onSurface)),
               ],
             ),
             const SizedBox(height: 6),
@@ -275,7 +275,7 @@ class _SettingPreview extends StatelessWidget {
               children: [
                 Text('06', style: st(18, scheme.onSurface, FontWeight.w700)),
                 const SizedBox(width: 6),
-                Text('пн', style: st(11, muted)),
+                Text(tr('пн'), style: st(11, muted)),
                 const Spacer(),
                 Text('25,00 €', style: st(12, red)),
               ],
@@ -288,7 +288,7 @@ class _SettingPreview extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Їжа', style: st(12, muted)),
+                      Text(tr('Їжа'), style: st(12, muted)),
                       if (spot == _Spot.time) mark(_Spot.time, Text('12:30', style: st(11, muted))),
                     ],
                   ),
@@ -302,12 +302,12 @@ class _SettingPreview extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('Обід ', style: st(13, scheme.onSurface)),
-                            mark(_Spot.note, Text('бізнес-ланч', style: st(13, muted, FontWeight.w400))),
+                            Text(tr('Обід '), style: st(13, scheme.onSurface)),
+                            mark(_Spot.note, Text(tr('бізнес-ланч'), style: st(13, muted, FontWeight.w400))),
                           ],
                         ),
                       ),
-                      Text('Готівка', style: st(11, muted)),
+                      Text(tr('Готівка'), style: st(11, muted)),
                     ],
                   ),
                 ),
@@ -344,7 +344,7 @@ class _MonthStartSheet extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
-            child: Text('Початок місяця', style: Theme.of(context).textTheme.titleMedium),
+            child: Text(tr('Початок місяця'), style: Theme.of(context).textTheme.titleMedium),
           ),
           GridView.count(
             crossAxisCount: 7,
@@ -377,9 +377,9 @@ class _MonthStartSheet extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 16, 4, 4),
-            child: Text('Якщо цей день — вихідний:', style: TextStyle(fontSize: 13, color: muted)),
+            child: Text(tr('Якщо цей день — вихідний:'), style: TextStyle(fontSize: 13, color: muted)),
           ),
-          for (final (v, l) in const [(0, 'Без змін'), (1, 'Попередня пʼятниця'), (2, 'Наступний понеділок')])
+          for (final (v, l) in [(0, tr('Без змін')), (1, tr('Попередня пʼятниця')), (2, tr('Наступний понеділок'))])
             ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 4),
               dense: true,
@@ -390,8 +390,8 @@ class _MonthStartSheet extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
             child: Text(
-              'Поточний місяць: ${DateFormat('d.M.yyyy').format(r.start)} – ${DateFormat('d.M.yyyy').format(last)}. '
-              'Якщо в місяці немає обраного дня, він починається в останній день.',
+              tr('Поточний місяць: {0} – {1}. ', [DateFormat('d.M.yyyy').format(r.start), DateFormat('d.M.yyyy').format(last)]) +
+              tr('Якщо в місяці немає обраного дня, він починається в останній день.'),
               style: TextStyle(fontSize: 12, color: muted),
             ),
           ),
@@ -411,25 +411,25 @@ class _CopyPastePage extends StatelessWidget {
     final store = StoreScope.of(context);
     final pr = store.prefs;
     return Scaffold(
-      appBar: AppBar(title: const Text('Копіювання записів')),
+      appBar: AppBar(title: Text(tr('Копіювання записів'))),
       body: ListView(
         children: [
           const SizedBox(height: 12),
           _Group(
             children: [
-              _Item(null, 'Копіювання', value: _onOff(pr.copyPaste), onTap: () => store.updatePrefs((p) => p.copyPaste = !p.copyPaste)),
+              _Item(null, tr('Копіювання'), value: _onOff(pr.copyPaste), onTap: () => store.updatePrefs((p) => p.copyPaste = !p.copyPaste)),
               if (pr.copyPaste)
                 _Item(
                   null,
-                  'Дата копії',
-                  value: pr.copyToToday ? 'Сьогодні' : 'Як в оригіналі',
+                  tr('Дата копії'),
+                  value: pr.copyToToday ? tr('Сьогодні') : tr('Як в оригіналі'),
                   onTap: () => store.updatePrefs((p) => p.copyToToday = !p.copyToToday),
                 ),
             ],
           ),
           Padding(
             padding: const EdgeInsets.all(20),
-            child: Text('Коли увімкнено, у відкритому записі є кнопка «Копіювати».', style: Theme.of(context).textTheme.bodySmall),
+            child: Text(tr('Коли увімкнено, у відкритому записі є кнопка «Копіювати».'), style: Theme.of(context).textTheme.bodySmall),
           ),
         ],
       ),
@@ -496,18 +496,18 @@ class _RepeatsPageState extends State<RepeatsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Повторювані записи'),
+        title: Text(tr('Повторювані записи')),
         actions: [
           IconButton(
-            tooltip: 'Видалення',
+            tooltip: tr('Видалення'),
             icon: Icon(_delete ? Icons.check_rounded : Icons.delete_outline_rounded),
             onPressed: () => setState(() => _delete = !_delete),
           ),
           IconButton(
-            tooltip: 'Новий повторюваний запис',
+            tooltip: tr('Новий повторюваний запис'),
             icon: const Icon(Icons.add_rounded),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Заповни запис і натисни ⟳ «Повтор» біля дати')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('Заповни запис і натисни ⟳ «Повтор» біля дати'))));
               openTxnEditor(context);
             },
           ),
@@ -520,12 +520,12 @@ class _RepeatsPageState extends State<RepeatsPage> {
             children: [
               _Item(
                 null,
-                'Коли створювати записи',
-                value: store.prefs.repeatInAdvance ? 'Наперед на період' : 'У день платежу',
+                tr('Коли створювати записи'),
+                value: store.prefs.repeatInAdvance ? tr('Наперед на період') : tr('У день платежу'),
                 onTap: () async {
-                  final v = await _choose<bool>(context, 'Коли створювати записи', {
-                    false: 'У день платежу',
-                    true: 'Наперед на весь період',
+                  final v = await _choose<bool>(context, tr('Коли створювати записи'), {
+                    false: tr('У день платежу'),
+                    true: tr('Наперед на весь період'),
                   }, store.prefs.repeatInAdvance);
                   if (v == null) return;
                   await store.updatePrefs((p) => p.repeatInAdvance = v);
@@ -534,10 +534,10 @@ class _RepeatsPageState extends State<RepeatsPage> {
               ),
             ],
           ),
-          if (rules.isEmpty) const EmptyState(icon: Icons.repeat_rounded, text: 'Повторюваних записів ще немає.\nДодай запис і натисни ⟳ «Повтор» біля дати.'),
-          section(TxType.income, 'Доходи', incomeColor(context, store)),
-          section(TxType.expense, 'Витрати', p.expense),
-          section(TxType.transfer, 'Перекази', scheme.onSurface),
+          if (rules.isEmpty) EmptyState(icon: Icons.repeat_rounded, text: tr('Повторюваних записів ще немає.\nДодай запис і натисни ⟳ «Повтор» біля дати.')),
+          section(TxType.income, tr('Доходи'), incomeColor(context, store)),
+          section(TxType.expense, tr('Витрати'), p.expense),
+          section(TxType.transfer, tr('Перекази'), scheme.onSurface),
         ],
       ),
     );
@@ -568,7 +568,7 @@ class _RepeatsPageState extends State<RepeatsPage> {
               IconButton(
                 icon: const MinusBadge(),
                 onPressed: () async {
-                  if (await _confirm(context, 'Зупинити повтор?', 'Нові записи більше не створюватимуться. Уже створені залишаться.')) {
+                  if (await _confirm(context, tr('Зупинити повтор?'), tr('Нові записи більше не створюватимуться. Уже створені залишаться.'))) {
                     await store.deleteRepeat(r);
                   }
                 },
@@ -578,7 +578,7 @@ class _RepeatsPageState extends State<RepeatsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(next == null ? 'завершено' : '${next.day}.${next.month}.', style: muted),
+                  Text(next == null ? tr('завершено') : '${next.day}.${next.month}.', style: muted),
                   Text(repeatLabel(r.every), maxLines: 1, overflow: TextOverflow.ellipsis, style: muted),
                 ],
               ),
@@ -613,25 +613,25 @@ class _AccountsMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Рахунки')),
+      appBar: AppBar(title: Text(tr('Рахунки'))),
       body: ListView(
         children: [
           _Group(
             children: [
-              _Item(null, 'Групи рахунків', onTap: () => _push(context, const _AccountGroupsPage())),
-              _Item(null, 'Рахунки', onTap: () => _push(context, const EditAccountsPage())),
-              _Item(null, 'Враховувати в підсумках', onTap: () => _push(context, const _AccountFlagsPage(transfer: false))),
-              _Item(null, 'Налаштування Переказ-Витрата', onTap: () => _push(context, const _AccountFlagsPage(transfer: true))),
+              _Item(null, tr('Групи рахунків'), onTap: () => _push(context, const _AccountGroupsPage())),
+              _Item(null, tr('Рахунки'), onTap: () => _push(context, const EditAccountsPage())),
+              _Item(null, tr('Враховувати в підсумках'), onTap: () => _push(context, const _AccountFlagsPage(transfer: false))),
+              _Item(null, tr('Налаштування Переказ-Витрата'), onTap: () => _push(context, const _AccountFlagsPage(transfer: true))),
               _Item(
                 null,
-                'Видалені рахунки',
+                tr('Видалені рахунки'),
                 value: store.deletedAccounts.isEmpty ? null : '${store.deletedAccounts.length}',
                 onTap: () => _push(context, const _DeletedAccountsPage()),
               ),
               _Item(
                 null,
-                'Відображення витрат по карті',
-                value: store.prefs.cardDisplay == 'balance' ? 'B. Як залишок' : 'A. На момент',
+                tr('Відображення витрат по карті'),
+                value: store.prefs.cardDisplay == 'balance' ? tr('B. Як залишок') : tr('A. На момент'),
                 onTap: () => _cardDisplay(context),
               ),
             ],
@@ -654,24 +654,24 @@ Future<void> _cardDisplay(BuildContext context) async {
         onTap: () => Navigator.pop(context, key),
       );
       return AlertDialog(
-        title: const Text('Відображення витрат по карті'),
+        title: Text(tr('Відображення витрат по карті')),
         contentPadding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(24, 0, 24, 12),
               child: Text(
-                'Для карток із датою розрахунку. A: витрати видно лише в балансі на момент покупки. '
-                'B: на картці окремо видно суму до сплати за закритий період і витрати поточного періоду.',
+                tr('Для карток із датою розрахунку. A: витрати видно лише в балансі на момент покупки. ') +
+                tr('B: на картці окремо видно суму до сплати за закритий період і витрати поточного періоду.'),
               ),
             ),
-            opt('moment', 'A. На момент'),
-            opt('balance', 'B. Як залишок'),
+            opt('moment', tr('A. На момент')),
+            opt('balance', tr('B. Як залишок')),
           ],
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Скасувати'))],
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Скасувати')))],
       );
     },
   );
@@ -690,8 +690,8 @@ class _AccountGroupsPage extends StatelessWidget {
     }
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Групи рахунків'),
-        actions: [IconButton(tooltip: 'Новий рахунок', icon: const Icon(Icons.add_rounded), onPressed: () => editAccount(context))],
+        title: Text(tr('Групи рахунків')),
+        actions: [IconButton(tooltip: tr('Новий рахунок'), icon: const Icon(Icons.add_rounded), onPressed: () => editAccount(context))],
       ),
       body: ListView(
         children: [
@@ -704,7 +704,7 @@ class _AccountGroupsPage extends StatelessWidget {
                   subtitle: e.value.map((a) => a.name).join(', '),
                   value: '${e.value.length}',
                   onTap: () async {
-                    final v = await _askText(context, 'Назва групи', initial: e.key);
+                    final v = await _askText(context, tr('Назва групи'), initial: e.key);
                     if (v == null || v.isEmpty || v == e.key) return;
                     for (final a in e.value) {
                       await store.saveAccount(a.copyWith(group: v));
@@ -715,7 +715,7 @@ class _AccountGroupsPage extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.all(20),
-            child: Text('Торкнись групи, щоб перейменувати. Групу рахунку можна змінити й у самому рахунку.', style: Theme.of(context).textTheme.bodySmall),
+            child: Text(tr('Торкнись групи, щоб перейменувати. Групу рахунку можна змінити й у самому рахунку.'), style: Theme.of(context).textTheme.bodySmall),
           ),
         ],
       ),
@@ -747,7 +747,7 @@ class _AccountFlagsPage extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(transfer ? 'Переказ-Витрата' : 'Враховувати в підсумках')),
+      appBar: AppBar(title: Text(transfer ? tr('Переказ-Витрата') : tr('Враховувати в підсумках'))),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 32),
         children: [
@@ -756,11 +756,11 @@ class _AccountFlagsPage extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
             child: Text(
               transfer
-                  ? 'Сума, переказана зі звичайного рахунку на вибраний рахунок, показується як витрата на вкладках «Записи» та «Статистика». '
-                        'Це зручно для рахунків, з яких гроші важко швидко повернути: заощадження, інвестиції, позики, страхування. '
-                        'Для готівки, банківських рахунків і карток цього налаштування немає. '
-                        'Сума, переказана з вибраного рахунку на звичайний, показується як дохід.'
-                  : 'Позначені рахунки входять у загальні суми активів, пасивів і «Разом».',
+                  ? tr('Сума, переказана зі звичайного рахунку на вибраний рахунок, показується як витрата на вкладках «Записи» та «Статистика». ') +
+                        tr('Це зручно для рахунків, з яких гроші важко швидко повернути: заощадження, інвестиції, позики, страхування. ') +
+                        tr('Для готівки, банківських рахунків і карток цього налаштування немає. ') +
+                        tr('Сума, переказана з вибраного рахунку на звичайний, показується як дохід.')
+                  : tr('Позначені рахунки входять у загальні суми активів, пасивів і «Разом».'),
               style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14, height: 1.35),
             ),
           ),
@@ -809,15 +809,15 @@ class _DeletedAccountsPage extends StatelessWidget {
     final store = StoreScope.of(context);
     final list = store.deletedAccounts;
     return Scaffold(
-      appBar: AppBar(title: const Text('Видалені рахунки')),
+      appBar: AppBar(title: Text(tr('Видалені рахунки'))),
       body: ListView(
         children: [
           if (list.isEmpty)
-            const EmptyState(icon: Icons.delete_outline_rounded, text: 'Видалених рахунків немає')
+            EmptyState(icon: Icons.delete_outline_rounded, text: tr('Видалених рахунків немає'))
           else
             _Group(
               children: [
-                for (final a in list) _Item(null, a.name, subtitle: groupOf(a), value: 'Відновити', onTap: () => store.saveAccount(a.copyWith(deleted: false))),
+                for (final a in list) _Item(null, a.name, subtitle: groupOf(a), value: tr('Відновити'), onTap: () => store.saveAccount(a.copyWith(deleted: false))),
               ],
             ),
         ],
@@ -929,7 +929,7 @@ class _BudgetPageState extends State<_BudgetPage> {
     void toggle(String k) => setState(() => _open.contains(k) ? _open.remove(k) : _open.add(k));
     final sub = Color.lerp(panelColor(context), Colors.black, 0.18);
     return Scaffold(
-      appBar: AppBar(title: const Text('Налашт. бюджету'), centerTitle: true),
+      appBar: AppBar(title: Text(tr('Налашт. бюджету')), centerTitle: true),
       body: Column(
         children: [
           SizedBox(
@@ -948,10 +948,10 @@ class _BudgetPageState extends State<_BudgetPage> {
               ],
             ),
           ),
-          Row(children: [tab(TxType.income, 'Дохід'), tab(TxType.expense, 'Витр.')]),
+          Row(children: [tab(TxType.income, tr('Дохід')), tab(TxType.expense, tr('Витр.'))]),
           Expanded(
             child: cats.isEmpty && groups.isEmpty
-                ? const EmptyState(icon: Icons.track_changes_rounded, text: 'Спершу додай категорії')
+                ? EmptyState(icon: Icons.track_changes_rounded, text: tr('Спершу додай категорії'))
                 : ListView(
                     padding: const EdgeInsets.only(bottom: 40),
                     children: [
@@ -969,7 +969,7 @@ class _BudgetPageState extends State<_BudgetPage> {
                           );
                         }(),
                         if (_open.contains(c.id)) ...[
-                          row('${c.name} (Все)', at(c.id), indent: 28, bg: sub, onTap: () => open(c.id, c.name)),
+                          row(tr('{0} (Все)', [c.name]), at(c.id), indent: 28, bg: sub, onTap: () => open(c.id, c.name)),
                           for (final x in store.subcategoriesOf(c.id)) row(x.name, at(x.id), indent: 28, bg: sub, onTap: () => open(x.id, x.name)),
                         ],
                       ],
@@ -981,7 +981,7 @@ class _BudgetPageState extends State<_BudgetPage> {
                           onTap: () => toggle('grp:${e.key}'),
                         ),
                         if (_open.contains('grp:${e.key}')) ...[
-                          row('${e.key} (Все)', at('grp:${e.key}'), indent: 28, bg: sub, onTap: () => open('grp:${e.key}', '${e.key} (Все)')),
+                          row(tr('{0} (Все)', [e.key]), at('grp:${e.key}'), indent: 28, bg: sub, onTap: () => open('grp:${e.key}', tr('{0} (Все)', [e.key]))),
                           for (final a in e.value) row(a.name, at('acc:${a.id}'), indent: 28, bg: sub, onTap: () => open('acc:${a.id}', a.name)),
                         ],
                       ],
@@ -1023,8 +1023,8 @@ class _BudgetCategoryPageState extends State<_BudgetCategoryPage> {
           onSubmitted: (v) => Navigator.pop(context, v),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Скасувати')),
-          FilledButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('Зберегти')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Скасувати'))),
+          FilledButton(onPressed: () => Navigator.pop(context, ctrl.text), child: Text(tr('Зберегти'))),
         ],
       ),
     );
@@ -1070,10 +1070,10 @@ class _BudgetCategoryPageState extends State<_BudgetCategoryPage> {
         actions: [
           if (b != null)
             IconButton(
-              tooltip: 'Видалити бюджет',
+              tooltip: tr('Видалити бюджет'),
               icon: const Icon(Icons.delete_outline_rounded),
               onPressed: () async {
-                if (await _confirm(context, 'Видалити бюджет «${widget.name}»?', 'Бюджет цієї категорії буде прибрано з усіх місяців.')) {
+                if (await _confirm(context, tr('Видалити бюджет «{0}»?', [widget.name]), tr('Бюджет цієї категорії буде прибрано з усіх місяців.'))) {
                   await store.saveBudget(b.copyWith(deleted: true));
                   if (context.mounted) Navigator.pop(context);
                 }
@@ -1100,13 +1100,13 @@ class _BudgetCategoryPageState extends State<_BudgetCategoryPage> {
               ],
             ),
           ),
-          const _InfoHeader(
+          _InfoHeader(
             Icons.edit_note_rounded,
-            'Бюджет можна налаштувати на кожен місяць. Зміна бюджету за замовчуванням діє з поточного місяця далі. '
-            'Якщо бюджет основної категорії нульовий, показується сума бюджетів підкатегорій.',
+            tr('Бюджет можна налаштувати на кожен місяць. Зміна бюджету за замовчуванням діє з поточного місяця далі. ') +
+            tr('Якщо бюджет основної категорії нульовий, показується сума бюджетів підкатегорій.'),
           ),
-          row(const Text('Бюджет за замовчуванням', style: TextStyle(fontSize: 16)), b?.amountAt(now) ?? 0, () async {
-            final v = await _ask('Бюджет за замовчуванням', b?.amountAt(now) ?? 0);
+          row(Text(tr('Бюджет за замовчуванням'), style: TextStyle(fontSize: 16)), b?.amountAt(now) ?? 0, () async {
+            final v = await _ask(tr('Бюджет за замовчуванням'), b?.amountAt(now) ?? 0);
             if (v != null) await store.saveBudget(base().withDefault(v, now));
           }),
           for (var m = 12; m >= 1; m--)
@@ -1155,13 +1155,13 @@ class _TagsPage extends StatelessWidget {
     final cur = store.baseCurrency;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Теги'),
+        title: Text(tr('Теги')),
         actions: [
           IconButton(
-            tooltip: 'Новий тег',
+            tooltip: tr('Новий тег'),
             icon: const Icon(Icons.add_rounded),
             onPressed: () async {
-              final v = await _askText(context, 'Новий тег', hint: 'наприклад, відпустка');
+              final v = await _askText(context, tr('Новий тег'), hint: tr('наприклад, відпустка'));
               final t = v?.replaceAll('#', '').trim().replaceAll(RegExp(r'\s+'), '_');
               if (t == null || t.isEmpty) return;
               store.updatePrefs((p) => p.savedTags = {...p.savedTags, t}.toList());
@@ -1171,9 +1171,9 @@ class _TagsPage extends StatelessWidget {
       ),
       body: ListView(
         children: [
-          const _InfoHeader(
+          _InfoHeader(
             Icons.sell_outlined,
-            'Теги додають до запису додаткову інформацію. Наприклад, тег «відпустка» допоможе швидко знайти всі витрати на поїздку.',
+            tr('Теги додають до запису додаткову інформацію. Наприклад, тег «відпустка» допоможе швидко знайти всі витрати на поїздку.'),
           ),
           const SizedBox(height: 12),
           if (tags.isNotEmpty)
@@ -1183,7 +1183,7 @@ class _TagsPage extends StatelessWidget {
                   _Item(
                     Icons.tag_rounded,
                     t.tag,
-                    subtitle: '${t.count} ${t.count == 1 ? 'запис' : 'записів'}',
+                    subtitle: '${t.count} ${t.count == 1 ? tr('запис') : tr('записів')}',
                     value: t.count == 0 ? null : money(t.sum, cur, sign: true),
                     trailing: t.count == 0 && store.prefs.savedTags.contains(t.tag)
                         ? IconButton(
@@ -1238,32 +1238,32 @@ class _BackupPage extends StatefulWidget {
 class _BackupPageState extends State<_BackupPage> {
   final _persisted = persistStorage();
 
-  static const _remind = {1: 'Щодня', 7: 'Щотижня', 30: 'Щомісяця', 0: 'Ніколи'};
+  static Map<int, String> get _remind => {1: tr('Щодня'), 7: tr('Щотижня'), 30: tr('Щомісяця'), 0: tr('Ніколи')};
 
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final p = store.prefs;
-    final last = p.lastBackup == 0 ? 'Ще не було' : DateFormat('d MMM y, HH:mm', 'uk').format(DateTime.fromMillisecondsSinceEpoch(p.lastBackup));
+    final last = p.lastBackup == 0 ? tr('Ще не було') : DateFormat('d MMM y, HH:mm', 'uk').format(DateTime.fromMillisecondsSinceEpoch(p.lastBackup));
     return Scaffold(
-      appBar: AppBar(title: const Text('Резервна копія')),
+      appBar: AppBar(title: Text(tr('Резервна копія'))),
       body: ListView(
         children: [
-          const _Band('Захист даних'),
+          _Band(tr('Захист даних')),
           _Group(
             children: [
-              _Item(null, 'Остання копія', value: last),
+              _Item(null, tr('Остання копія'), value: last),
               _Item(
                 null,
-                'Нагадувати про копію',
-                value: _remind[p.backupRemindDays] ?? '${p.backupRemindDays} дн.',
+                tr('Нагадувати про копію'),
+                value: _remind[p.backupRemindDays] ?? tr('{0} дн.', [p.backupRemindDays]),
                 onTap: () async {
                   final v = await _choose<int>(
                     context,
-                    'Нагадувати про копію',
+                    tr('Нагадувати про копію'),
                     _remind,
                     p.backupRemindDays,
-                    note: 'На вкладці «Записи» зʼявиться нагадування, якщо з останньої копії минуло більше часу і є нові зміни.',
+                    note: tr('На вкладці «Записи» зʼявиться нагадування, якщо з останньої копії минуло більше часу і є нові зміни.'),
                   );
                   if (v != null) await store.updatePrefs((p) => p.backupRemindDays = v);
                 },
@@ -1272,41 +1272,41 @@ class _BackupPageState extends State<_BackupPage> {
                 future: _persisted,
                 builder: (context, s) => _Item(
                   null,
-                  'Сховище браузера',
-                  subtitle: s.data == true ? 'Браузер не стиратиме дані' : 'Може стерти дані, якщо бракує місця',
+                  tr('Сховище браузера'),
+                  subtitle: s.data == true ? tr('Браузер не стиратиме дані') : tr('Може стерти дані, якщо бракує місця'),
                   value: switch (s.data) {
-                    true => 'Захищене',
-                    false => 'Не захищене',
-                    null => s.connectionState == ConnectionState.done ? 'Невідомо' : '…',
+                    true => tr('Захищене'),
+                    false => tr('Не захищене'),
+                    null => s.connectionState == ConnectionState.done ? tr('Невідомо') : '…',
                   },
                 ),
               ),
               if (!isStandalone)
-                _Item(null, 'Додати на головний екран', subtitle: 'Як застосунок: надійніше й без інтернету', onTap: () => showInstallHelp(context)),
+                _Item(null, tr('Додати на головний екран'), subtitle: tr('Як застосунок: надійніше й без інтернету'), onTap: () => showInstallHelp(context)),
             ],
           ),
-          const _Band('Експорт / імпорт'),
+          _Band(tr('Експорт / імпорт')),
           _Group(
             children: [
-              _Item(null, 'Поділитися копією', subtitle: 'iCloud Drive («Зберегти у Файли»), пошта, месенджери', onTap: () => shareBackup(context)),
-              _Item(null, 'Зберегти резервну копію на пристрій', onTap: () => _export(context)),
-              _Item(null, 'Відновити з резервної копії', onTap: () => _import(context)),
-              _Item(null, 'Імпорт з Money Manager', subtitle: 'Файл резервної копії .mmbak', onTap: () => _importMm(context)),
-              _Item(null, 'Експорт даних в Excel', onTap: () => exportForPf(context)),
+              _Item(null, tr('Поділитися копією'), subtitle: tr('iCloud Drive («Зберегти у Файли»), пошта, месенджери'), onTap: () => shareBackup(context)),
+              _Item(null, tr('Зберегти резервну копію на пристрій'), onTap: () => _export(context)),
+              _Item(null, tr('Відновити з резервної копії'), onTap: () => _import(context)),
+              _Item(null, tr('Імпорт з Money Manager'), subtitle: tr('Файл резервної копії .mmbak'), onTap: () => _importMm(context)),
+              _Item(null, tr('Експорт даних в Excel'), onTap: () => exportForPf(context)),
             ],
           ),
-          const _Band('Інше'),
+          _Band(tr('Інше')),
           _Group(
             children: [
               _Item(
                 null,
-                'Повне скидання',
+                tr('Повне скидання'),
                 danger: true,
                 onTap: () async {
                   if (await _confirm(
                     context,
-                    'Видалити всі дані?',
-                    'Усі записи, рахунки, категорії й налаштування буде видалено без можливості відновлення.',
+                    tr('Видалити всі дані?'),
+                    tr('Усі записи, рахунки, категорії й налаштування буде видалено без можливості відновлення.'),
                   )) {
                     await store.resetAll();
                   }
@@ -1314,12 +1314,12 @@ class _BackupPageState extends State<_BackupPage> {
               ),
               _Item(
                 null,
-                'Скинути лише записи (решта залишиться)',
+                tr('Скинути лише записи (решта залишиться)'),
                 onTap: () async {
                   if (await _confirm(
                     context,
-                    'Видалити всі записи?',
-                    'Записи, повтори й бюджети буде видалено. Рахунки, категорії й налаштування залишаться.',
+                    tr('Видалити всі записи?'),
+                    tr('Записи, повтори й бюджети буде видалено. Рахунки, категорії й налаштування залишаться.'),
                   )) {
                     await store.resetContents();
                   }
@@ -1329,7 +1329,7 @@ class _BackupPageState extends State<_BackupPage> {
           ),
           Padding(
             padding: const EdgeInsets.all(20),
-            child: Text('Дані зберігаються лише в цьому браузері. Роби резервну копію час від часу.', style: Theme.of(context).textTheme.bodySmall),
+            child: Text(tr('Дані зберігаються лише в цьому браузері. Роби резервну копію час від часу.'), style: Theme.of(context).textTheme.bodySmall),
           ),
         ],
       ),
@@ -1344,21 +1344,21 @@ class _AlarmPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Нагадування')),
+    appBar: AppBar(title: Text(tr('Нагадування'))),
     body: ListView(
       children: [
-        const _InfoHeader(Icons.notifications_none_rounded, 'PFinance нагадає в обраний час дня внести витрати й доходи.'),
+        _InfoHeader(Icons.notifications_none_rounded, tr('PFinance нагадає в обраний час дня внести витрати й доходи.')),
         const SizedBox(height: 12),
         _Group(
           children: [
             _Item(
               null,
-              'Нагадування',
-              value: 'скоро',
+              tr('Нагадування'),
+              value: tr('скоро'),
               onTap: () => _info(
                 context,
-                'Нагадування',
-                'Щоденне нагадування працюватиме у версії застосунку для телефона. Браузер не вміє надійно надсилати сповіщення, коли сторінку закрито.',
+                tr('Нагадування'),
+                tr('Щоденне нагадування працюватиме у версії застосунку для телефона. Браузер не вміє надійно надсилати сповіщення, коли сторінку закрито.'),
               ),
             ),
           ],
@@ -1380,7 +1380,7 @@ class _ThemePage extends StatelessWidget {
     Widget radio(bool on) =>
         Icon(on ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded, color: on ? scheme.primary : scheme.onSurfaceVariant);
     return Scaffold(
-      appBar: AppBar(title: const Text('Стиль')),
+      appBar: AppBar(title: Text(tr('Стиль'))),
       body: ListView(
         children: [
           _Group(
@@ -1393,27 +1393,27 @@ class _ThemePage extends StatelessWidget {
                 _Item(icon, _modeLabel(m), trailing: radio(store.themeMode == m), onTap: () => store.setThemeMode(m)),
             ],
           ),
-          const _Band('Статистика'),
+          _Band(tr('Статистика')),
           _Group(
             children: [
               _Item(
                 null,
-                'Головний графік',
+                tr('Головний графік'),
                 value: statsChartLabels[statsChartOf(store.prefs.statsChart)],
                 onTap: () async {
                   final v = await _choose<StatsChart>(
                     context,
-                    'Головний графік',
+                    tr('Головний графік'),
                     statsChartLabels,
                     statsChartOf(store.prefs.statsChart),
-                    note: 'Графік над списком категорій у «Статистиці». Список і відсотки під ним однакові для всіх.',
+                    note: tr('Графік над списком категорій у «Статистиці». Список і відсотки під ним однакові для всіх.'),
                   );
                   if (v != null) await store.updatePrefs((p) => p.statsChart = v.name);
                 },
               ),
             ],
           ),
-          const _Band('Колір акценту'),
+          _Band(tr('Колір акценту')),
           _Group(
             children: [
               for (final t in appThemes)
@@ -1449,45 +1449,45 @@ class _HelpPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const items = [
+    final items = [
       (
-        'Додати запис',
-        'Кнопка «+» внизу. Обери рахунок, категорію й суму. «Зберегти» закриває редактор, «Далі» зберігає й одразу відкриває наступний запис з тими самими датою й рахунком.',
+        tr('Додати запис'),
+        tr('Кнопка «+» внизу. Обери рахунок, категорію й суму. «Зберегти» закриває редактор, «Далі» зберігає й одразу відкриває наступний запис з тими самими датою й рахунком.'),
       ),
       (
-        'Сума в іншій валюті',
-        'Під час введення суми над клавіатурою є рядок валют: обери потрібну. Запис збереже суму як ти її ввів, а рахунок рахуватиме у своїй валюті.',
+        tr('Сума в іншій валюті'),
+        tr('Під час введення суми над клавіатурою є рядок валют: обери потрібну. Запис збереже суму як ти її ввів, а рахунок рахуватиме у своїй валюті.'),
       ),
-      ('Змінити або видалити', 'Торкнись запису, щоб відкрити його. Кошик унизу редактора видаляє запис.'),
+      (tr('Змінити або видалити'), tr('Торкнись запису, щоб відкрити його. Кошик унизу редактора видаляє запис.')),
       (
-        'Свайп',
-        'Свайп ліворуч чи праворуч у «Записах» перемикає вкладки «День · Календар · Місяць · Підсумок». Інше можна обрати в «Налаштування записів → Свайп».',
+        tr('Свайп'),
+        tr('Свайп ліворуч чи праворуч у «Записах» перемикає вкладки «День · Календар · Місяць · Підсумок». Інше можна обрати в «Налаштування записів → Свайп».'),
       ),
-      ('Копія запису', 'Відкрий запис і натисни кнопку копіювання. Увімкнути її можна в «Копіювання записів».'),
-      ('Шаблони', 'Зірочка вгорі редактора: збережи запис як шаблон або заповни з шаблону.'),
+      (tr('Копія запису'), tr('Відкрий запис і натисни кнопку копіювання. Увімкнути її можна в «Копіювання записів».')),
+      (tr('Шаблони'), tr('Зірочка вгорі редактора: збережи запис як шаблон або заповни з шаблону.')),
       (
-        'Повторювані записи',
-        'Під час додавання натисни ⟳ «Повтор» біля дати й обери період. Усі повтори — у «Більше → Повторювані записи»; торкнись повтору, щоб змінити його. У записі, створеному з повтору, біля дати видно період.',
+        tr('Повторювані записи'),
+        tr('Під час додавання натисни ⟳ «Повтор» біля дати й обери період. Усі повтори — у «Більше → Повторювані записи»; торкнись повтору, щоб змінити його. У записі, створеному з повтору, біля дати видно період.'),
       ),
-      ('Місяць від зарплати', '«Налаштування записів» → «Початок місяця»: день 1–31 і що робити, якщо він випадає на вихідний.'),
-      ('Тижні замість місяців', '«Налаштування записів» → «Налаштування періоду» → «Тижні»: день, підсумок і статистика гортаються по тижнях.'),
-      ('Бюджет', '«Більше → Бюджет»: суму можна задати за замовчуванням або окремо на кожен місяць. Залишок видно у «Статистика → Бюджет» і в «Підсумку».'),
-      ('Статистика', 'Пелюстки «троянди» — категорії, кольори в пелюстці — тижні місяця. Торкнись пелюстки або тижня в легенді, щоб виділити.'),
-      ('Теги', 'Кнопка «+ Тег» у редакторі або #тег у нотатці. Підсумки — у «Більше → Теги».'),
+      (tr('Місяць від зарплати'), tr('«Налаштування записів» → «Початок місяця»: день 1–31 і що робити, якщо він випадає на вихідний.')),
+      (tr('Тижні замість місяців'), tr('«Налаштування записів» → «Налаштування періоду» → «Тижні»: день, підсумок і статистика гортаються по тижнях.')),
+      (tr('Бюджет'), tr('«Більше → Бюджет»: суму можна задати за замовчуванням або окремо на кожен місяць. Залишок видно у «Статистика → Бюджет» і в «Підсумку».')),
+      (tr('Статистика'), tr('Пелюстки «троянди» — категорії, кольори в пелюстці — тижні місяця. Торкнись пелюстки або тижня в легенді, щоб виділити.')),
+      (tr('Теги'), tr('Кнопка «+ Тег» у редакторі або #тег у нотатці. Підсумки — у «Більше → Теги».')),
       (
-        'Перейти з Money Manager',
-        '«Резервна копія» → «Імпорт з Money Manager»: файл .mmbak. Записи, рахунки, категорії, повтори й бюджети буде замінено даними з файлу.',
+        tr('Перейти з Money Manager'),
+        tr('«Резервна копія» → «Імпорт з Money Manager»: файл .mmbak. Записи, рахунки, категорії, повтори й бюджети буде замінено даними з файлу.'),
       ),
-      ('Перенести в PF', '«Резервна копія» → «Експорт даних в Excel» (або кнопка в «Підсумку») створює файл, який імпортує дашборд PF.'),
-      ('Резервна копія', '«Поділитися копією» зберігає файл у iCloud Drive, пошту чи месенджер; «Відновити» повертає дані з нього.'),
+      (tr('Перенести в PF'), tr('«Резервна копія» → «Експорт даних в Excel» (або кнопка в «Підсумку») створює файл, який імпортує дашборд PF.')),
+      (tr('Резервна копія'), tr('«Поділитися копією» зберігає файл у iCloud Drive, пошту чи месенджер; «Відновити» повертає дані з нього.')),
       (
-        'Де зберігаються дані',
-        'Лише на цьому пристрої, у браузері. Додай PFinance на головний екран («Поділитися» → «На початковий екран» у Safari): '
-            'так браузер не стирає дані. Раз на тиждень (налаштовується в «Резервна копія») на вкладці «Записи» зʼявиться нагадування зберегти копію.',
+        tr('Де зберігаються дані'),
+        tr('Лише на цьому пристрої, у браузері. Додай PFinance на головний екран («Поділитися» → «На початковий екран» у Safari): ') +
+            tr('так браузер не стирає дані. Раз на тиждень (налаштовується в «Резервна копія») на вкладці «Записи» зʼявиться нагадування зберегти копію.'),
       ),
     ];
     return Scaffold(
-      appBar: AppBar(title: const Text('Довідка')),
+      appBar: AppBar(title: Text(tr('Довідка'))),
       body: ListView(
         children: [
           _Group(

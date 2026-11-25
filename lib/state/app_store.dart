@@ -9,6 +9,7 @@ import '../data/fx_rates.dart';
 import '../data/mm_import.dart';
 import '../data/models.dart';
 import '../data/repository.dart';
+import '../l10n/l10n.dart' as l10n;
 import '../ui/format.dart' as fmt;
 import 'seed.dart';
 
@@ -58,6 +59,7 @@ class Prefs {
   int backupRemindDays = 7; // remind to back up after this many days; 0 = never
   bool installHintHidden = false; // «Додати на головний екран» dismissed
   String statsChart = 'rose'; // main Statistics chart (StatsChart name)
+  String language = ''; // interface language (l10n.languages key); '' until chosen
 
   Map<String, Object?> toJson() => {
     'themeId': themeId,
@@ -84,6 +86,7 @@ class Prefs {
     'backupRemindDays': backupRemindDays,
     'installHintHidden': installHintHidden,
     'statsChart': statsChart,
+    'language': language,
     'timeMode': timeMode,
     'timeAsc': timeAsc,
     'swipe': swipe,
@@ -139,6 +142,7 @@ class Prefs {
     backupRemindDays = (j['backupRemindDays'] as num?)?.toInt() ?? backupRemindDays;
     installHintHidden = j['installHintHidden'] as bool? ?? installHintHidden;
     statsChart = j['statsChart'] as String? ?? statsChart;
+    language = j['language'] as String? ?? language;
     final r = j['rates'];
     if (r is Map) {
       rates = {for (final e in r.entries) e.key as String: (e.value as num).toDouble()};
@@ -149,6 +153,10 @@ class Prefs {
 /// Single source of truth for the UI. Keeps everything in memory (a personal
 /// finance dataset is small) and writes every change through to [Repository].
 class AppStore extends ChangeNotifier {
+  /// The interface language the device asks for (see [l10n.languageFor]);
+  /// set by main() before [load]. Null in tests, which then run in Ukrainian.
+  static String? deviceLanguage;
+
   AppStore(this.repo);
 
   final Repository repo;
@@ -201,6 +209,11 @@ class AppStore extends ChangeNotifier {
     _budgets = await repo.loadBudgets();
     final p = await repo.getSetting('prefs');
     if (p is Map) prefs.apply(Map<String, Object?>.from(p));
+    // A new install speaks the device's language; one from before languages
+    // existed stays Ukrainian. Set before seeding so the starter accounts
+    // get names in that language.
+    if (!l10n.languages.containsKey(prefs.language)) prefs.language = p is Map ? 'uk' : (deviceLanguage ?? 'uk');
+    l10n.lang = prefs.language;
     if (await repo.getSetting('seeded') != true) {
       await _seed();
     }
@@ -842,6 +855,7 @@ class AppStore extends ChangeNotifier {
 
   Future<void> updatePrefs(void Function(Prefs p) change) async {
     change(prefs);
+    l10n.lang = prefs.language;
     fmt.showDecimals = prefs.showDecimals;
     fmt.currencyFront = prefs.currencyFront;
     await repo.setSetting('prefs', prefs.toJson());

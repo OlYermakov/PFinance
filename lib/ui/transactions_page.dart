@@ -12,6 +12,7 @@ import 'stats_page.dart' show editBudget, budgetTotals, BudgetRow;
 import 'format.dart';
 import 'theme.dart';
 import 'widgets.dart';
+import '../l10n/l10n.dart';
 
 enum RecordsView { day, calendar, month, summary }
 
@@ -112,7 +113,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                         padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
                         child: TextField(
                           autofocus: true,
-                          decoration: const InputDecoration(hintText: 'Нотатка, категорія або рахунок', prefixIcon: Icon(Icons.search_rounded)),
+                          decoration: InputDecoration(hintText: tr('Нотатка, категорія або рахунок'), prefixIcon: Icon(Icons.search_rounded)),
                           onChanged: (v) => setState(() => _query = v.trim()),
                         ),
                       )
@@ -137,7 +138,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                       Positioned(
                         right: 0,
                         child: IconButton(
-                          tooltip: 'Пошук',
+                          tooltip: tr('Пошук'),
                           visualDensity: VisualDensity.compact,
                           icon: Icon(_searching ? Icons.close_rounded : Icons.search_rounded),
                           onPressed: () => setState(() {
@@ -221,7 +222,7 @@ class _DataNoticeState extends State<_DataNotice> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                install ? 'Додай на головний екран' : 'Остання копія: ${backupAgo(store.prefs.lastBackup)}',
+                install ? tr('Додай на головний екран') : tr('Остання копія: {0}', [backupAgo(store.prefs.lastBackup)]),
                 style: const TextStyle(fontSize: 13),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -230,10 +231,10 @@ class _DataNoticeState extends State<_DataNotice> {
             TextButton(
               style: TextButton.styleFrom(shape: const StadiumBorder(), visualDensity: VisualDensity.compact),
               onPressed: () => install ? showInstallHelp(context) : shareBackup(context),
-              child: Text(install ? 'Як?' : 'Зберегти'),
+              child: Text(install ? tr('Як?') : tr('Зберегти')),
             ),
             IconButton(
-              tooltip: 'Закрити',
+              tooltip: tr('Закрити'),
               visualDensity: VisualDensity.compact,
               iconSize: 18,
               icon: Icon(Icons.close_rounded, color: scheme.onSurfaceVariant),
@@ -262,7 +263,7 @@ class _ViewTabs extends StatelessWidget {
   final RecordsView value;
   final ValueChanged<RecordsView> onChanged;
 
-  static const _labels = {RecordsView.day: 'День', RecordsView.calendar: 'Календар', RecordsView.month: 'Місяць', RecordsView.summary: 'Підсумок'};
+  static Map<RecordsView, String> get _labels => {RecordsView.day: tr('День'), RecordsView.calendar: tr('Календар'), RecordsView.month: tr('Місяць'), RecordsView.summary: tr('Підсумок')};
 
   @override
   Widget build(BuildContext context) => PillTabs<RecordsView>(value: value, items: _labels, onChanged: onChanged);
@@ -279,8 +280,8 @@ class _DayView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (txns.isEmpty) {
-      return const SliverToBoxAdapter(
-        child: EmptyState(icon: Icons.receipt_long_outlined, text: 'Записів за цей період немає.\nНатисни «+», щоб додати.'),
+      return SliverToBoxAdapter(
+        child: EmptyState(icon: Icons.receipt_long_outlined, text: tr('Записів за цей період немає.\nНатисни «+», щоб додати.')),
       );
     }
     final days = <DateTime, List<Txn>>{};
@@ -399,7 +400,7 @@ class TxnTile extends StatelessWidget {
     switch (txn.type) {
       case TxType.transfer:
         final to = store.account(txn.toAccountId);
-        left1 = 'Переказ';
+        left1 = tr('Переказ');
         left2 = '';
         title = showNote ? txn.note : '${acc?.name ?? '?'} → ${to?.name ?? '?'}';
         under = showNote ? '${acc?.name ?? '?'} → ${to?.name ?? '?'}$repeat' : repeat.trim();
@@ -408,7 +409,7 @@ class TxnTile extends StatelessWidget {
             ? p.expense
             : (f == TxType.income ? incomeColor(context, store) : scheme.onSurfaceVariant); // MM: a plain transfer is grey
       case TxType.income || TxType.expense:
-        left1 = top?.name ?? 'Без категорії';
+        left1 = top?.name ?? tr('Без категорії');
         left2 = cat != null && top != null && cat.id != top.id ? cat.name : '';
         title = showNote ? txn.note : '';
         under = '${acc?.name ?? ''}$repeat';
@@ -494,8 +495,8 @@ class TxnTile extends StatelessWidget {
           ..hideCurrentSnackBar()
           ..showSnackBar(
             SnackBar(
-              content: const Text('Запис видалено'),
-              action: SnackBarAction(label: 'Повернути', onPressed: () => store.saveTxn(txn.copyWith(deleted: false))),
+              content: Text(tr('Запис видалено')),
+              action: SnackBarAction(label: tr('Повернути'), onPressed: () => store.saveTxn(txn.copyWith(deleted: false))),
             ),
           );
       },
@@ -652,9 +653,9 @@ class _CalendarView extends StatelessWidget {
               Text(dayTitle(d), style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               if (list.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.all(16),
-                  child: Text('Записів немає', textAlign: TextAlign.center),
+                  child: Text(tr('Записів немає'), textAlign: TextAlign.center),
                 )
               else
                 Flexible(
@@ -663,7 +664,7 @@ class _CalendarView extends StatelessWidget {
               const SizedBox(height: 8),
               FilledButton.icon(
                 icon: const Icon(Icons.add_rounded),
-                label: const Text('Додати на цей день'),
+                label: Text(tr('Додати на цей день')),
                 onPressed: () {
                   Navigator.pop(ctx);
                   openTxnEditor(context, date: d);
@@ -753,7 +754,7 @@ class _MonthsViewState extends State<_MonthsView> {
                     ],
                   ),
                 ),
-                amounts(t, totalLabel: open ? 'Всього ' : null),
+                amounts(t, totalLabel: open ? tr('Всього ') : null),
               ],
             ),
           ),
@@ -928,24 +929,24 @@ class _SummaryView extends StatelessWidget {
       children: [
         section(
           Icons.account_balance_wallet_outlined,
-          'Рахунки',
+          tr('Рахунки'),
           child: box([
-            if (byGroup.isEmpty) line('Витрати', money(0, cur)),
-            for (final g in byGroup.entries) line('Витрати (${g.key})', money(g.value, cur)),
-            if (transferOut > 0) line('Переказ-витрата', money(transferOut, cur)),
+            if (byGroup.isEmpty) line(tr('Витрати'), money(0, cur)),
+            for (final g in byGroup.entries) line(tr('Витрати ({0})', [g.key]), money(g.value, cur)),
+            if (transferOut > 0) line(tr('Переказ-витрата'), money(transferOut, cur)),
           ]),
         ),
         divider,
         section(
           Icons.track_changes_rounded,
-          'Бюджет',
+          tr('Бюджет'),
           child: limit == null
               ? Align(
                   alignment: Alignment.centerLeft,
                   child: TextButton.icon(
                     onPressed: () => editBudget(context, currency: cur),
                     icon: const Icon(Icons.add_rounded),
-                    label: const Text('Встановити загальний бюджет'),
+                    label: Text(tr('Встановити загальний бюджет')),
                   ),
                 )
               : InkWell(
@@ -953,7 +954,7 @@ class _SummaryView extends StatelessWidget {
                   child: GlassCard(
                     padding: EdgeInsets.zero,
                     child: BudgetRow(
-                      title: 'Бюджет (Місяць)',
+                      title: tr('Бюджет (Місяць)'),
                       limit: limit,
                       spent: bt.spentTotal,
                       pace: _pace(range),
@@ -967,14 +968,14 @@ class _SummaryView extends StatelessWidget {
         divider,
         section(
           Icons.repeat_rounded,
-          'Повтор (${upcoming.length})',
+          tr('Повтор ({0})', [upcoming.length]),
           trailing: IconButton(
-            tooltip: 'Повторювані записи',
+            tooltip: tr('Повторювані записи'),
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const RepeatsPage())),
           ),
           child: upcoming.isEmpty
-              ? Text('Немає запланованих записів до кінця періоду', style: TextStyle(color: muted))
+              ? Text(tr('Немає запланованих записів до кінця періоду'), style: TextStyle(color: muted))
               : box([
                   for (final (d, r) in upcoming)
                     line(
@@ -1001,7 +1002,7 @@ class _SummaryView extends StatelessWidget {
             ),
             onPressed: () => exportForPf(context, month: month),
             icon: const Icon(Icons.table_view_rounded, color: Color(0xFF21A366)),
-            label: const Text('Експорт даних в Excel'),
+            label: Text(tr('Експорт даних в Excel')),
           ),
         ),
       ],
