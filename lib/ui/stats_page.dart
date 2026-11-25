@@ -271,7 +271,7 @@ class _StatsPageState extends State<StatsPage> {
                                 : _label(store),
                             key: ValueKey('${_label(store)}$_tab'),
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 15),
                           ),
                         ),
                       ),
@@ -317,7 +317,7 @@ class _StatsPageState extends State<StatsPage> {
                                   ],
                                 ),
                                 maxLines: 1,
-                                style: TextStyle(fontSize: 16, color: _type == t ? null : scheme.onSurfaceVariant),
+                                style: TextStyle(fontSize: 14, color: _type == t ? null : scheme.onSurfaceVariant),
                               ),
                             ),
                           ),
@@ -603,7 +603,7 @@ class _StatsPageState extends State<StatsPage> {
             child: Row(
               children: [
                 Expanded(
-                  child: Text(tr('Нотатка'), style: TextStyle(color: muted)),
+                  child: Text(tr('Нотатка'), style: TextStyle(color: muted, fontSize: 13)),
                 ),
                 InkWell(
                   onTap: () => setState(() => _notesByAmount = false),
@@ -614,7 +614,7 @@ class _StatsPageState extends State<StatsPage> {
                       children: [
                         Text(
                           tr('К-сть'),
-                          style: TextStyle(color: _notesByAmount ? muted : accent, fontWeight: FontWeight.w600),
+                          style: TextStyle(color: _notesByAmount ? muted : accent, fontWeight: FontWeight.w600, fontSize: 13),
                         ),
                         if (!_notesByAmount) Icon(Icons.arrow_downward_rounded, size: 14, color: accent),
                       ],
@@ -630,7 +630,7 @@ class _StatsPageState extends State<StatsPage> {
                       children: [
                         Text(
                           tr('Сума'),
-                          style: TextStyle(color: _notesByAmount ? accent : muted, fontWeight: FontWeight.w600),
+                          style: TextStyle(color: _notesByAmount ? accent : muted, fontWeight: FontWeight.w600, fontSize: 13),
                         ),
                         if (_notesByAmount) Icon(Icons.arrow_downward_rounded, size: 14, color: accent),
                       ],
@@ -652,7 +652,7 @@ class _StatsPageState extends State<StatsPage> {
                       child: Text(
                         e.key.isEmpty ? tr('Без нотатки') : e.key,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: e.key.isEmpty ? muted : null, fontSize: 15),
+                        style: TextStyle(color: e.key.isEmpty ? muted : null, fontSize: 14),
                       ),
                     ),
                     SizedBox(
@@ -668,7 +668,7 @@ class _StatsPageState extends State<StatsPage> {
                       child: Text(
                         money(e.value.sum, cur),
                         textAlign: TextAlign.end,
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
                       ),
                     ),
                   ],
@@ -812,9 +812,9 @@ class _BudgetView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(type == TxType.expense ? tr('Залишилось ({0})', [kind]) : tr('Ще очікується'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14)),
+                    Text(type == TxType.expense ? tr('Залишилось ({0})', [kind]) : tr('Ще очікується'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
                     const SizedBox(height: 6),
-                    AnimatedMoney(limitTotal - spentTotal, currency, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w500)),
+                    AnimatedMoney(limitTotal - spentTotal, currency, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),
@@ -829,7 +829,7 @@ class _BudgetView extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(tr('Налашт. бюджету'), style: TextStyle(fontSize: 14)),
+                        Text(tr('Налашт. бюджету'), style: TextStyle(fontSize: 12)),
                         Icon(Icons.chevron_right_rounded, size: 18),
                       ],
                     ),
@@ -940,7 +940,7 @@ class BudgetRow extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+                  style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11.5),
                 ),
                 const SizedBox(height: 4),
                 Text(money(limit, currency), style: const TextStyle(fontSize: 15)),
@@ -1217,8 +1217,8 @@ class CategoryRow extends StatelessWidget {
         title: Row(
           children: [
             if (c != null && c.parentId == null && hasIcon(c.emoji)) ...[Text(c.emoji), const SizedBox(width: 6)],
-            Expanded(child: Text(c?.name ?? fallbackName ?? tr('Без категорії'), overflow: TextOverflow.ellipsis)),
-            Text(money(slice.amount, currency), style: const TextStyle(fontWeight: FontWeight.w700)),
+            Expanded(child: Text(c?.name ?? fallbackName ?? tr('Без категорії'), overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14))),
+            Text(money(slice.amount, currency), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
           ],
         ),
         trailing: onTap == null ? null : const Icon(Icons.chevron_right_rounded),

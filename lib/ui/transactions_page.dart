@@ -711,20 +711,20 @@ class _MonthsViewState extends State<_MonthsView> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(money(t.income, cur), style: TextStyle(fontSize: 15, color: incomeColor(context, store))),
+            Text(money(t.income, cur), style: TextStyle(fontSize: 14, color: incomeColor(context, store))),
             const SizedBox(width: 18),
             SizedBox(
               width: 104,
               child: Text(
                 money(t.expense, cur),
                 textAlign: TextAlign.end,
-                style: TextStyle(fontSize: 15, color: p.expense),
+                style: TextStyle(fontSize: 14, color: p.expense),
               ),
             ),
           ],
         ),
         const SizedBox(height: 2),
-        Text('${totalLabel ?? ''}${money(t.income - t.expense, cur)}', style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+        Text('${totalLabel ?? ''}${money(t.income - t.expense, cur)}', style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
       ],
     );
 
@@ -749,8 +749,8 @@ class _MonthsViewState extends State<_MonthsView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(DateFormat('LLL', 'uk').format(DateTime(y, m)), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-                      Text('${_d(r.start)} ~ ${_d(r.end.subtract(const Duration(days: 1)))}', style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+                      Text(DateFormat('LLL', 'uk').format(DateTime(y, m)), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                      Text('${_d(r.start)} ~ ${_d(r.end.subtract(const Duration(days: 1)))}', style: TextStyle(fontSize: 10.5, color: scheme.onSurfaceVariant)),
                     ],
                   ),
                 ),
@@ -784,7 +784,7 @@ class _MonthsViewState extends State<_MonthsView> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: Text('${_d(a)} ~ ${_d(DateTime(b.year, b.month, b.day - 1))}', style: const TextStyle(fontSize: 15))),
+                Expanded(child: Text('${_d(a)} ~ ${_d(DateTime(b.year, b.month, b.day - 1))}', style: const TextStyle(fontSize: 14))),
                 amounts(wt),
               ],
             ),
@@ -876,7 +876,7 @@ class _SummaryView extends StatelessWidget {
               Expanded(
                 child: title.isEmpty
                     ? const SizedBox()
-                    : Text.rich(_titleSpan(title, p.expense), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                    : Text.rich(_titleSpan(title, p.expense), style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600)),
               ),
               ?trailing,
             ],

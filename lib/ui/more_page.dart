@@ -23,7 +23,7 @@ import '../l10n/l10n.dart';
 
 part 'more_extra.dart';
 
-const appVersion = 'v0.9.85';
+const appVersion = 'v0.9.86';
 
 /// Full names of the supported currencies (Settings → currencies).
 Map<String, String> get currencyNames => {
@@ -211,7 +211,7 @@ class _Item extends StatelessWidget {
                   Row(
                     children: [
                       Flexible(
-                        child: Text(title, style: TextStyle(fontSize: 16, color: danger ? scheme.error : null)),
+                        child: Text(title, style: TextStyle(fontSize: 15, color: danger ? scheme.error : null)),
                       ),
                       if (badge != null) ...[
                         const SizedBox(width: 8),
@@ -229,7 +229,7 @@ class _Item extends StatelessWidget {
                         subtitle!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+                        style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
                       ),
                     ),
                 ],

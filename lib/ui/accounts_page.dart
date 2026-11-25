@@ -83,7 +83,7 @@ class AccountsPage extends StatelessWidget {
                       child: Text(
                         tr('Рахунки'),
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 17),
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 15.5),
                       ),
                     ),
                     IconButton(
@@ -139,7 +139,7 @@ class AccountsPage extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 e.key,
-                                style: TextStyle(color: muted, fontWeight: FontWeight.w500, fontSize: 14),
+                                style: TextStyle(color: muted, fontWeight: FontWeight.w500, fontSize: 15),
                               ),
                             ),
                             if (anyExc) Text(money(exc, base), style: TextStyle(color: muted)),
@@ -225,7 +225,7 @@ class _AccountRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(account.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                  Text(account.name, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w500)),
                   if (cycle != null) ...[
                     const SizedBox(height: 4),
                     Text(
