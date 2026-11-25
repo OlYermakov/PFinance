@@ -2,6 +2,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'data/repository.dart';
+import 'l10n/l10n.dart';
 import 'state/app_store.dart';
 import 'ui/app_icon.dart';
 import 'ui/home.dart';
@@ -10,7 +11,8 @@ import 'ui/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('uk');
+  await initializeDateFormatting();
+  AppStore.deviceLanguage = languageFor(WidgetsBinding.instance.platformDispatcher.locale.toLanguageTag());
   final store = AppStore(await Repository.open());
   await store.load();
   applyAppIcon(store.prefs.appIcon);
@@ -39,8 +41,8 @@ class MoneyApp extends StatelessWidget {
             themeMode: store.themeMode,
             themeAnimationDuration: const Duration(milliseconds: 450),
             themeAnimationCurve: Curves.easeOutCubic,
-            locale: const Locale('uk'),
-            supportedLocales: const [Locale('uk'), Locale('en')],
+            locale: Locale(lang),
+            supportedLocales: [for (final l in languages.keys) Locale(l)],
             localizationsDelegates: GlobalMaterialLocalizations.delegates,
             builder: (context, child) {
               final dark = Theme.of(context).brightness == Brightness.dark;

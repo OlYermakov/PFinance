@@ -5,17 +5,18 @@
 
 import 'dart:convert';
 import 'dart:typed_data';
+import '../l10n/l10n.dart';
 
 class SqliteReader {
   SqliteReader(this.bytes) : _bd = ByteData.sublistView(bytes) {
     if (bytes.length < 100 || ascii.decode(bytes.sublist(0, 15), allowInvalid: true) != 'SQLite format 3') {
-      throw const FormatException('Це не база SQLite');
+      throw FormatException(tr('Це не база SQLite'));
     }
     final ps = _bd.getUint16(16);
     pageSize = ps == 1 ? 65536 : ps;
     usable = pageSize - bytes[20];
     final enc = _bd.getUint32(56);
-    if (enc > 1) throw const FormatException('Підтримується лише UTF-8');
+    if (enc > 1) throw FormatException(tr('Підтримується лише UTF-8'));
     _tables = {
       for (final r in _scan(1))
         if (r[0] == 'table' && r[3] is num) (r[1] as String): (root: (r[3] as num).toInt(), sql: r[4] as String? ?? ''),
@@ -114,7 +115,7 @@ class SqliteReader {
           yield (rowid, _record(_payload(p, size)));
         }
       } else {
-        throw FormatException('Невідомий тип сторінки $type');
+        throw FormatException(tr('Невідомий тип сторінки {0}', [type]));
       }
     }
   }

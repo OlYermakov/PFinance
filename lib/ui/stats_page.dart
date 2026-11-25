@@ -14,6 +14,7 @@ import 'edit_transaction.dart' show openTxnEditor;
 import 'theme.dart';
 import 'transactions_page.dart' show TxnTile;
 import 'widgets.dart';
+import '../l10n/l10n.dart';
 
 class StatsPage extends StatefulWidget {
   const StatsPage({super.key});
@@ -100,13 +101,13 @@ enum StatsTab { stats, budget, notes }
 
 enum StatsMode { week, month, year, custom, list, trend }
 
-const statsModeLabels = {
-  StatsMode.week: ('Тиждень', 'Т'),
-  StatsMode.month: ('Місяць', 'М'),
-  StatsMode.year: ('Рік', 'Р'),
-  StatsMode.custom: ('Період', 'П'),
-  StatsMode.list: ('Список', 'С'),
-  StatsMode.trend: ('Тренд', 'Тр'),
+Map<StatsMode, (String, String)> get statsModeLabels => {
+  StatsMode.week: (tr('Тиждень'), tr('Т')),
+  StatsMode.month: (tr('Місяць'), tr('М')),
+  StatsMode.year: (tr('Рік'), tr('Р')),
+  StatsMode.custom: (tr('Період'), tr('П')),
+  StatsMode.list: (tr('Список'), tr('С')),
+  StatsMode.trend: (tr('Тренд'), tr('Тр')),
 };
 
 class _StatsPageState extends State<StatsPage> {
@@ -227,7 +228,7 @@ class _StatsPageState extends State<StatsPage> {
                     Expanded(
                       child: _PillTabs<StatsTab>(
                         value: _tab,
-                        items: const {StatsTab.stats: 'Статистика', StatsTab.budget: 'Бюджет', StatsTab.notes: 'Нотатки'},
+                        items: {StatsTab.stats: tr('Статистика'), StatsTab.budget: tr('Бюджет'), StatsTab.notes: tr('Нотатки')},
                         onChanged: (t) => setState(() => _tab = t),
                       ),
                     ),
@@ -254,7 +255,7 @@ class _StatsPageState extends State<StatsPage> {
                 Row(
                   children: [
                     if (_mode != StatsMode.custom || _tab == StatsTab.budget)
-                      IconButton(tooltip: 'Попередній', icon: const Icon(Icons.chevron_left_rounded), onPressed: () => _step(-1))
+                      IconButton(tooltip: tr('Попередній'), icon: const Icon(Icons.chevron_left_rounded), onPressed: () => _step(-1))
                     else
                       const SizedBox(width: 48),
                     Expanded(
@@ -276,7 +277,7 @@ class _StatsPageState extends State<StatsPage> {
                       ),
                     ),
                     if (_mode != StatsMode.custom || _tab == StatsTab.budget)
-                      IconButton(tooltip: 'Наступний', icon: const Icon(Icons.chevron_right_rounded), onPressed: () => _step(1))
+                      IconButton(tooltip: tr('Наступний'), icon: const Icon(Icons.chevron_right_rounded), onPressed: () => _step(1))
                     else
                       const SizedBox(width: 48),
                   ],
@@ -285,8 +286,8 @@ class _StatsPageState extends State<StatsPage> {
                 Row(
                   children: [
                     for (final (t, label, v, col) in [
-                      (TxType.income, 'Доходи', totals.income, incColor),
-                      (TxType.expense, 'Витрати', totals.expense, p.expense),
+                      (TxType.income, tr('Доходи'), totals.income, incColor),
+                      (TxType.expense, tr('Витрати'), totals.expense, p.expense),
                     ])
                       Expanded(
                         child: InkWell(
@@ -328,7 +329,7 @@ class _StatsPageState extends State<StatsPage> {
                   Padding(
                     padding: const EdgeInsets.only(top: 10),
                     child: Text(
-                      'Немає курсу для ${missingRates.join(', ')}: ці записи не враховано. Задай курс у «Більше → Додаткові валюти».',
+                      tr('Немає курсу для {0}: ці записи не враховано. Задай курс у «Більше → Додаткові валюти».', [missingRates.join(', ')]),
                       style: TextStyle(color: p.expense, fontSize: 12),
                     ),
                   ),
@@ -349,7 +350,7 @@ class _StatsPageState extends State<StatsPage> {
   Widget _statsView(AppStore store, List<Txn> txns, String cur) {
     final slices = slicesFor(store, txns);
     final total = slices.fold<int>(0, (s, x) => s + x.amount);
-    if (slices.isEmpty) return const EmptyState(icon: Icons.donut_large_outlined, text: 'Немає записів за цей період');
+    if (slices.isEmpty) return EmptyState(icon: Icons.donut_large_outlined, text: tr('Немає записів за цей період'));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -376,7 +377,7 @@ class _StatsPageState extends State<StatsPage> {
 
   /// The chart chosen in More → Стиль (the rose by default).
   Widget _mainChart(AppStore store, List<Txn> txns, List<Slice> slices, int total, String cur) {
-    final names = [for (final s in slices) s.category?.name ?? 'Без категорії'];
+    final names = [for (final s in slices) s.category?.name ?? tr('Без категорії')];
     final amounts = [for (final s in slices) s.amount];
     final colors = [for (var i = 0; i < slices.length; i++) rankColor(i)];
     final key = ValueKey('${_label(store)}$_type${store.prefs.statsChart}');
@@ -421,10 +422,10 @@ class _StatsPageState extends State<StatsPage> {
       _ => store.periodRange(store.periodOf(r.start.subtract(const Duration(days: 1)))),
     };
     final prevLabel = switch (_mode) {
-      StatsMode.year => 'минулого року',
-      StatsMode.week => 'минулого тижня',
-      StatsMode.custom => 'попереднього періоду',
-      _ => 'минулого місяця',
+      StatsMode.year => tr('минулого року'),
+      StatsMode.week => tr('минулого тижня'),
+      StatsMode.custom => tr('попереднього періоду'),
+      _ => tr('минулого місяця'),
     };
     List<int> byDay(Iterable<Txn> list, DateTime start, int n) {
       final v = List<int>.filled(n, 0);
@@ -484,7 +485,7 @@ class _StatsPageState extends State<StatsPage> {
       return k;
     }
 
-    const months = ['січ', 'лют', 'бер', 'кві', 'тра', 'чер', 'лип', 'сер', 'вер', 'жов', 'лис', 'гру'];
+    final months = [tr('січ'), tr('лют'), tr('бер'), tr('кві'), tr('тра'), tr('чер'), tr('лип'), tr('сер'), tr('вер'), tr('жов'), tr('лис'), tr('гру')];
     final labels = [
       for (var k = 0; k < bounds.length; k++)
         () {
@@ -505,19 +506,19 @@ class _StatsPageState extends State<StatsPage> {
     ];
     return RoseChart(
       key: ValueKey('${_label(store)}$_type'),
-      names: [for (final s in slices) s.category?.name ?? 'Без категорії'],
+      names: [for (final s in slices) s.category?.name ?? tr('Без категорії')],
       colors: [for (var i = 0; i < slices.length; i++) rankColor(i)],
       parts: parts,
       partLabels: bounds.length > 1 ? labels : const [],
       currency: cur,
-      centerLabel: 'Разом',
+      centerLabel: tr('Разом'),
     );
   }
 
   /// "Список": every record of the month, grouped by category, biggest first.
   Widget _listView(AppStore store, List<Txn> txns, String cur) {
     final slices = slicesFor(store, txns);
-    if (slices.isEmpty) return const EmptyState(icon: Icons.list_alt_rounded, text: 'Немає записів за цей період');
+    if (slices.isEmpty) return EmptyState(icon: Icons.list_alt_rounded, text: tr('Немає записів за цей період'));
     final total = slices.fold<int>(0, (s, x) => s + x.amount);
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return Column(
@@ -573,7 +574,7 @@ class _StatsPageState extends State<StatsPage> {
         child: TrendChart(month: store.periodOf(_anchor), currency: cur),
       ),
       const SizedBox(height: 10),
-      Text('Доходи й витрати за останні 6 місяців.', style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center),
+      Text(tr('Доходи й витрати за останні 6 місяців.'), style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center),
     ],
   );
 
@@ -590,7 +591,7 @@ class _StatsPageState extends State<StatsPage> {
             ? b.value.sum.compareTo(a.value.sum)
             : (b.value.count != a.value.count ? b.value.count.compareTo(a.value.count) : b.value.sum.compareTo(a.value.sum)),
       );
-    if (rows.isEmpty) return const EmptyState(icon: Icons.notes_rounded, text: 'Немає записів за цей період');
+    if (rows.isEmpty) return EmptyState(icon: Icons.notes_rounded, text: tr('Немає записів за цей період'));
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     final accent = Theme.of(context).colorScheme.primary;
     return GlassCard(
@@ -602,7 +603,7 @@ class _StatsPageState extends State<StatsPage> {
             child: Row(
               children: [
                 Expanded(
-                  child: Text('Нотатка', style: TextStyle(color: muted)),
+                  child: Text(tr('Нотатка'), style: TextStyle(color: muted)),
                 ),
                 InkWell(
                   onTap: () => setState(() => _notesByAmount = false),
@@ -612,7 +613,7 @@ class _StatsPageState extends State<StatsPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'К-сть',
+                          tr('К-сть'),
                           style: TextStyle(color: _notesByAmount ? muted : accent, fontWeight: FontWeight.w600),
                         ),
                         if (!_notesByAmount) Icon(Icons.arrow_downward_rounded, size: 14, color: accent),
@@ -628,7 +629,7 @@ class _StatsPageState extends State<StatsPage> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         Text(
-                          'Сума',
+                          tr('Сума'),
                           style: TextStyle(color: _notesByAmount ? accent : muted, fontWeight: FontWeight.w600),
                         ),
                         if (_notesByAmount) Icon(Icons.arrow_downward_rounded, size: 14, color: accent),
@@ -649,7 +650,7 @@ class _StatsPageState extends State<StatsPage> {
                   children: [
                     Expanded(
                       child: Text(
-                        e.key.isEmpty ? 'Без нотатки' : e.key,
+                        e.key.isEmpty ? tr('Без нотатки') : e.key,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: e.key.isEmpty ? muted : null, fontSize: 15),
                       ),
@@ -694,7 +695,7 @@ class _StatsPageState extends State<StatsPage> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-              child: Text(note.isEmpty ? 'Без нотатки' : note, style: Theme.of(context).textTheme.titleLarge),
+              child: Text(note.isEmpty ? tr('Без нотатки') : note, style: Theme.of(context).textTheme.titleLarge),
             ),
             for (final t in list) TxnTile(txn: t),
           ],
@@ -796,7 +797,7 @@ class _BudgetView extends StatelessWidget {
         : now.isAfter(r.end)
         ? 1.0
         : now.difference(r.start).inMinutes / r.end.difference(r.start).inMinutes;
-    const kind = 'Місяць';
+    final kind = tr('Місяць');
     String nameOf(String id) => id.startsWith('grp:') ? id.substring(4) : store.category(id)?.name ?? '—';
 
     return Column(
@@ -811,7 +812,7 @@ class _BudgetView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(type == TxType.expense ? 'Залишилось ($kind)' : 'Ще очікується', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14)),
+                    Text(type == TxType.expense ? tr('Залишилось ({0})', [kind]) : tr('Ще очікується'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14)),
                     const SizedBox(height: 6),
                     AnimatedMoney(limitTotal - spentTotal, currency, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w500)),
                   ],
@@ -823,12 +824,12 @@ class _BudgetView extends StatelessWidget {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(8),
                   onTap: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => budgetSettingsPage(type))),
-                  child: const Padding(
+                  child: Padding(
                     padding: EdgeInsets.fromLTRB(12, 8, 6, 8),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('Налашт. бюджету', style: TextStyle(fontSize: 14)),
+                        Text(tr('Налашт. бюджету'), style: TextStyle(fontSize: 14)),
                         Icon(Icons.chevron_right_rounded, size: 18),
                       ],
                     ),
@@ -842,7 +843,7 @@ class _BudgetView extends StatelessWidget {
           GlassCard(
             padding: const EdgeInsets.all(18),
             child: Text(
-              'Бюджетів ще немає. Задай місячний ліміт для категорій у «Налашт. бюджету». Позначка «Сьогодні» показує, скільки мало б бути витрачено на цей день.',
+              tr('Бюджетів ще немає. Задай місячний ліміт для категорій у «Налашт. бюджету». Позначка «Сьогодні» показує, скільки мало б бути витрачено на цей день.'),
               style: TextStyle(color: scheme.onSurfaceVariant),
             ),
           )
@@ -850,7 +851,7 @@ class _BudgetView extends StatelessWidget {
           GlassCard(
             padding: EdgeInsets.zero,
             child: BudgetRow(
-              title: 'Бюджет ($kind)',
+              title: tr('Бюджет ({0})', [kind]),
               limit: limitTotal,
               spent: spentTotal,
               pace: pace,
@@ -995,7 +996,7 @@ class BudgetRow extends StatelessWidget {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(color: const Color(0xFF55585F), borderRadius: BorderRadius.circular(10)),
-                                  child: const Text('Сьогодні', style: TextStyle(fontSize: 11, color: Colors.white)),
+                                  child: Text(tr('Сьогодні'), style: TextStyle(fontSize: 11, color: Colors.white)),
                                 ),
                                 CustomPaint(size: const Size(8, 4), painter: _Notch(const Color(0xFF55585F))),
                               ],
@@ -1065,7 +1066,7 @@ class LabeledPie extends StatelessWidget {
         painter: _PiePainter(
           values: [for (final s in slices) s.amount / (total == 0 ? 1 : total)],
           colors: [for (var i = 0; i < slices.length; i++) rankColor(i)],
-          names: [for (final s in slices) s.category?.name ?? 'Без категорії'],
+          names: [for (final s in slices) s.category?.name ?? tr('Без категорії')],
           progress: t,
           style: style,
           sub: sub,
@@ -1180,7 +1181,7 @@ class CategoryRow extends StatelessWidget {
     required this.currency,
     required this.index,
     this.onTap,
-    this.fallbackName = 'Без категорії',
+    this.fallbackName,
     this.color,
   });
   final Slice slice;
@@ -1188,7 +1189,7 @@ class CategoryRow extends StatelessWidget {
   final String currency;
   final int index;
   final VoidCallback? onTap;
-  final String fallbackName;
+  final String? fallbackName;
   final Color? color;
 
   @override
@@ -1216,7 +1217,7 @@ class CategoryRow extends StatelessWidget {
         title: Row(
           children: [
             if (c != null && c.parentId == null && hasIcon(c.emoji)) ...[Text(c.emoji), const SizedBox(width: 6)],
-            Expanded(child: Text(c?.name ?? fallbackName, overflow: TextOverflow.ellipsis)),
+            Expanded(child: Text(c?.name ?? fallbackName ?? tr('Без категорії'), overflow: TextOverflow.ellipsis)),
             Text(money(slice.amount, currency), style: const TextStyle(fontWeight: FontWeight.w700)),
           ],
         ),
@@ -1237,15 +1238,15 @@ Future<void> editBudget(BuildContext context, {required String currency, Budget?
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) => AlertDialog(
-        title: Text(existing == null ? 'Новий бюджет' : 'Бюджет'),
+        title: Text(existing == null ? tr('Новий бюджет') : tr('Бюджет')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<String?>(
               initialValue: catId,
-              decoration: const InputDecoration(labelText: 'Категорія'),
+              decoration: InputDecoration(labelText: tr('Категорія')),
               items: [
-                if (!used.contains(null) || existing?.categoryId == null) const DropdownMenuItem(value: null, child: Text('🎯 Усі витрати')),
+                if (!used.contains(null) || existing?.categoryId == null) DropdownMenuItem(value: null, child: Text(tr('🎯 Усі витрати'))),
                 for (final c in cats) DropdownMenuItem(value: c.id, child: Text('${iconPrefix(c.emoji)}${c.name}')),
               ],
               onChanged: existing != null ? null : (v) => setState(() => catId = v),
@@ -1255,7 +1256,7 @@ Future<void> editBudget(BuildContext context, {required String currency, Budget?
               controller: ctrl,
               autofocus: true,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(labelText: 'Ліміт на місяць', suffixText: currency),
+              decoration: InputDecoration(labelText: tr('Ліміт на місяць'), suffixText: currency),
             ),
           ],
         ),
@@ -1266,9 +1267,9 @@ Future<void> editBudget(BuildContext context, {required String currency, Budget?
                 store.saveBudget(existing.copyWith(deleted: true));
                 Navigator.pop(context);
               },
-              child: const Text('Видалити'),
+              child: Text(tr('Видалити')),
             ),
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Скасувати')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Скасувати'))),
           FilledButton(
             onPressed: () {
               final v = parseMoney(ctrl.text, currency);
@@ -1276,7 +1277,7 @@ Future<void> editBudget(BuildContext context, {required String currency, Budget?
               store.saveBudget(existing?.withDefault(v, store.currentPeriod) ?? Budget(categoryId: catId, amount: v, currency: currency));
               Navigator.pop(context);
             },
-            child: const Text('Зберегти'),
+            child: Text(tr('Зберегти')),
           ),
         ],
       ),
@@ -1347,9 +1348,9 @@ class TrendChart extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.circle, size: 10, color: inc),
-              const Text(' Доходи   '),
+              Text(tr(' Доходи   ')),
               Icon(Icons.circle, size: 10, color: p.expense),
-              const Text(' Витрати'),
+              Text(tr(' Витрати')),
             ],
           ),
         ],

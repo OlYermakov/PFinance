@@ -1,11 +1,13 @@
 import 'package:material_ui/material_ui.dart';
+import '../l10n/l10n.dart';
 
 /// Visual theme in the style of the PF dashboard ("liquid glass" over an aurora
 /// backdrop). Each variant changes the accent and the aurora light colours.
 class AppTheme {
-  const AppTheme(this.id, this.name, this.accent, this.aurora);
+  const AppTheme(this.id, this._name, this.accent, this.aurora);
   final String id;
-  final String name;
+  final String _name;
+  String get name => tr(_name);
   final Color accent;
 
   /// Five lights shining through the glass: cyan, violet, magenta, blue, mint

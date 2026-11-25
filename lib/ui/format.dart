@@ -1,6 +1,13 @@
 import 'package:intl/intl.dart';
 
-const locale = 'uk';
+import '../l10n/l10n.dart';
+
+/// Numbers keep one style in every language ("1 234,56"): the keypad and
+/// the charts are built around the decimal comma.
+const numberLocale = 'uk';
+
+/// Dates, months and weekdays follow the interface language.
+String get locale => lang;
 
 /// Global display option (Settings → decimals).
 bool showDecimals = true;
@@ -18,7 +25,7 @@ int decimalsOf(String currency) =>
 
 String money(int minor, String currency, {bool sign = false}) {
   final f = NumberFormat.currency(
-    locale: locale,
+    locale: numberLocale,
     name: currency,
     symbol: NumberFormat.simpleCurrency(name: currency).currencySymbol,
   );
@@ -40,7 +47,7 @@ String money(int minor, String currency, {bool sign = false}) {
 /// figures inside lists where the currency is obvious.
 String formatPlainMoney(int minor, String currency) {
   final d = decimalsOf(currency);
-  final f = NumberFormat.decimalPatternDigits(locale: locale, decimalDigits: showDecimals ? d : 0);
+  final f = NumberFormat.decimalPatternDigits(locale: numberLocale, decimalDigits: showDecimals ? d : 0);
   final s = f.format((minor / _pow10(d)).abs());
   return minor < 0 ? '−$s' : s;
 }

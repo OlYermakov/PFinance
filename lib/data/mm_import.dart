@@ -9,6 +9,7 @@ import 'dart:typed_data';
 import '../ui/format.dart' show decimalsOf;
 import 'models.dart';
 import 'sqlite_reader.dart';
+import '../l10n/l10n.dart';
 
 class MmImportResult {
   MmImportResult(this.backup, this.stats);
@@ -62,7 +63,7 @@ const _palette = [0xFF4F7CFF, 0xFF34C759, 0xFFFF9500, 0xFFAF52DE, 0xFFFF2D55, 0x
 MmImportResult importMoneyManager(Uint8List bytes, Map<String, Object?> settings, {DateTime? now}) {
   final db = SqliteReader(bytes);
   for (final t in ['ZASSET', 'ZCATEGORY', 'ZINOUTCOME']) {
-    if (!db.hasTable(t)) throw const FormatException('Це не резервна копія Money Manager');
+    if (!db.hasTable(t)) throw FormatException(tr('Це не резервна копія Money Manager'));
   }
   now ??= DateTime.now();
 

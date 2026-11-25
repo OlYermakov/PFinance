@@ -10,6 +10,7 @@ import 'format.dart';
 import 'glass.dart';
 import 'stats_page.dart' show CategoryRow, Slice, rankColor, sliceKey, slicesFor;
 import 'transactions_page.dart' show DayCard;
+import '../l10n/l10n.dart';
 
 class CategoryStatsPage extends StatefulWidget {
   const CategoryStatsPage({super.key, required this.category, required this.type, required this.month, this.backLabel, this.color, this.year = false});
@@ -92,7 +93,7 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
         leading: TextButton.icon(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.chevron_left_rounded, size: 28),
-          label: Text(widget.backLabel ?? 'Назад', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16)),
+          label: Text(widget.backLabel ?? tr('Назад'), overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16)),
           style: TextButton.styleFrom(foregroundColor: scheme.onSurface, alignment: Alignment.centerLeft),
         ),
         title: Text(c.name),
@@ -150,7 +151,7 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
                             total: subTotal,
                             currency: cur,
                             index: i,
-                            fallbackName: 'Без підкатегорії',
+                            fallbackName: tr('Без підкатегорії'),
                             onTap: s.category == null
                                 ? null
                                 : isGroup
@@ -176,7 +177,7 @@ class _CategoryStatsPageState extends State<CategoryStatsPage> {
                   Padding(
                     padding: const EdgeInsets.all(32),
                     child: Text(
-                      widget.year ? 'Записів за цей рік немає' : 'Записів за цей місяць немає',
+                      widget.year ? tr('Записів за цей рік немає') : tr('Записів за цей місяць немає'),
                       textAlign: TextAlign.center,
                       style: TextStyle(color: scheme.onSurfaceVariant),
                     ),
