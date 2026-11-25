@@ -427,7 +427,8 @@ class TxnTile extends StatelessWidget {
           child: Row(
             children: [
               SizedBox(
-                width: 92,
+                // MM: the note starts 96 pt from the screen edge
+                width: 72,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -436,7 +437,7 @@ class TxnTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
