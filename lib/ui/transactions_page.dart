@@ -331,7 +331,7 @@ class DayCard extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text('${day.day}', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700, height: 1)),
+                  Text('${day.day}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, height: 1)),
                   const SizedBox(width: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -341,7 +341,7 @@ class DayCard extends StatelessWidget {
                     ),
                     child: Text(
                       weekdayShort(day),
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: dayColor),
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: dayColor),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -350,13 +350,13 @@ class DayCard extends StatelessWidget {
                   if (t.income > 0)
                     Text(
                       money(t.income, cur),
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: incomeColor(context, store)),
+                      style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w500, color: incomeColor(context, store)),
                     ),
                   if (t.income > 0 && t.expense > 0) const SizedBox(width: 10),
                   if (t.expense > 0)
                     Text(
                       money(t.expense, cur),
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: p.expense),
+                      style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w500, color: p.expense),
                     ),
                 ],
               ),
@@ -416,7 +416,7 @@ class TxnTile extends StatelessWidget {
         amountColor = txn.type == TxType.income ? incomeColor(context, store) : p.expense;
     }
     final timeText = store.prefs.timeMode == 2 ? TimeOfDay.fromDateTime(txn.date).format(context) : null;
-    final muted = TextStyle(color: scheme.onSurfaceVariant, fontSize: 13, height: 1.25);
+    final muted = TextStyle(color: scheme.onSurfaceVariant, fontSize: 11.5, height: 1.3);
     final second = [?timeText, if (under.isNotEmpty) under].join(' · ');
     final tile = InkWell(
       onTap: () => openTxnEditor(context, existing: txn),
@@ -458,7 +458,7 @@ class TxnTile extends StatelessWidget {
                         // MM: a transfer's "A → B" line is grey, not white
                         style: TextStyle(
                           fontWeight: FontWeight.w500,
-                          fontSize: 15,
+                          fontSize: 14.5,
                           height: 1.25,
                           color: txn.type == TxType.transfer ? scheme.onSurfaceVariant : null,
                         ),
@@ -471,7 +471,7 @@ class TxnTile extends StatelessWidget {
               Text(
                 // MM: shown in the currency it was typed in
                 txn.enteredAmount != null && txn.enteredCur != null ? money(txn.enteredAmount!, txn.enteredCur!) : money(txn.amount, cur),
-                style: TextStyle(color: amountColor, fontWeight: FontWeight.w500, fontSize: 15),
+                style: TextStyle(color: amountColor, fontWeight: FontWeight.w500, fontSize: 14.5),
               ),
             ],
           ),
