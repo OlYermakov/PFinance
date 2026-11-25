@@ -57,6 +57,7 @@ class Prefs {
   int lastBackup = 0; // when a backup file was last shared or saved (ms)
   int backupRemindDays = 7; // remind to back up after this many days; 0 = never
   bool installHintHidden = false; // «Додати на головний екран» dismissed
+  String statsChart = 'rose'; // main Statistics chart (StatsChart name)
 
   Map<String, Object?> toJson() => {
     'themeId': themeId,
@@ -82,6 +83,7 @@ class Prefs {
     'lastBackup': lastBackup,
     'backupRemindDays': backupRemindDays,
     'installHintHidden': installHintHidden,
+    'statsChart': statsChart,
     'timeMode': timeMode,
     'timeAsc': timeAsc,
     'swipe': swipe,
@@ -136,6 +138,7 @@ class Prefs {
     lastBackup = (j['lastBackup'] as num?)?.toInt() ?? lastBackup;
     backupRemindDays = (j['backupRemindDays'] as num?)?.toInt() ?? backupRemindDays;
     installHintHidden = j['installHintHidden'] as bool? ?? installHintHidden;
+    statsChart = j['statsChart'] as String? ?? statsChart;
     final r = j['rates'];
     if (r is Map) {
       rates = {for (final e in r.entries) e.key as String: (e.value as num).toDouble()};

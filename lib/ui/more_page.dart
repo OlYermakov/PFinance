@@ -14,6 +14,7 @@ import 'edit_transaction.dart' show openTxnEditor, repeatLabel;
 import 'export_pf.dart';
 import 'pwa.dart';
 import 'share_file.dart';
+import 'stats_charts.dart';
 import 'format.dart';
 import 'theme.dart';
 import 'transactions_page.dart' show TxnTile;
@@ -21,7 +22,7 @@ import 'widgets.dart';
 
 part 'more_extra.dart';
 
-const appVersion = 'v0.9.81';
+const appVersion = 'v0.9.82';
 
 /// Full names of the supported currencies (Settings → currencies).
 const currencyNames = {

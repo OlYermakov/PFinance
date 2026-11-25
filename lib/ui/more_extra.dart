@@ -1393,6 +1393,26 @@ class _ThemePage extends StatelessWidget {
                 _Item(icon, _modeLabel(m), trailing: radio(store.themeMode == m), onTap: () => store.setThemeMode(m)),
             ],
           ),
+          const _Band('Статистика'),
+          _Group(
+            children: [
+              _Item(
+                null,
+                'Головний графік',
+                value: statsChartLabels[statsChartOf(store.prefs.statsChart)],
+                onTap: () async {
+                  final v = await _choose<StatsChart>(
+                    context,
+                    'Головний графік',
+                    statsChartLabels,
+                    statsChartOf(store.prefs.statsChart),
+                    note: 'Графік над списком категорій у «Статистиці». Список і відсотки під ним однакові для всіх.',
+                  );
+                  if (v != null) await store.updatePrefs((p) => p.statsChart = v.name);
+                },
+              ),
+            ],
+          ),
           const _Band('Колір акценту'),
           _Group(
             children: [

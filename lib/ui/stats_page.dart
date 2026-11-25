@@ -8,6 +8,7 @@ import 'accounts_page.dart' show groupOf;
 import 'category_page.dart';
 import 'format.dart';
 import 'rose_chart.dart';
+import 'stats_charts.dart';
 import 'more_page.dart' show budgetSettingsPage;
 import 'edit_transaction.dart' show openTxnEditor;
 import 'theme.dart';
@@ -352,7 +353,7 @@ class _StatsPageState extends State<StatsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        GlassCard(padding: const EdgeInsets.symmetric(vertical: 12), child: _rose(store, txns, slices, cur)),
+        GlassCard(padding: const EdgeInsets.symmetric(vertical: 12), child: _mainChart(store, txns, slices, total, cur)),
         const SizedBox(height: 12),
         GlassCard(
           padding: const EdgeInsets.symmetric(vertical: 6),
@@ -370,6 +371,79 @@ class _StatsPageState extends State<StatsPage> {
           ),
         ),
       ],
+    );
+  }
+
+  /// The chart chosen in More → Стиль (the rose by default).
+  Widget _mainChart(AppStore store, List<Txn> txns, List<Slice> slices, int total, String cur) {
+    final names = [for (final s in slices) s.category?.name ?? 'Без категорії'];
+    final amounts = [for (final s in slices) s.amount];
+    final colors = [for (var i = 0; i < slices.length; i++) rankColor(i)];
+    final key = ValueKey('${_label(store)}$_type${store.prefs.statsChart}');
+    return switch (statsChartOf(store.prefs.statsChart)) {
+      StatsChart.rose => _rose(store, txns, slices, cur),
+      StatsChart.donut => LabeledPie(key: key, slices: slices, total: total),
+      StatsChart.bars => RankBars(
+        key: key,
+        names: names,
+        amounts: amounts,
+        colors: colors,
+        currency: cur,
+        onTap: (i) {
+          final c = slices[i].category;
+          if (c != null) _openCategory(context, c, rankColor(i));
+        },
+      ),
+      StatsChart.bubbles => BubbleChart(key: key, names: names, amounts: amounts, colors: colors, currency: cur),
+      StatsChart.radial => RadialBars(key: key, names: names, amounts: amounts, colors: colors, currency: cur),
+      StatsChart.cumulative => _cumulative(store, txns, cur, key),
+    };
+  }
+
+  /// Day totals of the period and of the one before it, for the running line.
+  Widget _cumulative(AppStore store, List<Txn> txns, String cur, Key key) {
+    final r = _range(store);
+    final days = r.end.difference(r.start).inDays.clamp(1, 400);
+    final ({DateTime start, DateTime end}) prev = switch (_mode) {
+      StatsMode.year => store.yearRange(r.start.year - 1),
+      StatsMode.week || StatsMode.custom => (start: DateTime(r.start.year, r.start.month, r.start.day - days), end: r.start),
+      _ => store.periodRange(store.periodOf(r.start.subtract(const Duration(days: 1)))),
+    };
+    final prevLabel = switch (_mode) {
+      StatsMode.year => 'минулого року',
+      StatsMode.week => 'минулого тижня',
+      StatsMode.custom => 'попереднього періоду',
+      _ => 'минулого місяця',
+    };
+    List<int> byDay(Iterable<Txn> list, DateTime start, int n) {
+      final v = List<int>.filled(n, 0);
+      for (final t in list) {
+        final i = DateTime(t.date.year, t.date.month, t.date.day).difference(start).inDays;
+        if (i >= 0 && i < n) v[i] += store.baseAmount(t);
+      }
+      return v;
+    }
+
+    final prevDays = prev.end.difference(prev.start).inDays.clamp(1, 400);
+    final prevTxns = store.txns.where((t) => !t.date.isBefore(prev.start) && t.date.isBefore(prev.end) && store.flowOf(t) == _type);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final ti = today.difference(r.start).inDays;
+    int? budget;
+    if (_mode == StatsMode.month && _type == TxType.expense) {
+      final b = budgetTotals(store, store.periodOf(_anchor), cur, _type);
+      if (b.limitTotal > 0) budget = b.limitTotal;
+    }
+    return CumulativeLine(
+      key: key,
+      current: byDay(txns, r.start, days),
+      previous: byDay(prevTxns, prev.start, prevDays),
+      days: days,
+      today: ti >= 0 && ti < days ? ti : null,
+      currency: cur,
+      color: _type == TxType.income ? incomeColor(context, store) : AppPalette.of(context).expense,
+      prevLabel: prevLabel,
+      budget: budget,
     );
   }
 
@@ -1010,17 +1084,7 @@ class _PiePainter extends CustomPainter {
     for (var i = 0; i < values.length; i++) {
       final sweep = values[i] * math.pi * 2 * progress;
       if (sweep > 0.004) {
-        canvas.drawArc(
-          rect,
-          start,
-          sweep,
-          false,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = ring + 8
-            ..color = colors[i].withValues(alpha: 0.18)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
-        );
+        // Flat ring, as in Money Manager.
         canvas.drawArc(
           rect,
           start,
@@ -1029,23 +1093,8 @@ class _PiePainter extends CustomPainter {
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = ring
-            ..shader = SweepGradient(
-              startAngle: start,
-              endAngle: start + sweep + 0.0001,
-              colors: [colors[i], Color.lerp(colors[i], Colors.white, 0.2)!],
-            ).createShader(rect),
+            ..color = colors[i],
         );
-        // Thin separator between slices.
-        if (values.length > 1) {
-          final dir = Offset(math.cos(start), math.sin(start));
-          canvas.drawLine(
-            c + dir * (r - ring),
-            c + dir * r,
-            Paint()
-              ..color = const Color(0xFF0B0C14)
-              ..strokeWidth = 1.5,
-          );
-        }
       }
       if (values[i] >= 0.008) labels.add((mid: start + sweep / 2, i: i));
       start += sweep;
