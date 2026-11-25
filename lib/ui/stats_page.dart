@@ -394,6 +394,17 @@ class _StatsPageState extends State<StatsPage> {
           if (c != null) _openCategory(context, c, rankColor(i));
         },
       ),
+      StatsChart.treemap => TreemapChart(
+        key: key,
+        names: names,
+        amounts: amounts,
+        colors: colors,
+        currency: cur,
+        onTap: (i) {
+          final c = slices[i].category;
+          if (c != null) _openCategory(context, c, rankColor(i));
+        },
+      ),
       StatsChart.bubbles => BubbleChart(key: key, names: names, amounts: amounts, colors: colors, currency: cur),
       StatsChart.radial => RadialBars(key: key, names: names, amounts: amounts, colors: colors, currency: cur),
       StatsChart.cumulative => _cumulative(store, txns, cur, key),

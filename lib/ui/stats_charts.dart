@@ -8,12 +8,13 @@ import 'package:material_ui/material_ui.dart';
 import 'format.dart';
 
 /// Which chart the Statistics tab shows above the category list.
-enum StatsChart { rose, donut, bars, bubbles, cumulative, radial }
+enum StatsChart { rose, donut, bars, treemap, bubbles, cumulative, radial }
 
 const statsChartLabels = {
   StatsChart.rose: 'Троянда з тижнями',
-  StatsChart.donut: 'Пончик (як у Money Manager)',
+  StatsChart.donut: 'Пончик',
   StatsChart.bars: 'Смуги за рангом',
+  StatsChart.treemap: 'Плитки',
   StatsChart.bubbles: 'Бульбашки',
   StatsChart.cumulative: 'Накопичувальна лінія',
   StatsChart.radial: 'Радіальні смуги',
@@ -625,4 +626,121 @@ class _RadialPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RadialPainter old) => old.progress != progress || old.selected != selected || old.amounts != amounts;
+}
+
+// ---- 3. Плитки (treemap) ----------------------------------------------------------------
+
+/// Rectangles whose area is the category's share (squarified layout), with
+/// the name, share and amount inside when the tile is big enough.
+class TreemapChart extends StatelessWidget {
+  const TreemapChart({super.key, required this.names, required this.amounts, required this.colors, required this.currency, this.onTap});
+  final List<String> names;
+  final List<int> amounts;
+  final List<Color> colors;
+  final String currency;
+  final ValueChanged<int>? onTap;
+
+  /// Squarified treemap (Bruls et al.): fills rows along the shorter side,
+  /// keeping tiles as close to squares as possible.
+  static List<Rect> layout(List<double> values, Rect area) {
+    final out = List<Rect>.filled(values.length, Rect.zero);
+    final total = values.fold<double>(0, (s, v) => s + v);
+    if (total <= 0) return out;
+    final scale = area.width * area.height / total;
+    var rest = area;
+    var i = 0;
+    while (i < values.length) {
+      final side = math.min(rest.width, rest.height);
+      final row = <int>[];
+      double worst(List<int> r) {
+        final s = r.fold<double>(0, (a, k) => a + values[k] * scale);
+        final mx = r.map((k) => values[k] * scale).reduce(math.max);
+        final mn = r.map((k) => values[k] * scale).reduce(math.min);
+        return math.max(side * side * mx / (s * s), (s * s) / (side * side * mn));
+      }
+
+      row.add(i++);
+      while (i < values.length && worst([...row, i]) <= worst(row)) {
+        row.add(i++);
+      }
+      final sum = row.fold<double>(0, (a, k) => a + values[k] * scale);
+      final thick = sum / side;
+      var pos = 0.0;
+      for (final k in row) {
+        final len = values[k] * scale / thick;
+        out[k] = rest.width >= rest.height ? Rect.fromLTWH(rest.left, rest.top + pos, thick, len) : Rect.fromLTWH(rest.left + pos, rest.top, len, thick);
+        pos += len;
+      }
+      rest = rest.width >= rest.height
+          ? Rect.fromLTRB(rest.left + thick, rest.top, rest.right, rest.bottom)
+          : Rect.fromLTRB(rest.left, rest.top + thick, rest.right, rest.bottom);
+    }
+    return out;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const h = 280.0;
+    final n = math.min(amounts.length, 12);
+    final total = amounts.fold<int>(0, (s, a) => s + a);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final rects = layout([for (var i = 0; i < n; i++) amounts[i].toDouble()], Rect.fromLTWH(0, 0, c.maxWidth, h));
+          return _Grow(
+            builder: (t) => SizedBox(
+              height: h,
+              child: Stack(
+                children: [
+                  for (var i = 0; i < n; i++)
+                    Positioned.fromRect(
+                      rect: rects[i].deflate(1.5),
+                      child: Opacity(
+                        opacity: t,
+                        child: GestureDetector(
+                          onTap: onTap == null ? null : () => onTap!(i),
+                          child: Container(
+                            decoration: BoxDecoration(color: colors[i], borderRadius: BorderRadius.circular(6)),
+                            padding: const EdgeInsets.all(6),
+                            alignment: Alignment.topLeft,
+                            child: rects[i].width < 44 || rects[i].height < 30
+                                ? null
+                                : Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        names[i],
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                                      ),
+                                      if (rects[i].height >= 48)
+                                        Text(
+                                          '${(amounts[i] * 100 / (total == 0 ? 1 : total)).toStringAsFixed(1).replaceAll('.', ',')}%',
+                                          maxLines: 1,
+                                          style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 11),
+                                        ),
+                                      if (rects[i].height >= 66 && rects[i].width >= 80)
+                                        Text(
+                                          money(amounts[i], currency),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 11),
+                                        ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
