@@ -1065,6 +1065,7 @@ class _TxnEditorState extends State<TxnEditor> {
                 tooltip: 'Видалити',
                 icon: const Icon(Icons.delete_outline_rounded),
                 onPressed: () async {
+                  if (!await confirmDeleteRecord(context, repeat: _isRule)) return;
                   if (_isRule) {
                     await store.deleteRepeat(widget.repeat!);
                   } else {
@@ -1283,20 +1284,33 @@ class _TxnEditorState extends State<TxnEditor> {
               ],
             ),
           ),
-          ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * (f == _Field.date ? 0.5 : 0.42)),
-            child: SingleChildScrollView(child: body),
-          ),
+          // MM: every panel takes the same place as the amount keypad
+          // (currency row + 5 key rows), so the form above never jumps when
+          // moving account → category → amount. Shorter grids leave space below.
+          if (f == _Field.date)
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.5),
+              child: SingleChildScrollView(child: body),
+            )
+          else
+            SizedBox(
+              height: _panelBody,
+              child: SingleChildScrollView(child: body),
+            ),
         ],
       ),
     );
   }
 
+  /// Height of a panel below its header: the currency row (48) and the
+  /// keypad (5 × 56).
+  static const double _panelBody = 48 + 5 * 56;
+
   /// MM: the currencies in use above the keypad; the chosen one is lit.
   Widget _currencyRow(AppStore store, ColorScheme scheme) {
     final accCur = store.account(_accountId)?.currency ?? store.baseCurrency;
     final list = <String>{accCur, store.baseCurrency, ...store.prefs.rates.keys, ?_amountCur}.toList();
-    if (list.length < 2) return const SizedBox.shrink();
+    if (list.length < 2) return const SizedBox(height: 48);
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       child: PillTabs<String>(
@@ -1752,3 +1766,30 @@ String repeatShort(RepeatEvery r) => switch (r) {
   RepeatEvery.halfYear => '6 міс.',
   RepeatEvery.year => 'рік',
 };
+
+/// MM asks before deleting a record (bottom panel, like every dialog).
+Future<bool> confirmDeleteRecord(BuildContext context, {bool repeat = false}) async {
+  final ok = await showSheetDialog<bool>(
+    context: context,
+    builder: (context) {
+      final scheme = Theme.of(context).colorScheme;
+      return AlertDialog(
+        title: Text(repeat ? 'Видалити повтор?' : 'Видалити запис?'),
+        content: Text(repeat ? 'Нові записи більше не створюватимуться. Уже створені залишаться.' : 'Запис буде видалено.'),
+        actions: [
+          TextButton(
+            style: TextButton.styleFrom(shape: const StadiumBorder()),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Ні'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(shape: const StadiumBorder(), backgroundColor: scheme.error, foregroundColor: scheme.onError),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Видалити'),
+          ),
+        ],
+      );
+    },
+  );
+  return ok == true;
+}

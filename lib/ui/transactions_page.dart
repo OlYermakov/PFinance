@@ -487,6 +487,7 @@ class TxnTile extends StatelessWidget {
         color: p.expense.withValues(alpha: 0.15),
         child: Icon(Icons.delete_outline_rounded, color: p.expense),
       ),
+      confirmDismiss: (_) => confirmDeleteRecord(context),
       onDismissed: (_) {
         store.deleteTxn(txn);
         ScaffoldMessenger.of(context)
