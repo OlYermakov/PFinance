@@ -47,7 +47,7 @@ class MoneyApp extends StatelessWidget {
             builder: (context, child) {
               final dark = Theme.of(context).brightness == Brightness.dark;
               applyPageColor(dark ? 0xFF111318 : 0xFFF2F3F7);
-              return child!;
+              return _iosHomeScreenFix(context, child!);
             },
             home: const HomeShell(),
           );
@@ -55,4 +55,23 @@ class MoneyApp extends StatelessWidget {
       ),
     );
   }
+}
+
+/// On iPhone, the app opened from the home screen sits below the status bar
+/// (status bar style "black"), so nothing covers its top edge. After the phone
+/// turns, iOS still reports the status bar height as a top safe-area inset,
+/// which pushed every screen down. The top inset is always 0 there.
+final bool _iosHomeScreen = isIos && isStandalone;
+
+Widget _iosHomeScreenFix(BuildContext context, Widget child) {
+  if (!_iosHomeScreen) return child;
+  final mq = MediaQuery.of(context);
+  if (mq.padding.top == 0 && mq.viewPadding.top == 0) return child;
+  return MediaQuery(
+    data: mq.copyWith(
+      padding: mq.padding.copyWith(top: 0),
+      viewPadding: mq.viewPadding.copyWith(top: 0),
+    ),
+    child: child,
+  );
 }

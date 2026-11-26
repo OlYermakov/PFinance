@@ -23,7 +23,7 @@ import '../l10n/l10n.dart';
 
 part 'more_extra.dart';
 
-const appVersion = 'v0.9.89';
+const appVersion = 'v0.9.90';
 
 /// Full names of the supported currencies (Settings → currencies).
 Map<String, String> get currencyNames => {
